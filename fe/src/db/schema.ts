@@ -78,3 +78,4 @@ export type SubCategory = typeof subCategories.$inferSelect;
 export type NewSubCategory = typeof subCategories.$inferInsert;
 export type Repository = typeof repositories.$inferSelect;
 export type NewRepository = typeof repositories.$inferInsert;
+

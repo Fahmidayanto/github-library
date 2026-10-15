@@ -7,3 +7,4 @@ const connectionString = process.env.DATABASE_URL || '';
 export const isDbConfigured = Boolean(connectionString && connectionString.startsWith('postgres'));
 
 export const db = isDbConfigured ? drizzle(neon(connectionString), { schema }) : null;
+

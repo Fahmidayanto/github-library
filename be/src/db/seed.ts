@@ -96,3 +96,4 @@ seed().catch(err => {
   console.error('Seed gagal:', err);
   process.exit(1);
 });
+
