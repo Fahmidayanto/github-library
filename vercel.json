@@ -4,3 +4,4 @@
   "buildCommand": "pnpm --filter fe build",
   "outputDirectory": "fe/.next"
 }
+

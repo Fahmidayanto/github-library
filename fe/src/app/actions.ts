@@ -3,6 +3,9 @@
 import { revalidatePath } from 'next/cache';
 import fs from 'fs';
 import path from 'path';
+import { db, isDbConfigured } from '@/db';
+import { categories, subCategories, repositories } from '@/db/schema';
+import { eq, desc } from 'drizzle-orm';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000';
 
@@ -208,6 +211,19 @@ function saveLocalStore(cats: any[], repos: any[]) {
 }
 
 export async function getCategoriesTree() {
+  if (db && isDbConfigured) {
+    try {
+      const data = await db.query.categories.findMany({
+        with: {
+          subCategories: true,
+        },
+      });
+      if (Array.isArray(data) && data.length > 0) return data;
+    } catch (err) {
+      console.warn('Gagal membaca kategori dari DB, beralih ke fallback:', err);
+    }
+  }
+
   try {
     const res = await fetch(`${BACKEND_URL}/api/categories`, {
       cache: 'no-store',
@@ -223,6 +239,40 @@ export async function getCategoriesTree() {
 }
 
 export async function getRepositories(filter?: { categoryId?: string; subCategoryId?: string; search?: string }) {
+  if (db && isDbConfigured) {
+    try {
+      const allRepos = await db.query.repositories.findMany({
+        with: {
+          category: true,
+          subCategory: true,
+        },
+        orderBy: [desc(repositories.starsCount)],
+      });
+      if (Array.isArray(allRepos) && allRepos.length > 0) {
+        let result = allRepos.map(r => ({
+          ...r,
+          categoryId: r.categoryId,
+          categoryName: r.category?.name || '',
+          subCategoryId: r.subCategoryId || '',
+          subCategoryName: r.subCategory?.name || '',
+        }));
+        if (filter?.categoryId && filter.categoryId !== 'all') {
+          result = result.filter(r => r.categoryId === filter.categoryId);
+        }
+        if (filter?.subCategoryId) {
+          result = result.filter(r => r.subCategoryId === filter.subCategoryId);
+        }
+        if (filter?.search) {
+          const q = filter.search.toLowerCase();
+          result = result.filter(r => r.name.toLowerCase().includes(q) || r.description?.toLowerCase().includes(q));
+        }
+        return result;
+      }
+    } catch (err) {
+      console.warn('Gagal membaca repositori dari DB, beralih ke fallback:', err);
+    }
+  }
+
   try {
     const query = new URLSearchParams();
     if (filter?.categoryId) query.set('categoryId', filter.categoryId);
@@ -256,6 +306,48 @@ export async function getRepositories(filter?: { categoryId?: string; subCategor
 }
 
 export async function createRepositoryAction(data: any) {
+  if (db && isDbConfigured) {
+    try {
+      const categoryId = data.categoryId;
+      let subCategoryId = data.subCategoryId;
+      let createdSubCategory = null;
+
+      if (data.subCategoryName && data.subCategoryName.trim() && categoryId) {
+        const cleanSub = data.subCategoryName.trim();
+        const subSlug = cleanSub.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        const [newSub] = await db.insert(subCategories).values({
+          categoryId,
+          name: cleanSub,
+          slug: subSlug,
+        }).returning();
+        subCategoryId = newSub.id;
+        createdSubCategory = newSub;
+      }
+
+      const [newRepo] = await db.insert(repositories).values({
+        categoryId,
+        subCategoryId: subCategoryId || null,
+        githubUrl: data.githubUrl,
+        owner: data.owner,
+        name: data.name,
+        fullName: data.fullName || `${data.owner}/${data.name}`,
+        description: data.description || '',
+        starsCount: data.starsCount || 0,
+        forksCount: data.forksCount || 0,
+        primaryLanguage: data.primaryLanguage || 'Unknown',
+        topics: Array.isArray(data.topics) ? data.topics : [],
+        homepage: data.homepage || '',
+        license: typeof data.license === 'object' ? data.license?.name || data.license?.spdx_id : data.license || null,
+        isFeatured: Boolean(data.isFeatured),
+      }).returning();
+
+      revalidatePath('/');
+      return { success: true, repository: newRepo, createdSubCategory };
+    } catch (err) {
+      console.warn('Gagal insert repo ke DB, beralih ke fallback:', err);
+    }
+  }
+
   try {
     const res = await fetch(`${BACKEND_URL}/api/repositories`, {
       method: 'POST',
@@ -316,6 +408,35 @@ export async function createRepositoryAction(data: any) {
 }
 
 export async function createCategoryAction(name: string, subCategoryNames: string[]) {
+  if (db && isDbConfigured) {
+    try {
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const [newCat] = await db.insert(categories).values({
+        name,
+        slug,
+        icon: 'folder',
+      }).returning();
+
+      const createdSubs: any[] = [];
+      if (Array.isArray(subCategoryNames) && subCategoryNames.length > 0) {
+        for (const sub of subCategoryNames) {
+          const subSlug = sub.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+          const [s] = await db.insert(subCategories).values({
+            categoryId: newCat.id,
+            name: sub,
+            slug: subSlug,
+          }).returning();
+          createdSubs.push(s);
+        }
+      }
+
+      revalidatePath('/');
+      return { success: true, category: { ...newCat, subCategories: createdSubs } };
+    } catch (err) {
+      console.warn('Gagal insert kategori ke DB, beralih ke fallback:', err);
+    }
+  }
+
   try {
     const res = await fetch(`${BACKEND_URL}/api/categories`, {
       method: 'POST',
@@ -353,6 +474,17 @@ export async function createCategoryAction(name: string, subCategoryNames: strin
 }
 
 export async function updateSubCategoryAction(id: string, name: string) {
+  if (db && isDbConfigured) {
+    try {
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      await db.update(subCategories).set({ name, slug }).where(eq(subCategories.id, id));
+      revalidatePath('/');
+      return { success: true, message: 'Sub-kategori berhasil diubah.' };
+    } catch (err) {
+      console.warn('Gagal update subkategori di DB, beralih ke fallback:', err);
+    }
+  }
+
   const store = loadLocalStore();
   store.categories.forEach(cat => {
     if (cat.subCategories) {
@@ -391,6 +523,16 @@ export async function updateSubCategoryAction(id: string, name: string) {
 }
 
 export async function deleteSubCategoryAction(id: string) {
+  if (db && isDbConfigured) {
+    try {
+      await db.delete(subCategories).where(eq(subCategories.id, id));
+      revalidatePath('/');
+      return { success: true, message: 'Sub-kategori berhasil dihapus.' };
+    } catch (err) {
+      console.warn('Gagal delete subkategori di DB, beralih ke fallback:', err);
+    }
+  }
+
   const store = loadLocalStore();
   let deletedSubName = '';
   store.categories.forEach(cat => {
@@ -429,6 +571,20 @@ export async function deleteSubCategoryAction(id: string) {
 }
 
 export async function moveRepositoryAction(repoId: string, categoryId: string, subCategoryId: string | null, subCategoryName: string | null) {
+  if (db && isDbConfigured) {
+    try {
+      await db.update(repositories).set({
+        categoryId,
+        subCategoryId: subCategoryId || null,
+        updatedAt: new Date(),
+      }).where(eq(repositories.id, repoId));
+      revalidatePath('/');
+      return { success: true, message: 'Repositori berhasil dipindahkan.' };
+    } catch (err) {
+      console.warn('Gagal move repo di DB, beralih ke fallback:', err);
+    }
+  }
+
   const store = loadLocalStore();
   const targetCat = store.categories.find(c => c.id === categoryId);
   store.repositories.forEach(repo => {
@@ -461,6 +617,23 @@ export async function moveRepositoryAction(repoId: string, categoryId: string, s
 }
 
 export async function updateRepositoryAction(id: string, updates: { name?: string; description?: string; notes?: string; categoryId?: string; subCategoryId?: string; subCategoryName?: string }) {
+  if (db && isDbConfigured) {
+    try {
+      const updateData: any = {};
+      if (updates.name) updateData.name = updates.name;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.categoryId) updateData.categoryId = updates.categoryId;
+      if (updates.subCategoryId !== undefined) updateData.subCategoryId = updates.subCategoryId || null;
+      updateData.updatedAt = new Date();
+
+      const [updated] = await db.update(repositories).set(updateData).where(eq(repositories.id, id)).returning();
+      revalidatePath('/');
+      return { success: true, repository: updated };
+    } catch (err) {
+      console.warn('Gagal update repo di DB, beralih ke fallback:', err);
+    }
+  }
+
   const store = loadLocalStore();
   let updatedRepo: any = null;
   store.repositories = store.repositories.map(repo => {
@@ -495,6 +668,16 @@ export async function updateRepositoryAction(id: string, updates: { name?: strin
 }
 
 export async function deleteRepositoryAction(id: string) {
+  if (db && isDbConfigured) {
+    try {
+      await db.delete(repositories).where(eq(repositories.id, id));
+      revalidatePath('/');
+      return { success: true, message: 'Repositori berhasil dihapus.' };
+    } catch (err) {
+      console.warn('Gagal delete repo dari DB, beralih ke fallback:', err);
+    }
+  }
+
   const store = loadLocalStore();
   store.repositories = store.repositories.filter(repo => repo.id !== id);
   saveLocalStore(store.categories, store.repositories);
