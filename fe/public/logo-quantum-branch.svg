@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#064e3b" />
+      <stop offset="45%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e1b4b" />
+    </linearGradient>
+    <linearGradient id="borderGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="rgba(52,211,153,0.7)" />
+      <stop offset="50%" stop-color="rgba(56,189,248,0.5)" />
+      <stop offset="100%" stop-color="rgba(168,85,247,0.3)" />
+    </linearGradient>
+    <linearGradient id="ribbonGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="35%" stop-color="#06b6d4" />
+      <stop offset="70%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#ec4899" />
+    </linearGradient>
+    <filter id="neonGlow2" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+  <rect x="6" y="6" width="108" height="108" rx="28" fill="url(#bgGrad2)" stroke="url(#borderGrad2)" stroke-width="2" />
+  <circle cx="60" cy="60" r="28" fill="#06b6d4" opacity="0.3" filter="url(#neonGlow2)" />
+  <g transform="translate(0, 0)">
+    <path d="M38,60 C24,42 22,78 38,78 C52,78 68,42 82,42 C98,42 96,78 82,60 C68,42 52,78 38,60 Z"
+          fill="none" stroke="rgba(15,23,42,0.6)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M38,60 C24,42 22,78 38,78 C52,78 68,42 82,42 C98,42 96,78 82,60 C68,42 52,78 38,60 Z"
+          fill="none" stroke="url(#ribbonGrad2)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"
+          filter="url(#neonGlow2)" />
+    <path d="M38,78 C48,78 56,66 60,60" fill="none" stroke="#a7f3d0" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="2 3" />
+    <path d="M60,60 C64,54 72,42 82,42" fill="none" stroke="#fbcfe8" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="2 3" />
+    <circle cx="34" cy="64" r="4" fill="#ffffff" stroke="#10b981" stroke-width="2" />
+    <circle cx="86" cy="56" r="4" fill="#ffffff" stroke="#ec4899" stroke-width="2" />
+    <g transform="translate(60, 60)" filter="url(#neonGlow2)">
+      <path d="M0,-12 Q0,-2 10,0 Q0,2 0,12 Q0,2 -10,0 Q0,-2 0,-12 Z" fill="#ffffff" />
+      <circle cx="0" cy="0" r="2.5" fill="#38bdf8" />
+    </g>
+  </g>
+</svg>
+

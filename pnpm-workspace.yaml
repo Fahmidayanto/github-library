@@ -1,0 +1,6 @@
+packages:
+  - 'fe'
+  - 'be'
+
+allowBuilds:
+  esbuild: true

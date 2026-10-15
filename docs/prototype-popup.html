@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Library Hub — Emil Kowalski Slide Summary Popup Prototype</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    /* ================= EMIL KOWALSKI DESIGN TOKENS ================= */
+    :root {
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+      --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      --modal-dur: 260ms;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: #060911;
+      color: #ffffff;
+      overflow-x: hidden;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Directional Light Physical Glass Surface */
+    .glass-surface {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%);
+      backdrop-filter: blur(40px) saturate(220%);
+      -webkit-backdrop-filter: blur(40px) saturate(220%);
+      border-top: 1.5px solid rgba(255, 255, 255, 0.45);
+      border-left: 1.2px solid rgba(255, 255, 255, 0.30);
+      border-right: 1px solid rgba(255, 255, 255, 0.12);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      box-shadow: 
+        0 30px 80px -15px rgba(0, 0, 0, 0.75),
+        inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.4),
+        inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.3);
+    }
+
+    /* Modal Backdrop */
+    .modal-backdrop {
+      background: rgba(3, 6, 12, 0.65);
+      backdrop-filter: blur(24px) saturate(190%);
+      -webkit-backdrop-filter: blur(24px) saturate(190%);
+      transition: opacity var(--modal-dur) var(--ease-out);
+    }
+
+    /* Modal Card Scale In Animation */
+    .modal-card {
+      transition: transform var(--modal-dur) var(--ease-out), opacity var(--modal-dur) var(--ease-out);
+      transform-origin: center center;
+    }
+
+    /* Slide Drawer Animation */
+    .drawer-slide {
+      transition: transform 320ms var(--ease-out);
+      will-change: transform;
+    }
+
+    /* Press Feedback */
+    .pressable {
+      transition: transform 120ms var(--ease-out), opacity 150ms ease, background-color 150ms ease;
+    }
+    .pressable:active {
+      transform: scale(0.97);
+    }
+
+    /* Pulse Glow Animation untuk Slide Button */
+    @keyframes slideGlow {
+      0%, 100% { box-shadow: 0 0 15px rgba(168, 85, 247, 0.35), 0 0 30px rgba(99, 102, 241, 0.2); }
+      50% { box-shadow: 0 0 25px rgba(168, 85, 247, 0.6), 0 0 45px rgba(99, 102, 241, 0.35); }
+    }
+    .animate-slide-glow {
+      animation: slideGlow 2.4s infinite ease-in-out;
+    }
+    .vertical-text {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+    }
+
+    /* Custom Hairline Scrollbar */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: 9999px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    /* Copy Feedback Toast */
+    .copied-toast {
+      animation: popFade 1.6s var(--ease-out) forwards;
+    }
+    @keyframes popFade {
+      0% { opacity: 0; transform: translateY(6px) scale(0.92); }
+      15% { opacity: 1; transform: translateY(0) scale(1); }
+      80% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-4px) scale(0.96); }
+    }
+
+    /* Theme: Sunset */
+    body.theme-sunset {
+      background-color: #0d0411;
+      color: #ffffff;
+    }
+    body.theme-sunset .modal-backdrop {
+      background: rgba(18, 5, 24, 0.7);
+    }
+
+    /* Theme: Frost */
+    body.theme-frost {
+      background-color: #f1f5f9;
+      color: #000000;
+    }
+    body.theme-frost .modal-backdrop {
+      background: rgba(210, 225, 245, 0.65);
+    }
+    body.theme-frost .glass-surface {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.82) 100%);
+      border-top: 1.5px solid rgba(255, 255, 255, 1);
+      border-left: 1.2px solid rgba(255, 255, 255, 0.9);
+      border-right: 1px solid rgba(203, 213, 225, 0.6);
+      border-bottom: 1px solid rgba(203, 213, 225, 0.4);
+      box-shadow: 0 30px 80px -15px rgba(100, 116, 139, 0.35);
+      color: #000000;
+    }
+    body.theme-frost #summaryDrawer {
+      background-color: rgba(255, 255, 255, 0.98) !important;
+      color: #000000 !important;
+      border-left-color: rgba(0, 0, 0, 0.12) !important;
+    }
+    body.theme-frost .text-white,
+    body.theme-frost .text-slate-100,
+    body.theme-frost .text-slate-200 {
+      color: #000000 !important;
+    }
+    body.theme-frost .text-slate-300,
+    body.theme-frost .text-slate-400 {
+      color: #1e293b !important;
+    }
+    body.theme-frost .bg-white\/5,
+    body.theme-frost .bg-white\/10 {
+      background-color: rgba(0, 0, 0, 0.05) !important;
+    }
+    body.theme-frost .border-white\/10,
+    body.theme-frost .border-white\/15,
+    body.theme-frost .border-white\/20 {
+      border-color: rgba(0, 0, 0, 0.12) !important;
+    }
+  </style>
+</head>
+<body class="theme-aurora min-h-screen flex flex-col items-center justify-center p-2 sm:p-4 md:p-6 relative">
+
+  <!-- Background Ambient Video & Orbs -->
+  <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+    <video autoplay loop muted playsinline class="w-full h-full object-cover opacity-35 mix-blend-screen scale-105">
+      <source src="gemini_generated_video_347e0e06.mp4" type="video/mp4">
+    </video>
+    <div class="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-indigo-500/25 blur-[120px]"></div>
+    <div class="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-pink-500/25 blur-[120px]"></div>
+  </div>
+
+  <!-- Floating Quick Control Top Bar (Theme & Controls) -->
+  <header class="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center space-x-3 bg-black/40 border border-white/15 px-4 py-2 rounded-2xl backdrop-blur-xl shadow-2xl">
+    <span class="text-xs font-mono text-slate-300 font-semibold flex items-center space-x-1.5">
+      <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-300"></i>
+      <span>Mode Tema:</span>
+    </span>
+    <div class="flex items-center space-x-1 text-xs">
+      <button onclick="setTheme('aurora')" id="btn-theme-aurora" class="px-2.5 py-1 rounded-lg bg-white/20 text-white font-medium pressable">Aurora</button>
+      <button onclick="setTheme('sunset')" id="btn-theme-sunset" class="px-2.5 py-1 rounded-lg text-slate-300 hover:text-white font-medium pressable">Sunset</button>
+      <button onclick="setTheme('frost')" id="btn-theme-frost" class="px-2.5 py-1 rounded-lg text-slate-300 hover:text-white font-medium pressable">Frost</button>
+    </div>
+    <div class="h-4 w-[1px] bg-white/20"></div>
+    <button onclick="toggleModal()" class="text-xs text-sky-400 hover:text-sky-300 font-mono font-semibold flex items-center space-x-1">
+      <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+      <span>Toggle Modal</span>
+    </button>
+  </header>
+
+  <!-- ================= POP-UP DETAIL MODAL (TERBUKA OTOMATIS) ================= -->
+  <div id="repoModal" class="fixed inset-0 z-40 flex items-center justify-center p-2 sm:p-4 md:p-6">
+    
+    <!-- Backdrop Overlay -->
+    <div onclick="closeModal()" class="modal-backdrop absolute inset-0"></div>
+
+    <!-- Modal Container: Outer Radius 24px (rounded-3xl) with relative positioning for drawer -->
+    <div class="modal-card glass-surface relative z-10 w-full max-w-6xl max-h-[92vh] rounded-3xl flex flex-col overflow-hidden shadow-2xl border border-white/20">
+      
+      <!-- Top Header Strip: Identik dengan screenshot pengguna -->
+      <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-white/5">
+        <div class="flex items-center space-x-3 min-w-0">
+          <img src="https://github.com/DietrichGebert.png" alt="Avatar" class="w-8 h-8 rounded-full border border-white/30 shrink-0 shadow-sm">
+          <div class="flex items-center space-x-2 text-sm truncate">
+            <span class="text-sky-400 font-semibold hover:underline cursor-pointer">DietrichGebert</span>
+            <span class="text-slate-400">/</span>
+            <span class="font-bold text-white text-base">ponytail</span>
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-slate-200">
+              public
+            </span>
+          </div>
+        </div>
+
+        <!-- Header Actions: Sponsor, Watch, Fork, Star, Close -->
+        <div class="flex items-center space-x-2 shrink-0">
+          <button class="pressable px-2.5 py-1.5 rounded-xl bg-pink-500/10 hover:bg-pink-500/20 text-pink-400 text-xs font-semibold border border-pink-500/30 flex items-center space-x-1.5">
+            <i data-lucide="heart" class="w-3.5 h-3.5 fill-pink-500/20"></i>
+            <span>Sponsor</span>
+          </button>
+          
+          <div class="hidden sm:flex items-center rounded-xl bg-white/5 border border-white/10 text-xs divide-x divide-white/10 overflow-hidden font-mono">
+            <span class="px-2.5 py-1.5 flex items-center space-x-1 text-slate-200">
+              <i data-lucide="eye" class="w-3.5 h-3.5 text-slate-400"></i>
+              <span class="text-slate-400">Watch</span>
+              <span>366</span>
+            </span>
+            <span class="px-2.5 py-1.5 flex items-center space-x-1 text-slate-200">
+              <i data-lucide="git-fork" class="w-3.5 h-3.5 text-slate-400"></i>
+              <span class="text-slate-400">Fork</span>
+              <span>8.7k</span>
+            </span>
+            <span class="px-2.5 py-1.5 flex items-center space-x-1 text-amber-300 font-semibold">
+              <i data-lucide="star" class="w-3.5 h-3.5 fill-amber-400 text-amber-400"></i>
+              <span class="text-slate-400">Star</span>
+              <span>161.2k</span>
+            </span>
+          </div>
+
+          <!-- Close Modal Button -->
+          <button onclick="closeModal()" title="Tutup (Esc)" class="pressable p-1.5 rounded-xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white border border-white/10 ml-2">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- GitHub Tab Strip (Code) -->
+      <div class="px-6 border-b border-white/10 flex items-center space-x-1 text-xs text-slate-300 font-medium shrink-0 bg-white/[0.02]">
+        <button class="flex items-center space-x-2 px-3 py-2 text-white border-b-2 border-indigo-500 font-semibold">
+          <i data-lucide="code-2" class="w-4 h-4"></i>
+          <span>Code</span>
+        </button>
+      </div>
+
+      <!-- Action Subbar: Branch Selector di Kiri, Slide Summary & Buka di GitHub di Kanan -->
+      <div class="px-6 py-3 border-b border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0 bg-white/[0.03]">
+        <div class="flex items-center space-x-3">
+          <button class="pressable px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 font-mono font-semibold flex items-center space-x-1.5 text-slate-200">
+            <i data-lucide="git-branch" class="w-3.5 h-3.5 text-slate-400"></i>
+            <span>main</span>
+          </button>
+        </div>
+
+        <!-- SISI KANAN: HANYA TOMBOL GITHUB (SLIDE BUTTON PINDAH KE SAMPING) -->
+        <div class="flex items-center space-x-2.5">
+          <!-- Buka di GitHub Asli -->
+          <a 
+            href="https://github.com/DietrichGebert/ponytail" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            class="pressable px-3.5 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 font-semibold text-white flex items-center space-x-1.5 shadow-md shadow-emerald-600/25 border border-emerald-400/40"
+          >
+            <i data-lucide="code-2" class="w-3.5 h-3.5"></i>
+            <span>Buka di GitHub</span>
+            <i data-lucide="external-link" class="w-3 h-3 ml-0.5"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Hairline Scroll Progress Bar -->
+      <div class="w-full h-[2px] bg-white/5 relative overflow-hidden shrink-0">
+        <div id="scrollProgressBar" class="h-full bg-gradient-to-r from-sky-400 via-indigo-400 to-pink-400 transition-all duration-75 ease-out" style="width: 0%"></div>
+      </div>
+
+      <!-- Main Modal Content Area (Identik dengan Screenshot Asli Pengguna) -->
+      <div id="modalBody" onscroll="handleScroll(event)" class="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 custom-scrollbar">
+
+        <!-- Kolom Kiri: File Browser + README (8 Kolom) -->
+        <div class="lg:col-span-8 space-y-6">
+          
+          <!-- File Explorer Table -->
+          <div class="rounded-2xl border border-white/15 overflow-hidden bg-white/5">
+            <div class="px-4 py-2.5 bg-white/10 border-b border-white/10 flex items-center justify-between text-xs text-slate-200">
+              <span class="font-semibold text-slate-200">DietrichGebert</span>
+              <span class="text-[11px] text-slate-300 font-mono">Latest commit files</span>
+            </div>
+            
+            <div class="divide-y divide-white/5 text-xs font-mono">
+              <div class="px-4 py-2 flex items-center justify-between hover:bg-white/5 transition-colors">
+                <div class="flex items-center space-x-2.5">
+                  <i data-lucide="folder" class="w-4 h-4 text-sky-400 fill-sky-400/20"></i>
+                  <span class="text-slate-200">tests</span>
+                </div>
+                <span class="text-slate-400 text-[11px]">Directory</span>
+              </div>
+              <div class="px-4 py-2 flex items-center justify-between hover:bg-white/5 transition-colors">
+                <div class="flex items-center space-x-2.5">
+                  <i data-lucide="folder" class="w-4 h-4 text-sky-400 fill-sky-400/20"></i>
+                  <span class="text-slate-200">skills</span>
+                </div>
+                <span class="text-slate-400 text-[11px]">Directory</span>
+              </div>
+              <div class="px-4 py-2 flex items-center justify-between hover:bg-white/5 transition-colors">
+                <div class="flex items-center space-x-2.5">
+                  <i data-lucide="folder" class="w-4 h-4 text-sky-400 fill-sky-400/20"></i>
+                  <span class="text-slate-200">scripts</span>
+                </div>
+                <span class="text-slate-400 text-[11px]">Directory</span>
+              </div>
+              <div class="px-4 py-2 flex items-center justify-between hover:bg-white/5 transition-colors">
+                <div class="flex items-center space-x-2.5">
+                  <i data-lucide="folder" class="w-4 h-4 text-sky-400 fill-sky-400/20"></i>
+                  <span class="text-slate-200">pi-extension</span>
+                </div>
+                <span class="text-slate-400 text-[11px]">Directory</span>
+              </div>
+              <div class="px-4 py-2 flex items-center justify-between hover:bg-white/5 transition-colors">
+                <div class="flex items-center space-x-2.5">
+                  <i data-lucide="folder" class="w-4 h-4 text-sky-400 fill-sky-400/20"></i>
+                  <span class="text-slate-200">i18n</span>
+                </div>
+                <span class="text-slate-400 text-[11px]">Directory</span>
+              </div>
+              <div class="px-4 py-2 flex items-center justify-between hover:bg-white/5 transition-colors">
+                <div class="flex items-center space-x-2.5">
+                  <i data-lucide="folder" class="w-4 h-4 text-sky-400 fill-sky-400/20"></i>
+                  <span class="text-slate-200">hooks</span>
+                </div>
+                <span class="text-slate-400 text-[11px]">Directory</span>
+              </div>
+              <div class="px-4 py-2 flex items-center justify-between hover:bg-white/5 transition-colors">
+                <div class="flex items-center space-x-2.5">
+                  <i data-lucide="folder" class="w-4 h-4 text-sky-400 fill-sky-400/20"></i>
+                  <span class="text-slate-200">examples</span>
+                </div>
+                <span class="text-slate-400 text-[11px]">Directory</span>
+              </div>
+              <div class="px-4 py-2 flex items-center justify-between hover:bg-white/5 transition-colors">
+                <div class="flex items-center space-x-2.5">
+                  <i data-lucide="folder" class="w-4 h-4 text-sky-400 fill-sky-400/20"></i>
+                  <span class="text-slate-200">docs</span>
+                </div>
+                <span class="text-slate-400 text-[11px]">Directory</span>
+              </div>
+              <div class="px-4 py-2 flex items-center justify-between hover:bg-white/5 transition-colors">
+                <div class="flex items-center space-x-2.5">
+                  <i data-lucide="folder" class="w-4 h-4 text-sky-400 fill-sky-400/20"></i>
+                  <span class="text-slate-200">commands</span>
+                </div>
+                <span class="text-slate-400 text-[11px]">Directory</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- README.md Container -->
+          <div class="rounded-2xl border border-white/15 overflow-hidden bg-white/5">
+            <div class="px-4 py-2.5 bg-white/10 border-b border-white/10 flex items-center justify-between text-xs">
+              <div class="flex items-center space-x-2 font-semibold text-slate-200">
+                <i data-lucide="book-open" class="w-4 h-4 text-slate-300"></i>
+                <span>README.md</span>
+              </div>
+            </div>
+            
+            <div class="p-6 text-sm text-slate-200 space-y-4 leading-relaxed">
+              <!-- Pratinjau Gambar / Banner dengan Glass Fallback persis screenshot -->
+              <div class="my-2 p-3.5 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md flex items-center justify-between gap-3 text-xs text-slate-300">
+                <div class="flex items-center space-x-2.5 min-w-0">
+                  <span class="p-1 rounded bg-white/10 text-slate-400 shrink-0">🖼️</span>
+                  <span class="truncate font-mono text-[11px] text-slate-200 font-semibold">Ponytail, the lazy senior dev</span>
+                </div>
+                <a href="https://github.com/DietrichGebert/ponytail" target="_blank" rel="noopener noreferrer" class="shrink-0 text-sky-400 hover:underline flex items-center space-x-1 font-mono text-[11px] bg-white/5 px-2.5 py-1 rounded-md border border-white/10">
+                  <span>Buka di GitHub</span>
+                  <span>↗</span>
+                </a>
+              </div>
+
+              <h2 class="text-lg font-bold text-white pt-2">Ponytail: The Lazy Senior Dev for AI Agents</h2>
+              <p class="text-xs text-slate-300 leading-relaxed">
+                Forces the laziest solution that actually works, simplest, shortest, most minimal. Channels a senior dev who has seen everything: question whether the task needs to exist at all (YAGNI), reach for the standard library before custom code.
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Kolom Kanan: About, Languages, etc. (4 Kolom) -->
+        <div class="lg:col-span-4 space-y-5 text-xs">
+          
+          <!-- About Panel -->
+          <div class="space-y-3 border-b border-white/10 pb-5">
+            <div class="flex items-center justify-between">
+              <h4 class="font-bold text-white text-sm">About</h4>
+              <!-- Mini Slide Button Trigger di pojok panel About -->
+              <button onclick="openSummaryDrawer()" class="text-[11px] text-sky-400 hover:text-sky-300 flex items-center space-x-1 font-mono font-semibold">
+                <span>Lihat Summary</span>
+                <i data-lucide="arrow-right" class="w-3 h-3"></i>
+              </button>
+            </div>
+            <p class="text-slate-300 leading-relaxed">
+              Makes your AI agent think like the laziest senior dev in the room. The best code is the code you never wrote.
+            </p>
+            <div class="flex items-center space-x-2 text-sky-400 font-mono text-xs">
+              <i data-lucide="link" class="w-3.5 h-3.5"></i>
+              <a href="https://ponytail.dev" target="_blank" class="hover:underline">ponytail.dev</a>
+            </div>
+
+            <!-- Topics Badges -->
+            <div class="flex flex-wrap gap-1.5 pt-2">
+              <span class="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-200 text-[11px] font-mono">agent-skills</span>
+              <span class="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-200 text-[11px] font-mono">ai-agents</span>
+              <span class="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-200 text-[11px] font-mono">claude</span>
+              <span class="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-200 text-[11px] font-mono">claude-code</span>
+              <span class="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-200 text-[11px] font-mono">claude-code-plugin</span>
+              <span class="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-200 text-[11px] font-mono">cursor-rules</span>
+              <span class="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-200 text-[11px] font-mono">developer-tools</span>
+              <span class="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-200 text-[11px] font-mono">llm</span>
+              <span class="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-200 text-[11px] font-mono">prompt-engineering</span>
+              <span class="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-200 text-[11px] font-mono">yagni</span>
+            </div>
+          </div>
+
+          <!-- License & Branch -->
+          <div class="space-y-2.5 text-slate-300 border-b border-white/10 pb-5">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="scale" class="w-4 h-4 text-slate-400"></i>
+              <span class="text-slate-200">MIT</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <i data-lucide="activity" class="w-4 h-4 text-slate-400"></i>
+              <span class="text-slate-200">Default branch: main</span>
+            </div>
+          </div>
+
+          <!-- Languages Breakdown -->
+          <div class="space-y-2.5">
+            <h5 class="font-bold text-slate-200">Languages</h5>
+            <div class="flex flex-wrap gap-x-4 gap-y-2 text-[11px]">
+              <div class="flex items-center space-x-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
+                <span class="text-slate-200 font-medium">JavaScript</span>
+                <span class="text-slate-400 font-mono">61.7%</span>
+              </div>
+              <div class="flex items-center space-x-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                <span class="text-slate-200 font-medium">Python</span>
+                <span class="text-slate-400 font-mono">38.0%</span>
+              </div>
+              <div class="flex items-center space-x-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
+                <span class="text-slate-200 font-medium">PowerShell</span>
+                <span class="text-slate-400 font-mono">0.2%</span>
+              </div>
+              <div class="flex items-center space-x-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                <span class="text-slate-200 font-medium">Shell</span>
+                <span class="text-slate-400 font-mono">0.2%</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ================= DOCKED SLIDE TAB (DI TEPI KANAN MODAL) ================= -->
+      <button 
+        id="dockedSlideTab"
+        onclick="toggleSummaryDrawer()" 
+        title="Klik untuk slide ke kanan dan membuka summary fungsi"
+        class="pressable absolute right-0 top-1/2 -translate-y-1/2 z-30 bg-gradient-to-l from-indigo-600 via-purple-600 to-pink-600 hover:opacity-95 text-white py-4 px-2.5 rounded-l-2xl shadow-2xl border-l border-y border-white/30 flex flex-col items-center space-y-2 transition-all cursor-pointer group animate-slide-glow"
+      >
+        <i data-lucide="sparkles" class="w-4 h-4 text-amber-300 group-hover:scale-125 transition-transform animate-pulse"></i>
+        <span class="vertical-text tracking-wider text-[11px] font-bold">SLIDE SUMMARY →</span>
+        <i data-lucide="chevron-left" class="w-3.5 h-3.5 text-white/90 group-hover:-translate-x-1 transition-transform"></i>
+      </button>
+
+      <!-- ================= SLIDE-OVER DRAWER: SUMMARY FUNGSI GITHUB ================= -->
+      <!-- Meluncur keluar dari kanan dengan kurva Emil Kowalski: translate-x-full -> translate-x-0 -->
+      <aside 
+        id="summaryDrawer" 
+        class="drawer-slide absolute top-0 right-0 bottom-0 w-full sm:w-[480px] z-40 bg-[#080d19]/95 backdrop-blur-3xl border-l border-white/20 shadow-[-24px_0_70px_rgba(0,0,0,0.85)] flex flex-col transform translate-x-full overflow-hidden"
+      >
+        <!-- Header Drawer: Judul & Tombol Slide Tutup -->
+        <div class="p-5 border-b border-white/10 flex items-center justify-between shrink-0 bg-white/5">
+          <div class="flex items-center space-x-2.5">
+            <div class="p-2 rounded-xl bg-gradient-to-br from-indigo-500 to-pink-500 text-white shadow-md shadow-purple-500/30">
+              <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center space-x-1.5">
+                <span>Summary Fungsi GitHub</span>
+                <span class="text-[10px] font-mono px-1.5 py-0.2 bg-indigo-500/30 text-indigo-300 rounded border border-indigo-500/40">AI Deep Dive</span>
+              </h3>
+              <p class="text-[11px] text-slate-300">Analisis kapabilitas, alur kerja & fungsi utama</p>
+            </div>
+          </div>
+
+          <!-- Tombol Slide Kembali / Tutup -->
+          <button 
+            onclick="closeSummaryDrawer()" 
+            title="Slide Tutup" 
+            class="pressable px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-slate-200 hover:text-white text-xs flex items-center space-x-1 font-mono font-medium cursor-pointer"
+          >
+            <span>Tutup</span>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-sky-400"></i>
+          </button>
+        </div>
+
+        <!-- Scrollable Drawer Body: Ringkasan Fungsi Lengkap -->
+        <div class="flex-1 overflow-y-auto p-5 space-y-5 custom-scrollbar text-xs">
+          
+          <!-- 1. FUNGSI UTAMA (CORE PURPOSE) -->
+          <div class="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+            <div class="flex items-center space-x-2 text-sky-400 font-mono font-semibold text-[11px] uppercase tracking-wider">
+              <i data-lucide="target" class="w-3.5 h-3.5"></i>
+              <span>Fungsi & Nilai Utama</span>
+            </div>
+            <p class="text-slate-200 text-xs leading-relaxed font-normal">
+              <strong class="text-white">Ponytail</strong> adalah skill agentic AI yang memprogram pola pikir asisten coding (Claude Code, Cursor, Copilot) agar bertindak seperti <em>senior developer paling efisien/malas</em>: menolak menulis kode spekulatif, memangkas boilerplate, dan memaksa penggunaan standard library native.
+            </p>
+          </div>
+
+          <!-- ================= 2. CONTOH OUTPUT: BEFORE VS AFTER ================= -->
+          <div class="p-4 rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/15 space-y-3.5 shadow-xl">
+            <!-- Header Section -->
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2 text-amber-300 font-mono font-bold text-[11px] uppercase tracking-wider">
+                <i data-lucide="git-compare" class="w-4 h-4 text-amber-400"></i>
+                <span>Contoh Output: Before vs After</span>
+              </div>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-semibold">
+                Hemat ~90% Kode
+              </span>
+            </div>
+
+            <!-- Tab Switcher Kasus Contoh -->
+            <div class="flex items-center p-1 bg-black/40 rounded-xl border border-white/10 font-mono text-[11px]">
+              <button 
+                id="tabBtnCase1" 
+                onclick="switchOutputCase('case1')" 
+                class="flex-1 py-1.5 px-2 rounded-lg font-semibold transition-all text-white bg-indigo-600/80 shadow-sm cursor-pointer"
+              >
+                1. Date Formatter
+              </button>
+              <button 
+                id="tabBtnCase2" 
+                onclick="switchOutputCase('case2')" 
+                class="flex-1 py-1.5 px-2 rounded-lg font-medium transition-all text-slate-300 hover:text-white cursor-pointer"
+              >
+                2. Deep Clone Object
+              </button>
+            </div>
+
+            <!-- Context Case Prompt Request -->
+            <div id="casePromptDesc" class="px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-[11px] text-slate-300 flex items-start space-x-2">
+              <i data-lucide="terminal" class="w-3.5 h-3.5 text-sky-400 shrink-0 mt-0.5"></i>
+              <span><strong class="text-white">Prompt:</strong> "Format tanggal ISO ke teks Bahasa Indonesia tanpa library berat"</span>
+            </div>
+
+            <!-- Case 1 Container -->
+            <div id="case1Content" class="space-y-3">
+              <!-- BEFORE CARD -->
+              <div class="rounded-xl border border-rose-500/30 bg-rose-950/20 overflow-hidden">
+                <div class="px-3 py-2 bg-rose-500/10 border-b border-rose-500/20 flex items-center justify-between">
+                  <div class="flex items-center space-x-1.5 text-rose-400 font-mono font-bold text-[11px]">
+                    <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
+                    <span>BEFORE (Tanpa Ponytail - AI Over-engineering)</span>
+                  </div>
+                  <span class="text-[10px] font-mono text-rose-300/80">38 baris • 1 npm package</span>
+                </div>
+                <div class="p-3 bg-black/60 font-mono text-[11px] leading-relaxed overflow-x-auto text-slate-300 custom-scrollbar">
+<pre class="text-rose-200/80"><span class="text-slate-500">// ❌ Install package besar + buat abstract class</span>
+<span class="text-purple-400">import</span> { format, parseISO } <span class="text-purple-400">from</span> <span class="text-emerald-300">'date-fns'</span>;
+<span class="text-purple-400">import</span> { id } <span class="text-purple-400">from</span> <span class="text-emerald-300">'date-fns/locale'</span>;
+
+<span class="text-blue-400">interface</span> <span class="text-amber-300">IDateFormatterService</span> {
+  <span class="text-blue-300">formatDate</span>(raw: <span class="text-blue-400">string</span>): <span class="text-blue-400">string</span>;
+}
+
+<span class="text-purple-400">export class</span> <span class="text-amber-300">CustomDateFormatterService</span> <span class="text-purple-400">implements</span> <span class="text-amber-300">IDateFormatterService</span> {
+  <span class="text-purple-400">public</span> <span class="text-blue-300">formatDate</span>(rawDate: <span class="text-blue-400">string</span>): <span class="text-blue-400">string</span> {
+    <span class="text-purple-400">try</span> {
+      <span class="text-purple-400">const</span> parsed = <span class="text-blue-300">parseISO</span>(rawDate);
+      <span class="text-purple-400">return</span> <span class="text-blue-300">format</span>(parsed, <span class="text-emerald-300">'dd MMMM yyyy'</span>, { locale: id });
+    } <span class="text-purple-400">catch</span> (err) {
+      <span class="text-purple-400">throw new</span> <span class="text-amber-300">Error</span>(<span class="text-emerald-300">'Failed parsing date'</span>);
+    }
+  }
+}</pre>
+                </div>
+                <div class="px-3 py-1.5 bg-rose-500/5 text-[10px] text-rose-300/70 font-mono flex items-center justify-between border-t border-rose-500/10">
+                  <span>Konsumsi Token: ~360 tokens</span>
+                  <span>Dependensi Tambahan: date-fns (4.2 MB)</span>
+                </div>
+              </div>
+
+              <!-- DIVIDER & TRANSFORMATION BADGE -->
+              <div class="flex items-center justify-center my-1 relative">
+                <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-white/10"></div></div>
+                <div class="relative px-3 py-1 rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-mono text-[10px] font-bold flex items-center space-x-1 shadow-lg">
+                  <i data-lucide="zap" class="w-3 h-3 text-amber-300"></i>
+                  <span>Ponytail Ladder: Stdlib & Platform Native First</span>
+                </div>
+              </div>
+
+              <!-- AFTER CARD -->
+              <div class="rounded-xl border border-emerald-500/35 bg-emerald-950/20 overflow-hidden shadow-lg shadow-emerald-950/30">
+                <div class="px-3 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex items-center justify-between">
+                  <div class="flex items-center space-x-1.5 text-emerald-400 font-mono font-bold text-[11px]">
+                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                    <span>AFTER (Dengan Ponytail - Native & Minimal)</span>
+                  </div>
+                  <span class="text-[10px] font-mono text-emerald-300 font-semibold">2 baris • 0 dependency</span>
+                </div>
+                <div class="p-3 bg-black/60 font-mono text-[11px] leading-relaxed overflow-x-auto text-slate-300 custom-scrollbar">
+<pre class="text-emerald-200/90"><span class="text-slate-500">// ✅ Gunakan standar bawaan platform browser/Node.js</span>
+<span class="text-purple-400">export const</span> <span class="text-blue-300">formatDate</span> = (iso: <span class="text-blue-400">string</span>): <span class="text-blue-400">string</span> =>
+  <span class="text-purple-400">new</span> <span class="text-amber-300">Date</span>(iso).<span class="text-blue-300">toLocaleDateString</span>(<span class="text-emerald-300">'id-ID'</span>, { dateStyle: <span class="text-emerald-300">'long'</span> });</pre>
+                </div>
+                <div class="px-3 py-1.5 bg-emerald-500/5 text-[10px] text-emerald-300 font-mono flex items-center justify-between border-t border-emerald-500/10">
+                  <span>Konsumsi Token: 32 tokens (-91%)</span>
+                  <span>Dependensi Tambahan: 0 (Pure Native)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Case 2 Container (Hidden by default) -->
+            <div id="case2Content" class="space-y-3 hidden">
+              <!-- BEFORE CARD -->
+              <div class="rounded-xl border border-rose-500/30 bg-rose-950/20 overflow-hidden">
+                <div class="px-3 py-2 bg-rose-500/10 border-b border-rose-500/20 flex items-center justify-between">
+                  <div class="flex items-center space-x-1.5 text-rose-400 font-mono font-bold text-[11px]">
+                    <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
+                    <span>BEFORE (Tanpa Ponytail - AI Over-engineering)</span>
+                  </div>
+                  <span class="text-[10px] font-mono text-rose-300/80">26 baris • lodash.clonedeep</span>
+                </div>
+                <div class="p-3 bg-black/60 font-mono text-[11px] leading-relaxed overflow-x-auto text-slate-300 custom-scrollbar">
+<pre class="text-rose-200/80"><span class="text-slate-500">// ❌ Install paket lodash hanya untuk clone object</span>
+<span class="text-purple-400">import</span> cloneDeep <span class="text-purple-400">from</span> <span class="text-emerald-300">'lodash/cloneDeep'</span>;
+
+<span class="text-purple-400">export class</span> <span class="text-amber-300">CloneUtilityService</span>&lt;<span class="text-amber-300">T</span>&gt; {
+  <span class="text-purple-400">private</span> target: <span class="text-amber-300">T</span>;
+  <span class="text-purple-400">constructor</span>(initial: <span class="text-amber-300">T</span>) { <span class="text-purple-400">this</span>.target = initial; }
+  
+  <span class="text-purple-400">public</span> <span class="text-blue-300">executeClone</span>(): <span class="text-amber-300">T</span> {
+    <span class="text-purple-400">return</span> <span class="text-blue-300">cloneDeep</span>(<span class="text-purple-400">this</span>.target);
+  }
+}</pre>
+                </div>
+                <div class="px-3 py-1.5 bg-rose-500/5 text-[10px] text-rose-300/70 font-mono flex items-center justify-between border-t border-rose-500/10">
+                  <span>Konsumsi Token: ~280 tokens</span>
+                  <span>Dependensi Tambahan: lodash (70 KB min)</span>
+                </div>
+              </div>
+
+              <!-- DIVIDER & TRANSFORMATION BADGE -->
+              <div class="flex items-center justify-center my-1 relative">
+                <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-white/10"></div></div>
+                <div class="relative px-3 py-1 rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-mono text-[10px] font-bold flex items-center space-x-1 shadow-lg">
+                  <i data-lucide="zap" class="w-3 h-3 text-amber-300"></i>
+                  <span>Ponytail Ladder: Stdlib & Platform Native First</span>
+                </div>
+              </div>
+
+              <!-- AFTER CARD -->
+              <div class="rounded-xl border border-emerald-500/35 bg-emerald-950/20 overflow-hidden shadow-lg shadow-emerald-950/30">
+                <div class="px-3 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex items-center justify-between">
+                  <div class="flex items-center space-x-1.5 text-emerald-400 font-mono font-bold text-[11px]">
+                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                    <span>AFTER (Dengan Ponytail - Native & Minimal)</span>
+                  </div>
+                  <span class="text-[10px] font-mono text-emerald-300 font-semibold">1 baris • 0 dependency</span>
+                </div>
+                <div class="p-3 bg-black/60 font-mono text-[11px] leading-relaxed overflow-x-auto text-slate-300 custom-scrollbar">
+<pre class="text-emerald-200/90"><span class="text-slate-500">// ✅ Gunakan built-in structuredClone standard library</span>
+<span class="text-purple-400">export const</span> <span class="text-blue-300">deepCopy</span> = &lt;<span class="text-amber-300">T</span>&gt;(data: <span class="text-amber-300">T</span>): <span class="text-amber-300">T</span> => <span class="text-blue-300">structuredClone</span>(data);</pre>
+                </div>
+                <div class="px-3 py-1.5 bg-emerald-500/5 text-[10px] text-emerald-300 font-mono flex items-center justify-between border-t border-emerald-500/10">
+                  <span>Konsumsi Token: 21 tokens (-92%)</span>
+                  <span>Dependensi Tambahan: 0 (Pure Native)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- METRIC COMPARISON SUMMARY PILL -->
+            <div class="grid grid-cols-3 gap-2 pt-1 font-mono text-center">
+              <div class="p-2 rounded-xl bg-white/5 border border-white/10">
+                <p class="text-[9px] text-slate-400 uppercase">Baris Kode</p>
+                <p class="text-xs font-bold text-emerald-400 mt-0.5">-95%</p>
+              </div>
+              <div class="p-2 rounded-xl bg-white/5 border border-white/10">
+                <p class="text-[9px] text-slate-400 uppercase">Dependensi</p>
+                <p class="text-xs font-bold text-sky-400 mt-0.5">0 Native</p>
+              </div>
+              <div class="p-2 rounded-xl bg-white/5 border border-white/10">
+                <p class="text-[9px] text-slate-400 uppercase">Token AI</p>
+                <p class="text-xs font-bold text-amber-300 mt-0.5">-90% Hemat</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. MASALAH NYATA YANG DILESEIKAN (PROBLEMS SOLVED) -->
+          <div class="space-y-2">
+            <h4 class="font-bold text-white text-xs uppercase tracking-wider font-mono text-slate-200 flex items-center space-x-1.5">
+              <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>Masalah yang Dipecahkan</span>
+            </h4>
+            <div class="space-y-2">
+              <div class="p-3 rounded-xl bg-white/5 border border-white/10 flex items-start space-x-2.5">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5"></i>
+                <div>
+                  <p class="font-semibold text-white text-xs">Menghentikan Over-Engineering</p>
+                  <p class="text-[11px] text-slate-300 leading-tight mt-0.5">Mencegah AI membuat interface berlebihan, factory class, atau scaffolding untuk hal yang belum dibutuhkan.</p>
+                </div>
+              </div>
+              <div class="p-3 rounded-xl bg-white/5 border border-white/10 flex items-start space-x-2.5">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5"></i>
+                <div>
+                  <p class="font-semibold text-white text-xs">Mencegah Ketergantungan Paket Liar</p>
+                  <p class="text-[11px] text-slate-300 leading-tight mt-0.5">AI dilarang menginstal package npm/pip baru jika hal tersebut dapat diselesaikan 3-5 baris native.</p>
+                </div>
+              </div>
+              <div class="p-3 rounded-xl bg-white/5 border border-white/10 flex items-start space-x-2.5">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5"></i>
+                <div>
+                  <p class="font-semibold text-white text-xs">Menghemat 40-60% Token Context Window</p>
+                  <p class="text-[11px] text-slate-300 leading-tight mt-0.5">Kode lebih ramping berarti konsumsi token LLM jauh lebih hemat dan respon jauh lebih cepat.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. METODOLOGI "THE LADDER" (HOW IT WORKS) -->
+          <div class="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 space-y-2.5 font-mono">
+            <div class="flex items-center justify-between text-indigo-300 font-semibold text-[11px]">
+              <span class="flex items-center space-x-1.5">
+                <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                <span>Alur Kerja "The Ladder"</span>
+              </span>
+              <span class="text-[10px] bg-indigo-500/20 px-2 py-0.5 rounded-full border border-indigo-500/30">Prinsip Ketat</span>
+            </div>
+            <ol class="space-y-1.5 text-[11px] text-slate-200 list-decimal list-inside leading-relaxed">
+              <li><strong class="text-white">Perlu ada?</strong> Jika tidak $\rightarrow$ batalkan (YAGNI).</li>
+              <li><strong class="text-white">Sudah ada di repo?</strong> Pakai ulang fungsi existing.</li>
+              <li><strong class="text-white">Stdlib bisa?</strong> Utamakan modul internal runtime.</li>
+              <li><strong class="text-white">Fitur native platform?</strong> Gunakan CSS/DOM bawaan.</li>
+              <li><strong class="text-white">Dependency terpasang?</strong> Manfaatkan yang sudah ada.</li>
+              <li><strong class="text-white">Bisa 1 baris?</strong> Tulis 1 baris kode saja.</li>
+            </ol>
+          </div>
+
+          <!-- 4. KAPAN HARUS DIGUNAKAN (USE CASES) -->
+          <div class="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+            <h4 class="font-bold text-white text-xs uppercase tracking-wider font-mono text-slate-200 flex items-center space-x-1.5">
+              <i data-lucide="help-circle" class="w-3.5 h-3.5 text-sky-400"></i>
+              <span>Kapan Harus Digunakan?</span>
+            </h4>
+            <ul class="space-y-1 text-slate-300 text-[11px] list-disc list-inside leading-relaxed">
+              <li>Ketika Anda ingin AI memodifikasi kode tanpa merusak arsitektur existing.</li>
+              <li>Saat ingin menghindari bloated dependencies di project kecil atau microservice.</li>
+              <li>Saat sesi coding panjang agar token limit context window tidak cepat habis.</li>
+            </ul>
+          </div>
+
+          <!-- 5. ONE-CLICK INSTALL / CLONE -->
+          <div class="space-y-2 pt-1">
+            <div class="flex items-center justify-between text-[11px] font-mono text-slate-300">
+              <span>Quick Clone URL</span>
+              <span class="text-sky-400 font-semibold">HTTPS</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <div class="flex-1 bg-black/50 border border-white/15 rounded-xl px-3 py-2 font-mono text-[11px] text-slate-200 truncate">
+                git clone https://github.com/DietrichGebert/ponytail.git
+              </div>
+              <div class="relative">
+                <button onclick="copyCloneCommand()" class="pressable px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-semibold text-slate-200 flex items-center space-x-1 cursor-pointer">
+                  <i id="drawerCopyIcon" data-lucide="copy" class="w-3.5 h-3.5 text-sky-400"></i>
+                  <span id="drawerCopyLabel">Copy</span>
+                </button>
+                <div id="drawerCopyToast" class="hidden absolute -top-8 right-0 px-2 py-0.5 bg-emerald-500 text-black text-[10px] font-bold rounded shadow-lg copied-toast pointer-events-none">
+                  Copied!
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Drawer Footer -->
+        <div class="p-4 border-t border-white/10 bg-white/[0.02] flex items-center justify-between text-xs text-slate-300 font-mono">
+          <span>Stars: <strong class="text-amber-300">161.2k</strong></span>
+          <button onclick="closeSummaryDrawer()" class="text-sky-400 hover:underline flex items-center space-x-1 cursor-pointer">
+            <span>Tutup Slide</span>
+            <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+
+  <!-- JavaScript Interaction -->
+  <script>
+    lucide.createIcons();
+
+    let isSummaryDrawerOpen = false;
+    let isModalOpen = true;
+
+    function openModal() {
+      const modal = document.getElementById('repoModal');
+      modal.classList.remove('hidden');
+      isModalOpen = true;
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('repoModal');
+      modal.classList.add('hidden');
+      closeSummaryDrawer();
+      isModalOpen = false;
+    }
+
+    function toggleModal() {
+      if (isModalOpen) closeModal();
+      else openModal();
+    }
+
+    // SLIDE DRAWER TOGGLE INTERACTION
+    function toggleSummaryDrawer() {
+      if (isSummaryDrawerOpen) {
+        closeSummaryDrawer();
+      } else {
+        openSummaryDrawer();
+      }
+    }
+
+    function openSummaryDrawer() {
+      const drawer = document.getElementById('summaryDrawer');
+      const icon = document.getElementById('slideChevronIcon');
+      drawer.classList.remove('translate-x-full');
+      drawer.classList.add('translate-x-0');
+      if (icon) icon.classList.add('rotate-90');
+      isSummaryDrawerOpen = true;
+    }
+
+    function closeSummaryDrawer() {
+      const drawer = document.getElementById('summaryDrawer');
+      const icon = document.getElementById('slideChevronIcon');
+      drawer.classList.remove('translate-x-0');
+      drawer.classList.add('translate-x-full');
+      if (icon) icon.classList.remove('rotate-90');
+      isSummaryDrawerOpen = false;
+    }
+
+    // SWITCH CASE BEFORE VS AFTER
+    function switchOutputCase(caseName) {
+      const c1 = document.getElementById('case1Content');
+      const c2 = document.getElementById('case2Content');
+      const b1 = document.getElementById('tabBtnCase1');
+      const b2 = document.getElementById('tabBtnCase2');
+      const desc = document.getElementById('casePromptDesc');
+
+      if (caseName === 'case1') {
+        c1.classList.remove('hidden');
+        c2.classList.add('hidden');
+        b1.className = 'flex-1 py-1.5 px-2 rounded-lg font-semibold transition-all text-white bg-indigo-600/80 shadow-sm cursor-pointer';
+        b2.className = 'flex-1 py-1.5 px-2 rounded-lg font-medium transition-all text-slate-300 hover:text-white cursor-pointer';
+        if (desc) desc.innerHTML = '<i data-lucide="terminal" class="w-3.5 h-3.5 text-sky-400 shrink-0 mt-0.5"></i><span><strong class="text-white">Prompt:</strong> "Format tanggal ISO ke teks Bahasa Indonesia tanpa library berat"</span>';
+      } else {
+        c2.classList.remove('hidden');
+        c1.classList.add('hidden');
+        b2.className = 'flex-1 py-1.5 px-2 rounded-lg font-semibold transition-all text-white bg-indigo-600/80 shadow-sm cursor-pointer';
+        b1.className = 'flex-1 py-1.5 px-2 rounded-lg font-medium transition-all text-slate-300 hover:text-white cursor-pointer';
+        if (desc) desc.innerHTML = '<i data-lucide="terminal" class="w-3.5 h-3.5 text-sky-400 shrink-0 mt-0.5"></i><span><strong class="text-white">Prompt:</strong> "Buat fungsi deep copy object konfigurasi tanpa library eksternal"</span>';
+      }
+      lucide.createIcons();
+    }
+
+    // Escape Key to Close
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (isSummaryDrawerOpen) {
+          closeSummaryDrawer();
+        } else {
+          closeModal();
+        }
+      }
+    });
+
+    // Hairline Scroll Progress
+    function handleScroll(e) {
+      const el = e.currentTarget;
+      const maxScroll = el.scrollHeight - el.clientHeight;
+      const progress = maxScroll > 0 ? (el.scrollTop / maxScroll) * 100 : 0;
+      document.getElementById('scrollProgressBar').style.width = progress + '%';
+    }
+
+    // Clone Command Copy
+    function copyCloneCommand() {
+      const text = 'git clone https://github.com/DietrichGebert/ponytail.git';
+      navigator.clipboard.writeText(text).then(() => {
+        const toast = document.getElementById('drawerCopyToast');
+        const label = document.getElementById('drawerCopyLabel');
+        const icon = document.getElementById('drawerCopyIcon');
+
+        if (toast) toast.classList.remove('hidden');
+        if (label) label.innerText = 'Copied!';
+        if (icon) icon.setAttribute('data-lucide', 'check');
+        lucide.createIcons();
+
+        setTimeout(() => {
+          if (toast) toast.classList.add('hidden');
+          if (label) label.innerText = 'Copy';
+          if (icon) icon.setAttribute('data-lucide', 'copy');
+          lucide.createIcons();
+        }, 1600);
+      });
+    }
+
+    // Theme Switcher Demo
+    function setTheme(theme) {
+      document.body.classList.remove('theme-aurora', 'theme-sunset', 'theme-frost');
+      document.body.classList.add('theme-' + theme);
+
+      ['aurora', 'sunset', 'frost'].forEach(t => {
+        const btn = document.getElementById('btn-theme-' + t);
+        if (t === theme) {
+          btn.className = 'px-2.5 py-1 rounded-lg bg-white/20 text-white font-medium pressable';
+        } else {
+          btn.className = 'px-2.5 py-1 rounded-lg text-slate-300 hover:text-white font-medium pressable';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

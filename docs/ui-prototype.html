@@ -1,0 +1,2456 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Library Hub - Prototype UI/UX</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              base: '#090a0f',
+              surface: '#12141c',
+              elevated: '#181b26',
+              border: '#232738',
+              hover: '#2a2f42',
+              primary: '#6366f1',
+              'primary-hover': '#4f46e5',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      /* Theme 1 Default: Aurora Borealis (Teal, Cyan, Indigo, Violet) */
+      --bg-gradient: radial-gradient(at 0% 0%, #1e1b4b 0px, transparent 50%),
+                          radial-gradient(at 100% 0%, #064e3b 0px, transparent 50%),
+                          radial-gradient(at 100% 100%, #312e81 0px, transparent 50%),
+                          radial-gradient(at 0% 100%, #0f172a 0px, transparent 50%),
+                          linear-gradient(135deg, #090d16 0%, #111827 50%, #1e1b4b 100%);
+      --orb-1: radial-gradient(circle, rgba(14, 165, 233, 0.35) 0%, rgba(14, 165, 233, 0) 70%);
+      --orb-2: radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, rgba(99, 102, 241, 0) 70%);
+      --orb-3: radial-gradient(circle, rgba(168, 85, 247, 0.30) 0%, rgba(168, 85, 247, 0) 70%);
+      --accent: #38bdf8;
+    }
+
+    /* ================= CRISP CONTRAST FOR DARK THEMES (AURORA & SUNSET) ================= */
+    /* Mengubah warna abu-abu redup (slate-400 / slate-500) menjadi putih bersih & terang */
+    .glass-card p,
+    .glass-card .text-slate-400,
+    .glass-card .text-slate-500,
+    .glass-panel .text-slate-400,
+    .sidebar-container .text-slate-400,
+    #currentViewDesc {
+      color: rgba(255, 255, 255, 0.92) !important;
+    }
+
+    /* Tag topik repo agar putih jelas dengan latar glass subtle */
+    .glass-card .text-\[10px\].font-mono.rounded {
+      color: #ffffff !important;
+      background: rgba(255, 255, 255, 0.12) !important;
+      border-color: rgba(255, 255, 255, 0.25) !important;
+      font-weight: 500;
+    }
+
+    /* Metadata footer kartu (Bahasa pemrograman & forks) agar putih terbaca */
+    .glass-card .font-mono.text-\[11px\],
+    .glass-card .text-slate-500 {
+      color: rgba(255, 255, 255, 0.95) !important;
+    }
+
+    /* Header repositori judul agar 100% pure white */
+    .glass-card .text-sm.font-semibold {
+      color: #ffffff !important;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Badge kategori di kartu repo */
+    .glass-card .text-\[10px\].font-medium.font-mono {
+      color: #38bdf8 !important;
+      background-color: rgba(56, 189, 248, 0.18) !important;
+      border-color: rgba(56, 189, 248, 0.4) !important;
+      font-weight: 600;
+    }
+
+    /* Theme 2: Sunset Velvet (Rose, Coral, Purple, Deep Indigo) */
+    body.theme-sunset {
+      --bg-gradient: radial-gradient(at 0% 0%, #881337 0px, transparent 50%),
+                          radial-gradient(at 100% 0%, #4c1d95 0px, transparent 50%),
+                          radial-gradient(at 100% 100%, #be123c 0px, transparent 50%),
+                          radial-gradient(at 0% 100%, #1e1b4b 0px, transparent 50%),
+                          linear-gradient(135deg, #180914 0%, #2b0c24 50%, #3b0764 100%);
+      --orb-1: radial-gradient(circle, rgba(244, 63, 94, 0.45) 0%, rgba(244, 63, 94, 0) 70%);
+      --orb-2: radial-gradient(circle, rgba(249, 115, 22, 0.40) 0%, rgba(249, 115, 22, 0) 70%);
+      --orb-3: radial-gradient(circle, rgba(168, 85, 247, 0.45) 0%, rgba(168, 85, 247, 0) 70%);
+      --accent: #fb7185;
+      color: #ffffff;
+    }
+    body.theme-sunset .glass-card p,
+    body.theme-sunset .glass-card .text-slate-400,
+    body.theme-sunset .glass-card .text-slate-500 {
+      color: #ffffff !important;
+    }
+    body.theme-sunset .glass-card .text-\[10px\].font-medium.font-mono {
+      color: #f472b6 !important;
+      background-color: rgba(244, 63, 94, 0.22) !important;
+      border-color: rgba(244, 63, 94, 0.45) !important;
+    }
+    /* Sunset Velvet Contrast Boost: Pastikan semua teks tajam di atas gradien merah muda/ungu */
+    body.theme-sunset .text-slate-100 { color: #ffffff !important; }
+    body.theme-sunset .text-slate-200 { color: #fce7f3 !important; }
+    body.theme-sunset .text-slate-300 { color: #fbcfe8 !important; }
+    body.theme-sunset .text-slate-400 { color: #f9a8d4 !important; }
+    body.theme-sunset .text-indigo-400 { color: #f472b6 !important; }
+    body.theme-sunset .bg-indigo-500\/10 { background-color: rgba(244, 63, 94, 0.15) !important; }
+    body.theme-sunset .border-indigo-500\/20 { border-color: rgba(244, 63, 94, 0.3) !important; }
+
+    /* Theme 3: Ethereal Frost / Light Iridescent */
+    body.theme-frost {
+      --bg-gradient: radial-gradient(at 0% 0%, #bae6fd 0px, transparent 50%),
+                          radial-gradient(at 100% 0%, #fbcfe8 0px, transparent 50%),
+                          radial-gradient(at 100% 100%, #ddd6fe 0px, transparent 50%),
+                          radial-gradient(at 0% 100%, #c7d2fe 0px, transparent 50%),
+                          linear-gradient(135deg, #e0f2fe 0%, #f3e8ff 50%, #fce7f3 100%);
+      --orb-1: radial-gradient(circle, rgba(56, 189, 248, 0.55) 0%, rgba(56, 189, 248, 0) 70%);
+      --orb-2: radial-gradient(circle, rgba(236, 72, 153, 0.50) 0%, rgba(236, 72, 153, 0) 70%);
+      --orb-3: radial-gradient(circle, rgba(168, 85, 247, 0.45) 0%, rgba(168, 85, 247, 0) 70%);
+      --accent: #0284c7;
+      color: #000000;
+    }
+    
+    /* ================= ZERO WHITE POLICY FOR THEME FROST ================= */
+    /* Semua teks, icon, border, input, placeholder, dan elemen putih di tema Frost diubah menjadi Hitam Tegas */
+    body.theme-frost {
+      color: #000000 !important;
+    }
+
+    body.theme-frost h1,
+    body.theme-frost h2,
+    body.theme-frost h3,
+    body.theme-frost h4,
+    body.theme-frost h5,
+    body.theme-frost h6 {
+      color: #000000 !important;
+      text-shadow: none !important;
+      font-weight: 700 !important;
+    }
+
+    body.theme-frost p,
+    body.theme-frost li,
+    body.theme-frost label,
+    body.theme-frost div:not([class*="bg-indigo"]):not([class*="bg-emerald"]):not([class*="bg-cyan"]):not([class*="bg-amber"]):not([class*="bg-rose"]):not([class*="bg-purple"]),
+    body.theme-frost span:not([class*="text-sky"]):not([class*="text-indigo"]):not([class*="text-pink"]):not([class*="text-amber"]):not([class*="text-emerald"]):not([class*="text-cyan"]):not([class*="text-yellow"]):not([class*="text-fuchsia"]),
+    body.theme-frost a:not([class*="text-sky"]):not([class*="text-indigo"]):not([class*="text-emerald"]) {
+      color: #000000 !important;
+      text-shadow: none !important;
+    }
+
+    body.theme-frost p,
+    body.theme-frost .text-slate-400,
+    body.theme-frost .text-slate-500 {
+      color: #1e293b !important;
+    }
+
+    body.theme-frost .text-white,
+    body.theme-frost .text-slate-100,
+    body.theme-frost .text-slate-200,
+    body.theme-frost .text-slate-300,
+    body.theme-frost .text-gray-100,
+    body.theme-frost .text-gray-200,
+    body.theme-frost .text-gray-300,
+    body.theme-frost .text-gray-400 {
+      color: #000000 !important;
+      text-shadow: none !important;
+    }
+
+    /* Global Border & White Overlay Overrides di Tema Frost */
+    body.theme-frost .border-white\/10,
+    body.theme-frost .border-white\/15,
+    body.theme-frost .border-white\/20,
+    body.theme-frost .border-white\/25,
+    body.theme-frost .border-white\/30,
+    body.theme-frost .border-white\/40,
+    body.theme-frost .border-white\/50,
+    body.theme-frost .divide-white\/10,
+    body.theme-frost .divide-white\/15 {
+      border-color: rgba(15, 23, 42, 0.16) !important;
+    }
+
+    body.theme-frost .bg-white\/5,
+    body.theme-frost .bg-white\/10 {
+      background-color: rgba(0, 0, 0, 0.05) !important;
+    }
+
+    body.theme-frost .hover\:bg-white\/5:hover,
+    body.theme-frost .hover\:bg-white\/10:hover {
+      background-color: rgba(0, 0, 0, 0.08) !important;
+    }
+
+    /* Icons & SVGs di Tema Frost */
+    body.theme-frost svg:not([class*="fill-amber"]):not([class*="text-amber"]):not([class*="fill-yellow"]):not([class*="text-yellow"]):not([class*="text-indigo"]):not([class*="text-cyan"]):not([class*="text-emerald"]):not([class*="text-sky"]):not([class*="text-red"]) {
+      color: #000000 !important;
+    }
+
+    /* Input & Placeholder di Tema Frost */
+    body.theme-frost input,
+    body.theme-frost select,
+    body.theme-frost textarea {
+      color: #000000 !important;
+      background: rgba(255, 255, 255, 0.95) !important;
+      border: 1px solid rgba(15, 23, 42, 0.22) !important;
+    }
+
+    body.theme-frost input::placeholder,
+    body.theme-frost .placeholder-slate-400::placeholder {
+      color: #475569 !important;
+    }
+
+    /* Top Header & Dropdowns di Tema Frost */
+    body.theme-frost header.glass-panel {
+      background: rgba(255, 255, 255, 0.90) !important;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.14) !important;
+    }
+
+    body.theme-frost header .glass-input {
+      background: #ffffff !important;
+      border: 1px solid rgba(15, 23, 42, 0.22) !important;
+      color: #000000 !important;
+    }
+
+    body.theme-frost header span.font-mono {
+      background: rgba(0, 0, 0, 0.06) !important;
+      border: 1px solid rgba(0, 0, 0, 0.15) !important;
+      color: #000000 !important;
+      font-weight: 600 !important;
+    }
+
+    body.theme-frost .glass-dropdown-surface {
+      background: #ffffff !important;
+      border: 1px solid rgba(15, 23, 42, 0.16) !important;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.16) !important;
+    }
+
+    body.theme-frost .glass-dropdown-surface button {
+      color: #000000 !important;
+      font-weight: 600 !important;
+    }
+
+    body.theme-frost .glass-dropdown-surface button:hover {
+      background: rgba(0, 0, 0, 0.06) !important;
+    }
+
+    body.theme-frost .glass-dropdown-surface .text-slate-400 {
+      color: #475569 !important;
+    }
+
+    /* Sidebar Menu Navigation di Tema Frost */
+    body.theme-frost #mainSidebar {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(241, 245, 249, 0.80) 100%) !important;
+      border-right: 1px solid rgba(15, 23, 42, 0.14) !important;
+    }
+
+    body.theme-frost .sidebar-container .sidebar-text h1 {
+      color: #000000 !important;
+      font-weight: 800 !important;
+      text-shadow: none !important;
+    }
+
+    body.theme-frost .sidebar-container .sidebar-text span {
+      color: #4338ca !important;
+      font-weight: 700 !important;
+      text-shadow: none !important;
+    }
+
+    body.theme-frost #mainSidebar .sidebar-badge {
+      color: #000000 !important;
+      background: rgba(0, 0, 0, 0.06) !important;
+      border: 1px solid rgba(0, 0, 0, 0.15) !important;
+      text-shadow: none !important;
+      font-weight: 700 !important;
+    }
+
+    body.theme-frost #mainSidebar button {
+      color: #000000 !important;
+      text-shadow: none !important;
+    }
+
+    body.theme-frost #mainSidebar button:hover {
+      background: rgba(0, 0, 0, 0.06) !important;
+    }
+
+    body.theme-frost #categoryTree button {
+      color: #000000 !important;
+      font-weight: 600 !important;
+      text-shadow: none !important;
+    }
+
+    body.theme-frost #categoryTree span {
+      color: #000000 !important;
+      text-shadow: none !important;
+    }
+
+    body.theme-frost #categoryTree .text-slate-500 {
+      color: #475569 !important;
+      font-weight: 600 !important;
+    }
+
+    body.theme-frost #quickFilterContainer button {
+      color: #000000 !important;
+    }
+
+    body.theme-frost #quickFilterContainer button .sidebar-badge {
+      background: #e0e7ff !important;
+      color: #312e81 !important;
+      border: 1px solid #c7d2fe !important;
+      font-weight: 700 !important;
+      text-shadow: none !important;
+    }
+
+    body.theme-frost .sidebar-toggle-btn {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #000000 !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
+    }
+
+    body.theme-frost .sidebar-footer-btn {
+      background: rgba(0, 0, 0, 0.03) !important;
+      border-top: 1px solid rgba(15, 23, 42, 0.12) !important;
+    }
+
+    body.theme-frost .sidebar-footer-btn button {
+      color: #000000 !important;
+      border: 1px dashed rgba(15, 23, 42, 0.35) !important;
+      font-weight: 600 !important;
+    }
+
+    body.theme-frost .sidebar-footer-btn button:hover {
+      background: rgba(0, 0, 0, 0.06) !important;
+      border-color: #000000 !important;
+      color: #000000 !important;
+    }
+
+    /* Headline Stats Bar di Tema Frost */
+    body.theme-frost .glass-panel {
+      background: rgba(255, 255, 255, 0.88) !important;
+      border: 1px solid rgba(15, 23, 42, 0.14) !important;
+      color: #000000 !important;
+    }
+
+    /* Cards Repositori di Tema Frost */
+    body.theme-frost .glass-card { 
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.75) 100%) !important; 
+      border: 1px solid rgba(15, 23, 42, 0.15) !important;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.95) !important;
+      color: #000000 !important;
+    }
+
+    body.theme-frost .glass-card:hover {
+      background: #ffffff !important;
+      border-color: rgba(15, 23, 42, 0.3) !important;
+      box-shadow: 0 18px 36px -8px rgba(15, 23, 42, 0.16) !important;
+    }
+
+    body.theme-frost .glass-card .text-slate-100 {
+      color: #000000 !important;
+      font-weight: 800 !important;
+    }
+
+    body.theme-frost .glass-card p {
+      color: #1e293b !important;
+      font-weight: 450 !important;
+    }
+
+    body.theme-frost .glass-card .border-t {
+      border-color: rgba(15, 23, 42, 0.12) !important;
+    }
+
+    body.theme-frost .glass-card .border-t span {
+      color: #000000 !important;
+      font-weight: 700 !important;
+    }
+
+    body.theme-frost .glass-card span.font-mono {
+      color: #000000 !important;
+      background: rgba(0, 0, 0, 0.06) !important;
+      border: 1px solid rgba(0, 0, 0, 0.14) !important;
+      font-weight: 600 !important;
+    }
+
+    body.theme-frost .glass-card .text-slate-500 {
+      color: #334155 !important;
+    }
+
+    body.theme-frost .glass-card .text-\[10px\].font-medium.font-mono {
+      color: #0369a1 !important;
+      background-color: rgba(2, 132, 199, 0.12) !important;
+      border: 1px solid rgba(2, 132, 199, 0.35) !important;
+      font-weight: 700 !important;
+    }
+
+    body {
+      background: var(--bg-gradient);
+      background-attachment: fixed;
+      color: #ffffff;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+      min-height: 100vh;
+      transition: background 0.4s ease;
+    }
+
+    /* ================= ZERO GREY POLICY FOR AURORA & SUNSET ================= */
+    /* Semua teks abu-abu di tema Aurora dan Sunset Velvet diubah menjadi Putih Bersih */
+    body:not(.theme-frost) {
+      color: #ffffff !important;
+    }
+
+    body:not(.theme-frost) p,
+    body:not(.theme-frost) li,
+    body:not(.theme-frost) h1,
+    body:not(.theme-frost) h2,
+    body:not(.theme-frost) h3,
+    body:not(.theme-frost) h4,
+    body:not(.theme-frost) h5,
+    body:not(.theme-frost) h6,
+    body:not(.theme-frost) .text-slate-100,
+    body:not(.theme-frost) .text-slate-200,
+    body:not(.theme-frost) .text-slate-300,
+    body:not(.theme-frost) .text-slate-400,
+    body:not(.theme-frost) .text-slate-500,
+    body:not(.theme-frost) .text-slate-600,
+    body:not(.theme-frost) .text-gray-100,
+    body:not(.theme-frost) .text-gray-200,
+    body:not(.theme-frost) .text-gray-300,
+    body:not(.theme-frost) .text-gray-400,
+    body:not(.theme-frost) .text-gray-500,
+    body:not(.theme-frost) .text-gray-600 {
+      color: #ffffff !important;
+    }
+
+    body:not(.theme-frost) span:not([class*="text-sky"]):not([class*="text-indigo"]):not([class*="text-pink"]):not([class*="text-amber"]):not([class*="text-emerald"]):not([class*="text-cyan"]):not([class*="text-yellow"]):not([class*="text-fuchsia"]) {
+      color: #ffffff !important;
+    }
+
+    body:not(.theme-frost) input::placeholder,
+    body:not(.theme-frost) .placeholder-slate-400::placeholder {
+      color: rgba(255, 255, 255, 0.70) !important;
+    }
+
+    body:not(.theme-frost) svg.text-slate-400,
+    body:not(.theme-frost) svg.text-slate-500,
+    body:not(.theme-frost) svg.text-slate-600,
+    body:not(.theme-frost) i.text-slate-400,
+    body:not(.theme-frost) i.text-slate-500,
+    body:not(.theme-frost) i.text-slate-600 {
+      color: #ffffff !important;
+    }
+
+    body:not(.theme-frost) .prose :where(p, span, li, h1, h2, h3, h4, h5, h6, strong, code, td, th, blockquote) {
+      color: #ffffff !important;
+    }
+
+    /* Ambient Video Background */
+    .glass-bg-video {
+      opacity: 0.38;
+      mix-blend-mode: screen;
+      transition: opacity 0.6s ease, filter 0.6s ease;
+    }
+    body.theme-sunset .glass-bg-video {
+      opacity: 0.42;
+      mix-blend-mode: screen;
+      filter: hue-rotate(290deg) saturate(1.2);
+    }
+    body.theme-frost .glass-bg-video {
+      opacity: 0.18;
+      mix-blend-mode: multiply;
+      filter: saturate(0.85);
+    }
+
+    /* Ambient Glow Orbs for Real Glass Refraction */
+    .glass-orb-1 {
+      position: fixed;
+      width: 650px;
+      height: 650px;
+      top: -150px;
+      left: 5%;
+      background: var(--orb-1);
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+      animation: floatOrb 18s ease-in-out infinite alternate;
+    }
+    .glass-orb-2 {
+      position: fixed;
+      width: 550px;
+      height: 550px;
+      bottom: 5%;
+      right: 5%;
+      background: var(--orb-2);
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+      animation: floatOrb 14s ease-in-out infinite alternate-reverse;
+    }
+    .glass-orb-3 {
+      position: fixed;
+      width: 480px;
+      height: 480px;
+      top: 40%;
+      left: 35%;
+      background: var(--orb-3);
+      filter: blur(90px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    @keyframes floatOrb {
+      0% { transform: translateY(0px) scale(1); }
+      100% { transform: translateY(40px) scale(1.08); }
+    }
+
+    /* ================= REAL PHYSICAL GLASSMORPHISM ================= */
+    /* 1. True Frosted Surface with Specular Bevels & Multi-layer Shadows */
+    .glass-panel {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%);
+      backdrop-filter: blur(28px) saturate(210%);
+      -webkit-backdrop-filter: blur(28px) saturate(210%);
+      border-top: 1.5px solid rgba(255, 255, 255, 0.45);
+      border-left: 1.5px solid rgba(255, 255, 255, 0.30);
+      border-right: 1px solid rgba(255, 255, 255, 0.12);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 
+        0 16px 40px 0 rgba(0, 0, 0, 0.35),
+        inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.4),
+        inset 0 -1px 2px 0 rgba(0, 0, 0, 0.25);
+    }
+
+    .glass-panel-elevated {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.05) 100%);
+      backdrop-filter: blur(36px) saturate(220%);
+      -webkit-backdrop-filter: blur(36px) saturate(220%);
+      border-top: 2px solid rgba(255, 255, 255, 0.55);
+      border-left: 1.5px solid rgba(255, 255, 255, 0.38);
+      border-right: 1px solid rgba(255, 255, 255, 0.15);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+      box-shadow: 
+        0 30px 70px 0 rgba(0, 0, 0, 0.45),
+        inset 0 2px 3px 0 rgba(255, 255, 255, 0.5),
+        inset 0 -1.5px 3px 0 rgba(0, 0, 0, 0.3);
+    }
+
+    /* 2. Glass Bento Cards with Emil Kowalski Micro-interactions */
+    .glass-card {
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.02) 100%);
+      backdrop-filter: blur(24px) saturate(210%);
+      -webkit-backdrop-filter: blur(24px) saturate(210%);
+      border-top: 1.5px solid rgba(255, 255, 255, 0.38);
+      border-left: 1.5px solid rgba(255, 255, 255, 0.24);
+      border-right: 1px solid rgba(255, 255, 255, 0.10);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: 
+        0 14px 30px -5px rgba(0, 0, 0, 0.30),
+        inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.35),
+        inset 0 -1px 2px 0 rgba(0, 0, 0, 0.2);
+      transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), 
+                  background 180ms ease-out, 
+                  box-shadow 180ms ease-out, 
+                  border-color 180ms ease-out;
+      position: relative;
+    }
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 40%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 100%);
+      border-top-left-radius: inherit;
+      border-top-right-radius: inherit;
+      pointer-events: none;
+    }
+    .glass-card:hover {
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.05) 100%);
+      border-top-color: rgba(255, 255, 255, 0.65);
+      border-left-color: rgba(255, 255, 255, 0.45);
+      box-shadow: 
+        0 24px 50px -10px rgba(0, 0, 0, 0.45),
+        0 0 25px rgba(56, 189, 248, 0.2),
+        inset 0 2px 3px 0 rgba(255, 255, 255, 0.5);
+      transform: translateY(-4px) scale(1.01);
+    }
+    .glass-card:active {
+      transform: scale(0.985);
+      transition-duration: 80ms;
+    }
+
+    /* 3. Responsive Pressable Buttons (Emil Principle: active scale 0.97) */
+    .pressable-btn {
+      transition: transform 140ms cubic-bezier(0.16, 1, 0.3, 1), background 140ms ease;
+    }
+    .pressable-btn:active {
+      transform: scale(0.96);
+    }
+
+    .glass-input {
+      background: rgba(255, 255, 255, 0.06) !important;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
+      border-left: 1px solid rgba(255, 255, 255, 0.15) !important;
+      border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+      transition: all 180ms ease-out;
+    }
+    .glass-input:focus {
+      background: rgba(255, 255, 255, 0.1) !important;
+      border-color: rgba(56, 189, 248, 0.6) !important;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.2);
+    }
+
+    /* Floating toggle button transition & hover styles */
+    .sidebar-container {
+      transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .sidebar-container.collapsed {
+      width: 4.5rem; /* 72px pas untuk centering icon 36px/40px tanpa overflow */
+    }
+    .sidebar-container.collapsed .sidebar-text,
+    .sidebar-container.collapsed .sidebar-badge,
+    .sidebar-container.collapsed #categoryTree,
+    .sidebar-container.collapsed #quickFilterContainer,
+    .sidebar-container.collapsed .sidebar-footer-btn {
+      display: none !important;
+    }
+    .sidebar-container.collapsed .brand-header-inner {
+      justify-content: center !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+    .sidebar-container.collapsed .sidebar-icon-only {
+      display: flex !important;
+    }
+    .sidebar-toggle-btn {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(50%) scale(0.9);
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .sidebar-container:hover .sidebar-toggle-btn,
+    .sidebar-toggle-btn:hover {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(50%) scale(1);
+    }
+    .sidebar-toggle-btn:active {
+      transform: translateX(50%) scale(0.92);
+    }
+
+    /* ================= MOTION AIRFALL (WATERFALL CASCADE) ================= */
+    /* Emil Kowalski Organic Fluid Droplet & Cascade Physics */
+    @keyframes airfallMenu {
+      0% {
+        opacity: 0;
+        transform: translateY(-14px) scale(0.94);
+        filter: blur(8px);
+      }
+      60% {
+        transform: translateY(3px) scale(1.01);
+        filter: blur(0px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0px);
+      }
+    }
+
+    @keyframes airfallItem {
+      0% {
+        opacity: 0;
+        transform: translateY(-16px);
+      }
+      70% {
+        transform: translateY(2px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .dropdown-airfall {
+      animation: airfallMenu 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      transform-origin: top center;
+    }
+
+    /* Solid Frosted Glass Surface Khusus Popover / Dropdown agar teks tidak tembus & tabrakan */
+    .glass-dropdown-surface {
+      background: rgba(13, 18, 30, 0.94) !important;
+      backdrop-filter: blur(36px) saturate(210%) !important;
+      -webkit-backdrop-filter: blur(36px) saturate(210%) !important;
+      border-top: 1px solid rgba(255, 255, 255, 0.35) !important;
+      border-left: 1px solid rgba(255, 255, 255, 0.22) !important;
+      border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 
+        0 24px 60px -10px rgba(0, 0, 0, 0.75),
+        0 0 0 1px rgba(255, 255, 255, 0.1),
+        inset 0 1px 1px 0 rgba(255, 255, 255, 0.3) !important;
+    }
+    body.theme-sunset .glass-dropdown-surface {
+      background: rgba(28, 14, 30, 0.95) !important;
+      box-shadow: 
+        0 24px 60px -10px rgba(10, 4, 15, 0.8),
+        0 0 0 1px rgba(255, 255, 255, 0.12),
+        inset 0 1px 1px 0 rgba(255, 255, 255, 0.3) !important;
+    }
+    body.theme-frost .glass-dropdown-surface {
+      background: rgba(245, 248, 255, 0.96) !important;
+      border-top: 1px solid rgba(255, 255, 255, 0.9) !important;
+      box-shadow: 
+        0 24px 50px -10px rgba(100, 116, 139, 0.35),
+        0 0 0 1px rgba(226, 232, 240, 0.8),
+        inset 0 1px 1px 0 rgba(255, 255, 255, 0.9) !important;
+    }
+    /* ================= FULL GITHUB MODAL REAL PHYSICAL GLASSMORPHISM ================= */
+    /* Backdrop Modal: Frosted Glass Refraction Transparan (TIDAK LAGI HITAM PEKAT) */
+    #repoDetailModal {
+      background: rgba(5, 7, 13, 0.45) !important;
+      backdrop-filter: blur(20px) saturate(180%) !important;
+      -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    }
+    body.theme-sunset #repoDetailModal {
+      background: rgba(24, 9, 20, 0.45) !important;
+    }
+    body.theme-frost #repoDetailModal {
+      background: rgba(220, 230, 245, 0.45) !important;
+    }
+
+    /* Modal Container: 100% Physical Glassmorphism tembus pandang 3D Three.js & orbs */
+    .glass-modal-container {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%) !important;
+      backdrop-filter: blur(40px) saturate(220%) !important;
+      -webkit-backdrop-filter: blur(40px) saturate(220%) !important;
+      border-top: 2px solid rgba(255, 255, 255, 0.55) !important;
+      border-left: 1.5px solid rgba(255, 255, 255, 0.35) !important;
+      border-right: 1px solid rgba(255, 255, 255, 0.18) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
+      box-shadow: 
+        0 30px 80px -10px rgba(0, 0, 0, 0.55),
+        0 0 0 1px rgba(255, 255, 255, 0.15),
+        inset 0 2px 3px 0 rgba(255, 255, 255, 0.4) !important;
+    }
+    .glass-modal-header {
+      background: rgba(255, 255, 255, 0.08) !important;
+      backdrop-filter: blur(28px) !important;
+      -webkit-backdrop-filter: blur(28px) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.14) !important;
+    }
+    .glass-modal-subbar {
+      background: rgba(255, 255, 255, 0.05) !important;
+      backdrop-filter: blur(24px) !important;
+      -webkit-backdrop-filter: blur(24px) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
+    }
+    .glass-modal-body {
+      background: transparent !important;
+    }
+    .glass-inner-panel {
+      background: rgba(255, 255, 255, 0.06) !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.2) !important;
+    }
+    .glass-modal-btn {
+      background: rgba(255, 255, 255, 0.10) !important;
+      border: 1px solid rgba(255, 255, 255, 0.22) !important;
+      color: #ffffff !important;
+      transition: all 140ms ease !important;
+    }
+    .glass-modal-btn:hover {
+      background: rgba(255, 255, 255, 0.22) !important;
+      color: #ffffff !important;
+      border-color: rgba(255, 255, 255, 0.45) !important;
+    }
+    .glass-modal-row {
+      background: transparent;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+      transition: background 140ms ease;
+    }
+    .glass-modal-row:hover {
+      background: rgba(255, 255, 255, 0.12) !important;
+    }
+    .glass-modal-topic-badge {
+      background: rgba(56, 189, 248, 0.20) !important;
+      color: #38bdf8 !important;
+      border: 1px solid rgba(56, 189, 248, 0.45) !important;
+    }
+
+    /* Adaptasi Modal ke Tema Sunset Velvet */
+    body.theme-sunset .glass-modal-container {
+      background: linear-gradient(135deg, rgba(244, 63, 94, 0.18) 0%, rgba(168, 85, 247, 0.10) 100%) !important;
+      border-top-color: rgba(255, 255, 255, 0.6) !important;
+      box-shadow: 
+        0 30px 80px -10px rgba(24, 9, 20, 0.75),
+        0 0 0 1px rgba(244, 63, 94, 0.3),
+        inset 0 2px 3px 0 rgba(255, 255, 255, 0.45) !important;
+    }
+    body.theme-sunset .glass-modal-header {
+      background: rgba(244, 63, 94, 0.12) !important;
+      border-bottom-color: rgba(244, 63, 94, 0.3) !important;
+    }
+    body.theme-sunset .glass-modal-subbar {
+      background: rgba(168, 85, 247, 0.08) !important;
+      border-bottom-color: rgba(244, 63, 94, 0.22) !important;
+    }
+    body.theme-sunset .glass-inner-panel {
+      background: rgba(255, 255, 255, 0.06) !important;
+      border-color: rgba(244, 63, 94, 0.3) !important;
+    }
+    body.theme-sunset .glass-modal-btn {
+      background: rgba(244, 63, 94, 0.18) !important;
+      border-color: rgba(244, 63, 94, 0.38) !important;
+      color: #ffffff !important;
+    }
+    body.theme-sunset .glass-modal-btn:hover {
+      background: rgba(244, 63, 94, 0.35) !important;
+      color: #ffffff !important;
+    }
+    body.theme-sunset .glass-modal-row:hover {
+      background: rgba(244, 63, 94, 0.18) !important;
+    }
+    body.theme-sunset .glass-modal-topic-badge {
+      background: rgba(244, 63, 94, 0.25) !important;
+      color: #fda4af !important;
+      border-color: rgba(244, 63, 94, 0.5) !important;
+    }
+
+    /* Adaptasi Modal ke Tema Ethereal Frost (Light Glass + Zero White Pure Black Policy) */
+    body.theme-frost .glass-modal-container {
+      background: #ffffff !important;
+      border: 1px solid rgba(15, 23, 42, 0.20) !important;
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.35) !important;
+      color: #000000 !important;
+    }
+    body.theme-frost .glass-modal-header {
+      background: #f8fafc !important;
+      border-bottom-color: #e2e8f0 !important;
+      color: #000000 !important;
+    }
+    body.theme-frost .glass-modal-subbar {
+      background: #f8fafc !important;
+      border-bottom-color: #e2e8f0 !important;
+      color: #000000 !important;
+    }
+    body.theme-frost .glass-inner-panel {
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      color: #000000 !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+    }
+    body.theme-frost .glass-modal-btn {
+      background: #f1f5f9 !important;
+      border-color: #cbd5e1 !important;
+      color: #000000 !important;
+      font-weight: 600 !important;
+    }
+    body.theme-frost .glass-modal-btn:hover {
+      background: #e2e8f0 !important;
+      color: #000000 !important;
+      border-color: #94a3b8 !important;
+    }
+    body.theme-frost .glass-modal-row {
+      border-bottom-color: #f1f5f9 !important;
+      color: #000000 !important;
+    }
+    body.theme-frost .glass-modal-row:hover {
+      background: #f8fafc !important;
+    }
+    body.theme-frost .glass-modal-topic-badge {
+      background: #e0f2fe !important;
+      color: #0369a1 !important;
+      border: 1px solid #bae6fd !important;
+      font-weight: 600 !important;
+    }
+    body.theme-frost #repoDetailModal .text-slate-100,
+    body.theme-frost #repoDetailModal .text-slate-200,
+    body.theme-frost #repoDetailModal .text-slate-300,
+    body.theme-frost #repoDetailModal h4,
+    body.theme-frost #repoDetailModal h5 {
+      color: #000000 !important;
+      font-weight: 700 !important;
+    }
+    body.theme-frost #repoDetailModal .text-slate-400,
+    body.theme-frost #repoDetailModal .text-slate-500,
+    body.theme-frost #repoDetailModal p {
+      color: #1e293b !important;
+    }
+    body.theme-frost #modalRepoName {
+      color: #000000 !important;
+      font-weight: 800 !important;
+    }
+    body.theme-frost #modalRepoBadge {
+      background: #f1f5f9 !important;
+      color: #000000 !important;
+      border-color: #cbd5e1 !important;
+      font-weight: 600 !important;
+    }
+    body.theme-frost #repoDetailModal .bg-white\/10 {
+      background: #f1f5f9 !important;
+      color: #000000 !important;
+      border-color: #e2e8f0 !important;
+    }
+    body.theme-frost #repoDetailModal .github-rendered-markdown {
+      color: #000000 !important;
+    }
+    body.theme-frost #repoDetailModal .github-rendered-markdown pre,
+    body.theme-frost #repoDetailModal .github-rendered-markdown code {
+      background: #f8fafc !important;
+      color: #000000 !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+    body.theme-frost #repoDetailModal .github-rendered-markdown h1,
+    body.theme-frost #repoDetailModal .github-rendered-markdown h2,
+    body.theme-frost #repoDetailModal .github-rendered-markdown h3,
+    body.theme-frost #repoDetailModal .github-rendered-markdown h4,
+    body.theme-frost #repoDetailModal .github-rendered-markdown strong {
+      color: #000000 !important;
+      font-weight: 700 !important;
+    }
+
+    .airfall-item-1 { animation: airfallItem 280ms cubic-bezier(0.16, 1, 0.3, 1) 40ms forwards; }
+    .airfall-item-2 { animation: airfallItem 280ms cubic-bezier(0.16, 1, 0.3, 1) 90ms forwards; }
+    .airfall-item-3 { animation: airfallItem 280ms cubic-bezier(0.16, 1, 0.3, 1) 140ms forwards; }
+    .airfall-item-4 { animation: airfallItem 280ms cubic-bezier(0.16, 1, 0.3, 1) 190ms forwards; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col md:flex-row antialiased select-none relative bg-[#05070d]">
+
+  <!-- Ambient Dynamic Video Background Looping -->
+  <video 
+    autoplay 
+    loop 
+    muted 
+    playsinline 
+    class="fixed inset-0 w-full h-full object-cover pointer-events-none z-0 glass-bg-video"
+  >
+    <source src="gemini_generated_video_347e0e06.mp4" type="video/mp4">
+  </video>
+
+  <!-- Ambient Glowing Background Orbs for Glassmorphism Depth -->
+  <div class="glass-orb-1"></div>
+  <div class="glass-orb-2"></div>
+  <div class="glass-orb-3"></div>
+
+  <!-- ================= SIDEBAR (GLASSMORPHISM) ================= -->
+  <aside id="mainSidebar" class="sidebar-container glass-panel relative w-full md:w-72 border-r border-white/10 flex flex-col shrink-0 z-20">
+    
+    <!-- Floating Collapse / Expand Button -->
+    <button 
+      id="sidebarToggleBtn" 
+      onclick="toggleSidebarCollapse()" 
+      title="Toggle Sidebar (Ctrl+B)"
+      class="sidebar-toggle-btn absolute -right-[1px] top-6 z-30 w-7 h-7 rounded-lg bg-[#0e1726]/90 backdrop-blur-md border border-sky-400/50 text-sky-400 hover:text-white hover:bg-sky-500/30 shadow-lg shadow-sky-950/60 flex items-center justify-center cursor-pointer"
+    >
+      <i data-lucide="columns-2" id="toggleIcon" class="w-4 h-4 stroke-[2.2]"></i>
+    </button>
+
+    <!-- Brand Header -->
+    <div class="h-16 px-4 border-b border-brand-border flex items-center justify-between brand-header-inner">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 shrink-0">
+          <i data-lucide="folder-git-2" class="w-5 h-5"></i>
+        </div>
+        <div class="sidebar-text truncate">
+          <h1 class="text-sm font-bold text-slate-100 tracking-tight leading-none">GitLibrary</h1>
+          <span class="text-[10px] text-indigo-400 font-mono font-medium">Curated AI Repos</span>
+        </div>
+      </div>
+      <span class="sidebar-badge text-[11px] font-mono bg-brand-elevated text-slate-400 px-2 py-0.5 rounded border border-brand-border shrink-0">v1.0</span>
+    </div>
+
+    <!-- Quick Filter -->
+    <div class="p-3 border-b border-brand-border" id="quickFilterContainer">
+      <button onclick="filterCategory('all')" title="Semua Repositori" class="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-xs font-semibold hover:bg-indigo-500/20 transition-all">
+        <div class="flex items-center space-x-2.5">
+          <i data-lucide="layers" class="w-4 h-4 shrink-0"></i>
+          <span class="sidebar-text">Semua Repositori</span>
+        </div>
+        <span class="sidebar-badge px-1.5 py-0.5 text-[10px] bg-indigo-500/30 rounded font-mono" id="totalRepoBadge">24</span>
+      </button>
+    </div>
+
+    <!-- Mini Icon-Only View saat Collapsed -->
+    <div class="sidebar-icon-only hidden flex-1 flex-col items-center py-4 space-y-3">
+      <button onclick="filterCategory('LLM')" title="LLM" class="w-10 h-10 rounded-xl hover:bg-brand-elevated text-indigo-400 flex items-center justify-center transition-colors">
+        <i data-lucide="cpu" class="w-5 h-5"></i>
+      </button>
+      <button onclick="filterCategory('RAG')" title="RAG" class="w-10 h-10 rounded-xl hover:bg-brand-elevated text-cyan-400 flex items-center justify-center transition-colors">
+        <i data-lucide="database" class="w-5 h-5"></i>
+      </button>
+      <button onclick="filterCategory('Video')" title="Video" class="w-10 h-10 rounded-xl hover:bg-brand-elevated text-emerald-400 flex items-center justify-center transition-colors">
+        <i data-lucide="video" class="w-5 h-5"></i>
+      </button>
+      <button onclick="filterCategory('AI Agent')" title="AI Agent" class="w-10 h-10 rounded-xl hover:bg-brand-elevated text-amber-400 flex items-center justify-center transition-colors">
+        <i data-lucide="bot" class="w-5 h-5"></i>
+      </button>
+      <button onclick="filterCategory('AI Skill')" title="AI Skill" class="w-10 h-10 rounded-xl hover:bg-brand-elevated text-fuchsia-400 flex items-center justify-center transition-colors">
+        <i data-lucide="sparkles" class="w-5 h-5"></i>
+      </button>
+      <div class="w-6 h-[1px] bg-brand-border my-2"></div>
+      <button onclick="openCategoryModal()" title="Tambah Kategori" class="w-10 h-10 rounded-xl border border-dashed border-slate-700 hover:border-indigo-500 text-slate-400 hover:text-indigo-400 flex items-center justify-center transition-colors">
+        <i data-lucide="plus" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <!-- Category Groups / Tree Navigation -->
+    <div class="flex-1 overflow-y-auto p-3 space-y-1" id="categoryTree">
+      <!-- Category 1: LLM -->
+      <div class="space-y-0.5">
+        <button onclick="toggleCategoryGroup('llm-sub')" class="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-200 hover:bg-brand-elevated transition-colors group">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="cpu" class="w-4 h-4 text-indigo-400"></i>
+            <span>Large Language Models</span>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <span class="text-[10px] text-slate-500 font-mono">7</span>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-300 transition-transform"></i>
+          </div>
+        </button>
+        <div id="llm-sub" class="pl-7 pr-1 space-y-0.5">
+          <button onclick="filterCategory('LLM', 'Foundations')" class="w-full text-left px-2 py-1.5 rounded text-[11px] text-slate-400 hover:text-slate-200 hover:bg-brand-elevated flex justify-between items-center">
+            <span>Foundations & Training</span>
+            <span class="text-[9px] font-mono text-slate-600">3</span>
+          </button>
+          <button onclick="filterCategory('LLM', 'Quantization')" class="w-full text-left px-2 py-1.5 rounded text-[11px] text-slate-400 hover:text-slate-200 hover:bg-brand-elevated flex justify-between items-center">
+            <span>Quantization & Inferensi</span>
+            <span class="text-[9px] font-mono text-slate-600">4</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Category 2: RAG -->
+      <div class="space-y-0.5">
+        <button onclick="toggleCategoryGroup('rag-sub')" class="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-200 hover:bg-brand-elevated transition-colors group">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="database" class="w-4 h-4 text-cyan-400"></i>
+            <span>RAG & Vector DB</span>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <span class="text-[10px] text-slate-500 font-mono">5</span>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-300"></i>
+          </div>
+        </button>
+        <div id="rag-sub" class="pl-7 pr-1 space-y-0.5">
+          <button onclick="filterCategory('RAG', 'Vector Stores')" class="w-full text-left px-2 py-1.5 rounded text-[11px] text-slate-400 hover:text-slate-200 hover:bg-brand-elevated flex justify-between items-center">
+            <span>Vector Stores</span>
+            <span class="text-[9px] font-mono text-slate-600">3</span>
+          </button>
+          <button onclick="filterCategory('RAG', 'Chunking & Pipelines')" class="w-full text-left px-2 py-1.5 rounded text-[11px] text-slate-400 hover:text-slate-200 hover:bg-brand-elevated flex justify-between items-center">
+            <span>Chunking & Pipelines</span>
+            <span class="text-[9px] font-mono text-slate-600">2</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Category 3: Video -->
+      <div class="space-y-0.5">
+        <button onclick="toggleCategoryGroup('video-sub')" class="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-200 hover:bg-brand-elevated transition-colors group">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="video" class="w-4 h-4 text-emerald-400"></i>
+            <span>Video & Motion AI</span>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <span class="text-[10px] text-slate-500 font-mono">4</span>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-300"></i>
+          </div>
+        </button>
+        <div id="video-sub" class="pl-7 pr-1 space-y-0.5">
+          <button onclick="filterCategory('Video', 'Generative')" class="w-full text-left px-2 py-1.5 rounded text-[11px] text-slate-400 hover:text-slate-200 hover:bg-brand-elevated flex justify-between items-center">
+            <span>Generative Video</span>
+            <span class="text-[9px] font-mono text-slate-600">2</span>
+          </button>
+          <button onclick="filterCategory('Video', 'Motion & Remotion')" class="w-full text-left px-2 py-1.5 rounded text-[11px] text-slate-400 hover:text-slate-200 hover:bg-brand-elevated flex justify-between items-center">
+            <span>Motion & Remotion</span>
+            <span class="text-[9px] font-mono text-slate-600">2</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Category 4: AI Agent -->
+      <div class="space-y-0.5">
+        <button onclick="toggleCategoryGroup('agent-sub')" class="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-200 hover:bg-brand-elevated transition-colors group">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="bot" class="w-4 h-4 text-amber-400"></i>
+            <span>AI Agents</span>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <span class="text-[10px] text-slate-500 font-mono">5</span>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-300"></i>
+          </div>
+        </button>
+        <div id="agent-sub" class="pl-7 pr-1 space-y-0.5">
+          <button onclick="filterCategory('AI Agent', 'Autonomous')" class="w-full text-left px-2 py-1.5 rounded text-[11px] text-slate-400 hover:text-slate-200 hover:bg-brand-elevated flex justify-between items-center">
+            <span>Autonomous Frameworks</span>
+            <span class="text-[9px] font-mono text-slate-600">3</span>
+          </button>
+          <button onclick="filterCategory('AI Agent', 'Multi-Agent')" class="w-full text-left px-2 py-1.5 rounded text-[11px] text-slate-400 hover:text-slate-200 hover:bg-brand-elevated flex justify-between items-center">
+            <span>Multi-Agent Swarm</span>
+            <span class="text-[9px] font-mono text-slate-600">2</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Category 5: AI Skill -->
+      <div class="space-y-0.5">
+        <button onclick="toggleCategoryGroup('skill-sub')" class="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-200 hover:bg-brand-elevated transition-colors group">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="sparkles" class="w-4 h-4 text-fuchsia-400"></i>
+            <span>AI Skills & MCP</span>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <span class="text-[10px] text-slate-500 font-mono">3</span>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-300"></i>
+          </div>
+        </button>
+        <div id="skill-sub" class="pl-7 pr-1 space-y-0.5">
+          <button onclick="filterCategory('AI Skill', 'MCP Servers')" class="w-full text-left px-2 py-1.5 rounded text-[11px] text-slate-400 hover:text-slate-200 hover:bg-brand-elevated flex justify-between items-center">
+            <span>Model Context Protocol</span>
+            <span class="text-[9px] font-mono text-slate-600">2</span>
+          </button>
+          <button onclick="filterCategory('AI Skill', 'Tools & Evaluator')" class="w-full text-left px-2 py-1.5 rounded text-[11px] text-slate-400 hover:text-slate-200 hover:bg-brand-elevated flex justify-between items-center">
+            <span>Agent Tools & Evaluator</span>
+            <span class="text-[9px] font-mono text-slate-600">1</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar Footer / Add Custom Category -->
+    <div class="sidebar-footer-btn p-3 border-t border-brand-border bg-brand-base/40">
+      <button onclick="openCategoryModal()" class="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-lg border border-dashed border-slate-700 hover:border-indigo-500 text-slate-400 hover:text-indigo-400 text-xs font-medium transition-colors">
+        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+        <span>Tambah Kategori Baru</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN CONTENT ================= -->
+  <main class="flex-1 flex flex-col min-w-0 relative z-10">
+    
+    <!-- Header Bar (Glassmorphism) -->
+    <header class="h-16 border-b border-white/10 px-6 flex items-center justify-between gap-4 sticky top-0 glass-panel z-10">
+      <!-- Search Input -->
+      <div class="relative flex-1 max-w-lg">
+        <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+        <input 
+          type="text" 
+          id="searchInput"
+          oninput="handleSearch(this.value)"
+          placeholder="Cari repo, topik, atau bahasa (Ctrl+K)..." 
+          class="w-full pl-9 pr-12 py-2 rounded-xl glass-input text-xs text-slate-100 placeholder-slate-400 focus:outline-none transition-all"
+        >
+        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 border border-white/10 bg-white/5 px-1.5 py-0.5 rounded">⌘K</span>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center space-x-3">
+        <!-- 3 Emil Gradient Theme Dropdown with Airfall Motion -->
+        <div class="relative" id="themeDropdownContainer">
+          <button 
+            id="themeDropdownBtn" 
+            onclick="toggleDropdown('themeMenu')" 
+            class="pressable-btn glass-panel border border-white/20 px-3 py-2 rounded-xl text-xs font-medium flex items-center space-x-2 text-slate-200 hover:text-white"
+            title="Pilih Tema Gradasi Glassmorphism"
+          >
+            <span id="themeIndicatorDot" class="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-teal-400 to-indigo-500 shadow-sm shadow-teal-500/50"></span>
+            <span id="themeLabelText">Tema: Aurora</span>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200" id="themeChevron"></i>
+          </button>
+
+          <!-- Dropdown Popover with Airfall Cascade Physics -->
+          <div 
+            id="themeMenu" 
+            class="hidden absolute right-0 mt-2 w-56 rounded-2xl glass-dropdown-surface p-2 shadow-2xl z-50 dropdown-airfall"
+          >
+            <div class="px-2.5 py-1.5 text-[10px] font-mono tracking-wider uppercase text-slate-400 border-b border-white/10 mb-1">
+              Gradasi & Glass Preset
+            </div>
+            <button 
+              onclick="selectTheme('aurora', 'Aurora Borealis', 'from-teal-400 to-indigo-500')" 
+              class="w-full text-left px-3 py-2 rounded-xl text-xs flex items-center space-x-2.5 hover:bg-white/10 transition-all text-slate-200 hover:text-white airfall-item-1"
+            >
+              <span class="w-3.5 h-3.5 rounded-full bg-gradient-to-r from-teal-400 via-cyan-400 to-indigo-500 shadow-sm border border-white/20"></span>
+              <div class="flex-1">
+                <div class="font-semibold text-[12px]">Aurora Borealis</div>
+                <div class="text-[10px] text-slate-400">Deep Teal • Cyan • Indigo</div>
+              </div>
+            </button>
+            <button 
+              onclick="selectTheme('sunset', 'Sunset Velvet', 'from-rose-500 to-purple-600')" 
+              class="w-full text-left px-3 py-2 rounded-xl text-xs flex items-center space-x-2.5 hover:bg-white/10 transition-all text-slate-200 hover:text-white airfall-item-2"
+            >
+              <span class="w-3.5 h-3.5 rounded-full bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 shadow-sm border border-white/20"></span>
+              <div class="flex-1">
+                <div class="font-semibold text-[12px]">Sunset Velvet</div>
+                <div class="text-[10px] text-slate-400">Rose • Coral • Violet</div>
+              </div>
+            </button>
+            <button 
+              onclick="selectTheme('frost', 'Ethereal Frost', 'from-sky-200 to-pink-200')" 
+              class="w-full text-left px-3 py-2 rounded-xl text-xs flex items-center space-x-2.5 hover:bg-white/10 transition-all text-slate-200 hover:text-white airfall-item-3"
+            >
+              <span class="w-3.5 h-3.5 rounded-full bg-gradient-to-r from-sky-200 via-teal-100 to-pink-200 shadow-sm border border-white/40"></span>
+              <div class="flex-1">
+                <div class="font-semibold text-[12px]">Ethereal Frost</div>
+                <div class="text-[10px] text-slate-400">Light Glass • Iridescent</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Custom Sort Dropdown with Airfall Motion -->
+        <div class="relative" id="sortDropdownContainer">
+          <button 
+            id="sortDropdownBtn" 
+            onclick="toggleDropdown('sortMenu')" 
+            class="pressable-btn glass-input text-slate-200 text-xs rounded-xl px-3 py-2 flex items-center space-x-2 border border-white/15 hover:border-white/30"
+          >
+            <i data-lucide="arrow-down-wide-narrow" class="w-3.5 h-3.5 text-indigo-400"></i>
+            <span id="sortLabelText">Bintang Terbanyak</span>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200" id="sortChevron"></i>
+          </button>
+
+          <!-- Sort Popover Menu with Airfall -->
+          <div 
+            id="sortMenu" 
+            class="hidden absolute right-0 mt-2 w-48 rounded-2xl glass-dropdown-surface p-1.5 shadow-2xl z-50 dropdown-airfall"
+          >
+            <button 
+              onclick="selectSort('stars', 'Bintang Terbanyak')" 
+              class="w-full text-left px-3 py-2 rounded-xl text-xs flex items-center space-x-2 hover:bg-white/10 transition-all text-slate-200 hover:text-white airfall-item-1"
+            >
+              <i data-lucide="star" class="w-3.5 h-3.5 text-amber-400 fill-amber-400/20"></i>
+              <span>Bintang Terbanyak</span>
+            </button>
+            <button 
+              onclick="selectSort('recent', 'Terbaru Ditambahkan')" 
+              class="w-full text-left px-3 py-2 rounded-xl text-xs flex items-center space-x-2 hover:bg-white/10 transition-all text-slate-200 hover:text-white airfall-item-2"
+            >
+              <i data-lucide="clock" class="w-3.5 h-3.5 text-sky-400"></i>
+              <span>Terbaru Ditambahkan</span>
+            </button>
+            <button 
+              onclick="selectSort('name', 'Nama Repo (A-Z)')" 
+              class="w-full text-left px-3 py-2 rounded-xl text-xs flex items-center space-x-2 hover:bg-white/10 transition-all text-slate-200 hover:text-white airfall-item-3"
+            >
+              <i data-lucide="sort-asc" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>Nama Repo (A-Z)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Add Repo CTA -->
+        <button onclick="openAddRepoModal()" class="pressable-btn flex items-center space-x-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:opacity-90 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-lg shadow-purple-500/25 border border-white/25">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>Tambah Repository</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Content Viewport -->
+    <div class="p-6 flex-1 overflow-y-auto space-y-6">
+      
+      <!-- Stats / Filter Headline Bar -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+        <div>
+          <h2 class="text-base font-bold text-slate-100 flex items-center space-x-2" id="currentViewTitle">
+            <span>Semua Repositori AI</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5" id="currentViewDesc">Koleksi terkurasi model, frameworks, tools, dan skill AI pilihan.</p>
+        </div>
+        <div class="flex items-center space-x-4 text-xs font-mono">
+          <div class="flex items-center space-x-1.5 text-slate-300 px-3 py-1 rounded-lg glass-panel text-[11px]">
+            <i data-lucide="folder" class="w-3.5 h-3.5 text-indigo-400"></i>
+            <span>5 Kategori</span>
+          </div>
+          <div class="flex items-center space-x-1.5 text-slate-300 px-3 py-1 rounded-lg glass-panel text-[11px]">
+            <i data-lucide="star" class="w-3.5 h-3.5 text-amber-400 fill-amber-400"></i>
+            <span id="statStarsCount">142.8k Stars</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Repository Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" id="repoGrid">
+        
+        <!-- Repo Card 1: Ponytail -->
+        <div onclick="openRepoDetail('ponytail')" class="glass-card rounded-2xl p-5 flex flex-col justify-between group cursor-pointer">
+          <div class="space-y-3">
+            <div class="flex items-start space-x-2.5">
+              <div class="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 mt-0.5">
+                <i data-lucide="git-branch" class="w-4 h-4"></i>
+              </div>
+              <div class="min-w-0 flex-1 space-y-1.5">
+                <div class="text-sm font-semibold text-slate-100 hover:text-indigo-400 flex items-center space-x-1 transition-colors">
+                  <span class="break-words leading-snug">DietrichGebert/ponytail</span>
+                  <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-slate-500 group-hover:text-indigo-400 shrink-0"></i>
+                </div>
+                <div class="flex items-center">
+                  <span class="text-[10px] font-medium font-mono px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                    AI Agent Skills & Tools • Agent Skills (ECC/Codex)
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <p class="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+              Makes your AI agent think like the laziest senior dev in the room. The best code is the code you never wrote.
+            </p>
+
+            <div class="flex flex-wrap gap-1.5 pt-1">
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-slate-400 border border-white/10">agent-skills</span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-slate-400 border border-white/10">ai-agents</span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-slate-400 border border-white/10">claude-code</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-4 mt-4 border-t border-white/10 text-xs text-slate-400">
+            <div class="flex items-center space-x-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-yellow-400"></span>
+              <span class="font-mono text-[11px]">JavaScript 61.5%</span>
+            </div>
+            <div class="flex items-center space-x-3 font-mono text-[11px]">
+              <div class="flex items-center space-x-1 text-amber-400">
+                <i data-lucide="star" class="w-3.5 h-3.5 fill-amber-400"></i>
+                <span>103.8k</span>
+              </div>
+              <div class="flex items-center space-x-1 text-slate-500">
+                <i data-lucide="git-fork" class="w-3.5 h-3.5"></i>
+                <span>8.7k</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Repo Card 2: vLLM -->
+        <div onclick="openRepoDetail('vllm')" class="glass-card rounded-2xl p-5 flex flex-col justify-between group cursor-pointer">
+          <div class="space-y-3">
+            <div class="flex items-start space-x-2.5">
+              <div class="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0 mt-0.5">
+                <i data-lucide="cpu" class="w-4 h-4"></i>
+              </div>
+              <div class="min-w-0 flex-1 space-y-1.5">
+                <div class="text-sm font-semibold text-slate-100 hover:text-cyan-400 flex items-center space-x-1 transition-colors">
+                  <span class="break-words leading-snug">vllm-project/vllm</span>
+                  <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-slate-500 group-hover:text-cyan-400 shrink-0"></i>
+                </div>
+                <div class="flex items-center">
+                  <span class="text-[10px] font-medium font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                    LLM • Quantization
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <p class="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+              A high-throughput and memory-efficient LLM serving engine using PagedAttention algorithm.
+            </p>
+
+            <div class="flex flex-wrap gap-1.5 pt-1">
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-slate-400 border border-white/10">serving</span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-slate-400 border border-white/10">inference</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-4 mt-4 border-t border-white/10 text-xs text-slate-400">
+            <div class="flex items-center space-x-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+              <span class="font-mono text-[11px]">Python</span>
+            </div>
+            <div class="flex items-center space-x-3 font-mono text-[11px]">
+              <div class="flex items-center space-x-1 text-amber-400">
+                <i data-lucide="star" class="w-3.5 h-3.5 fill-amber-400"></i>
+                <span>38.2k</span>
+              </div>
+              <div class="flex items-center space-x-1 text-slate-500">
+                <i data-lucide="git-fork" class="w-3.5 h-3.5"></i>
+                <span>5.1k</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Repo Card 3: Browser-use -->
+        <div onclick="openRepoDetail('browser-use')" class="glass-card rounded-2xl p-5 flex flex-col justify-between group cursor-pointer">
+          <div class="space-y-3">
+            <div class="flex items-start space-x-2.5">
+              <div class="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
+                <i data-lucide="bot" class="w-4 h-4"></i>
+              </div>
+              <div class="min-w-0 flex-1 space-y-1.5">
+                <div class="text-sm font-semibold text-slate-100 hover:text-amber-400 flex items-center space-x-1 transition-colors">
+                  <span class="break-words leading-snug">browser-use/browser-use</span>
+                  <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-400 shrink-0"></i>
+                </div>
+                <div class="flex items-center">
+                  <span class="text-[10px] font-medium font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    AI Agent • Autonomous
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <p class="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+              Make websites accessible for AI agents to browse, click, type, and complete workflows.
+            </p>
+
+            <div class="flex flex-wrap gap-1.5 pt-1">
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-brand-elevated text-slate-400 border border-brand-border">agent</span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-brand-elevated text-slate-400 border border-brand-border">automation</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-4 mt-4 border-t border-brand-border text-xs text-slate-400">
+            <div class="flex items-center space-x-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+              <span class="font-mono text-[11px]">Python</span>
+            </div>
+            <div class="flex items-center space-x-3 font-mono text-[11px]">
+              <div class="flex items-center space-x-1 text-amber-400">
+                <i data-lucide="star" class="w-3.5 h-3.5 fill-amber-400"></i>
+                <span>31.7k</span>
+              </div>
+              <div class="flex items-center space-x-1 text-slate-500">
+                <i data-lucide="git-fork" class="w-3.5 h-3.5"></i>
+                <span>3.2k</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- ================= MODAL: ADD REPOSITORY (GLASSMORPHISM) ================= -->
+  <div id="addRepoModal" class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-panel-elevated w-full max-w-lg rounded-2xl p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-100">Tambah Repository Baru</h3>
+            <p class="text-[11px] text-slate-400">Paste link GitHub untuk auto-fetch detail</p>
+          </div>
+        </div>
+        <button onclick="closeAddRepoModal()" class="text-slate-400 hover:text-slate-100">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <!-- URL Input & Auto-fetch Button -->
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">GitHub URL</label>
+          <div class="flex space-x-2">
+            <input 
+              type="url" 
+              id="repoUrlInput"
+              placeholder="https://github.com/owner/repository" 
+              class="flex-1 px-3 py-2 rounded-xl glass-input text-slate-100 focus:outline-none font-mono text-xs"
+            >
+            <button onclick="mockAutoFetch()" id="btnFetch" class="px-3 py-2 glass-panel hover:bg-white/10 text-slate-200 rounded-xl font-medium flex items-center space-x-1.5 transition-colors">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-400"></i>
+              <span>Auto Fetch</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Preview Card Section (Dynamically Loaded) -->
+        <div id="previewCard" class="hidden p-3.5 bg-black/40 rounded-xl border border-white/10 space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="font-semibold text-slate-200 flex items-center space-x-1.5">
+              <i data-lucide="github" class="w-3.5 h-3.5"></i>
+              <span id="previewName">owner/repo</span>
+            </div>
+            <span class="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">Metadata Terverifikasi</span>
+          </div>
+          <p class="text-[11px] text-slate-400 line-clamp-2" id="previewDesc">Deskripsi repo ditarik otomatis dari GitHub...</p>
+          <div class="flex items-center space-x-3 text-[10px] font-mono text-slate-400 pt-1">
+            <span class="text-amber-400 flex items-center space-x-1"><i data-lucide="star" class="w-3 h-3 fill-amber-400"></i><span id="previewStars">0</span></span>
+            <span class="flex items-center space-x-1"><i data-lucide="git-fork" class="w-3 h-3"></i><span id="previewForks">0</span></span>
+            <span class="text-indigo-400" id="previewLang">Python</span>
+          </div>
+        </div>
+
+        <!-- Category & Sub Category Selection -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">Kategori Utama</label>
+            <select id="modalCategory" class="w-full px-3 py-2 rounded-xl glass-input text-slate-200 focus:outline-none cursor-pointer">
+              <option value="LLM" class="bg-[#0e121c]">LLM</option>
+              <option value="RAG" class="bg-[#0e121c]">RAG</option>
+              <option value="Video" class="bg-[#0e121c]">Video</option>
+              <option value="AI Agent" class="bg-[#0e121c]">AI Agent</option>
+              <option value="AI Skill" class="bg-[#0e121c]">AI Skill</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">Sub Kategori</label>
+            <input type="text" id="modalSubCategory" placeholder="e.g. Fine-tuning" class="w-full px-3 py-2 rounded-xl glass-input text-slate-200 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Custom Notes -->
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">Catatan Pribadi (Opsional)</label>
+          <textarea id="modalNotes" rows="2" placeholder="Alasan menyimpan atau usecase repo ini..." class="w-full px-3 py-2 rounded-xl glass-input text-slate-200 focus:outline-none text-xs"></textarea>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end space-x-3 border-t border-white/10 pt-4">
+        <button onclick="closeAddRepoModal()" class="px-4 py-2 rounded-xl text-xs text-slate-400 hover:text-slate-200">Batal</button>
+        <button onclick="saveNewRepo()" class="px-4 py-2 rounded-xl text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/30 border border-indigo-400/30 active:scale-95 transition-all">Simpan ke Library</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: ADD CUSTOM CATEGORY (GLASSMORPHISM) ================= -->
+  <div id="addCategoryModal" class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-panel-elevated w-full max-w-md rounded-2xl p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <h3 class="text-sm font-bold text-slate-100">Tambah Custom Kategori</h3>
+        <button onclick="closeCategoryModal()" class="text-slate-400 hover:text-slate-200">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">Nama Kategori Utama</label>
+          <input type="text" id="newCatName" placeholder="Contoh: Audio AI, Robotics, Vision" class="w-full px-3 py-2 rounded-xl glass-input text-slate-100 focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">Sub-kategori Awal (Pisahkan dengan koma)</label>
+          <input type="text" id="newCatSubs" placeholder="TTS, STT, Voice Cloning" class="w-full px-3 py-2 rounded-xl glass-input text-slate-100 focus:outline-none">
+        </div>
+      </div>
+      <div class="flex items-center justify-end space-x-2 border-t border-white/10 pt-3">
+        <button onclick="closeCategoryModal()" class="px-4 py-1.5 rounded-xl text-xs text-slate-400 hover:text-slate-200">Batal</button>
+        <button onclick="saveNewCategory()" class="px-4 py-1.5 rounded-xl text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/30">Tambah</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: FULL GITHUB REPO VIEW (GITHUB AUTHENTIC UI WITH REAL GLASSMORPHISM) ================= -->
+  <div id="repoDetailModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto">
+    <div id="repoDetailModalCard" class="glass-modal-container w-full max-w-6xl max-h-[92vh] rounded-3xl flex flex-col overflow-hidden text-slate-200 animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- GitHub Navigation / Repo Top Bar (Glass Header) -->
+      <div id="repoDetailHeader" class="glass-modal-header px-5 pt-3.5 pb-0 flex flex-col justify-between shrink-0">
+        <div class="flex items-center justify-between pb-3">
+          <div class="flex items-center space-x-3 overflow-hidden">
+            <div id="modalRepoAvatarContainer" class="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-slate-200 shrink-0 shadow-sm overflow-hidden">
+              <img id="modalRepoAvatar" src="https://github.com/DietrichGebert.png" alt="Avatar" class="w-full h-full object-cover rounded-full" onerror="this.classList.add('hidden'); document.getElementById('modalRepoDefaultIcon').classList.remove('hidden');">
+              <i id="modalRepoDefaultIcon" data-lucide="github" class="w-5 h-5 hidden"></i>
+            </div>
+            <div class="flex items-center space-x-2 text-sm font-normal text-slate-200 truncate">
+              <span class="text-sky-400 font-semibold hover:underline cursor-pointer" id="modalRepoOwner">DietrichGebert</span>
+              <span class="text-slate-400">/</span>
+              <span class="font-bold text-white hover:underline cursor-pointer text-base" id="modalRepoName">ponytail</span>
+              <span class="text-[11px] font-mono px-2 py-0.5 rounded-full border border-white/20 text-slate-300 bg-white/10" id="modalRepoBadge">Public</span>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <!-- Sponsor button (mirip screenshot) -->
+            <button class="px-2.5 py-1 rounded-md glass-modal-btn text-xs text-pink-400 flex items-center space-x-1.5 transition-colors">
+              <i data-lucide="heart" class="w-3.5 h-3.5 fill-pink-500/20"></i>
+              <span>Sponsor</span>
+            </button>
+            <!-- Watch, Fork, Star buttons -->
+            <div class="flex items-center rounded-md overflow-hidden glass-modal-btn text-xs p-0 divide-x divide-white/10">
+              <span class="px-2.5 py-1 text-slate-300 flex items-center space-x-1 hover:bg-white/10 cursor-pointer">
+                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                <span>Watch</span>
+              </span>
+              <span class="px-2 py-1 text-slate-400 font-semibold font-mono">366</span>
+            </div>
+            <div class="flex items-center rounded-md overflow-hidden glass-modal-btn text-xs p-0 divide-x divide-white/10">
+              <span class="px-2.5 py-1 text-slate-300 flex items-center space-x-1 hover:bg-white/10 cursor-pointer">
+                <i data-lucide="git-fork" class="w-3.5 h-3.5"></i>
+                <span>Fork</span>
+              </span>
+              <span class="px-2 py-1 text-slate-400 font-semibold font-mono" id="modalRepoForks">8.7k</span>
+            </div>
+            <div class="flex items-center rounded-md overflow-hidden glass-modal-btn text-xs p-0 divide-x divide-white/10">
+              <span class="px-2.5 py-1 text-slate-200 flex items-center space-x-1 hover:bg-white/10 cursor-pointer">
+                <i data-lucide="star" class="w-3.5 h-3.5 text-amber-400 fill-amber-400"></i>
+                <span>Star</span>
+              </span>
+              <span class="px-2 py-1 text-slate-100 font-bold font-mono" id="modalRepoStars">103.8k</span>
+            </div>
+            <!-- Close Button -->
+            <button onclick="closeRepoDetail()" class="p-1.5 rounded-lg glass-modal-btn text-slate-400 hover:text-white transition-colors ml-2">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Official GitHub Repository Tabs Strip -->
+        <div class="flex items-center space-x-1 overflow-x-auto text-xs text-slate-400 font-medium border-t border-white/10 pt-1 -mb-[1px]">
+          <button class="flex items-center space-x-2 px-3 py-2 text-slate-100 border-b-2 border-indigo-500 font-semibold">
+            <i data-lucide="code-2" class="w-4 h-4"></i>
+            <span>Code</span>
+          </button>
+          <button class="flex items-center space-x-2 px-3 py-2 hover:text-slate-200 hover:bg-white/10 rounded-t-md transition-colors">
+            <i data-lucide="circle-dot" class="w-4 h-4"></i>
+            <span>Issues</span>
+            <span class="text-[10px] bg-white/10 px-1.5 py-0.2 rounded-full font-mono text-slate-300">12</span>
+          </button>
+          <button class="flex items-center space-x-2 px-3 py-2 hover:text-slate-200 hover:bg-white/10 rounded-t-md transition-colors">
+            <i data-lucide="git-pull-request" class="w-4 h-4"></i>
+            <span>Pull requests</span>
+            <span class="text-[10px] bg-white/10 px-1.5 py-0.2 rounded-full font-mono text-slate-300">4</span>
+          </button>
+          <button class="flex items-center space-x-2 px-3 py-2 hover:text-slate-200 hover:bg-white/10 rounded-t-md transition-colors">
+            <i data-lucide="play-circle" class="w-4 h-4"></i>
+            <span>Actions</span>
+          </button>
+          <button class="flex items-center space-x-2 px-3 py-2 hover:text-slate-200 hover:bg-white/10 rounded-t-md transition-colors">
+            <i data-lucide="shield" class="w-4 h-4"></i>
+            <span>Security</span>
+          </button>
+          <button class="flex items-center space-x-2 px-3 py-2 hover:text-slate-200 hover:bg-white/10 rounded-t-md transition-colors">
+            <i data-lucide="line-chart" class="w-4 h-4"></i>
+            <span>Insights</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Action Bar: Branch dropdown, Tags, Search file, Add file, Code Green Button (Glass Sub-bar) -->
+      <div id="repoDetailSubBar" class="px-5 py-3 glass-modal-subbar border-b border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
+        <!-- Branch Selector & info -->
+        <div class="flex items-center space-x-3">
+          <button class="px-3 py-1.5 rounded-lg glass-modal-btn font-semibold flex items-center space-x-1.5 transition-all">
+            <i data-lucide="git-branch" class="w-3.5 h-3.5 text-slate-300"></i>
+            <span>main</span>
+            <i data-lucide="chevron-down" class="w-3 h-3 text-slate-300"></i>
+          </button>
+          <div class="flex items-center space-x-3 text-slate-300 text-xs font-mono">
+            <span class="hover:text-sky-400 cursor-pointer flex items-center space-x-1">
+              <i data-lucide="git-branch" class="w-3.5 h-3.5"></i>
+              <strong class="text-white">53</strong> branches
+            </span>
+            <span class="hover:text-sky-400 cursor-pointer flex items-center space-x-1">
+              <i data-lucide="tag" class="w-3.5 h-3.5"></i>
+              <strong class="text-white">24</strong> tags
+            </span>
+          </div>
+        </div>
+
+        <!-- Right Side: Search file, Add file, Code Button -->
+        <div class="flex items-center space-x-2 text-xs">
+          <!-- Go to file input -->
+          <div class="relative">
+            <input type="text" placeholder="Go to file" class="pl-3 pr-6 py-1.5 rounded-lg glass-input text-slate-100 placeholder-slate-400 text-xs focus:outline-none focus:border-sky-500 w-32 focus:w-48 transition-all">
+            <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-mono border border-white/15 px-1 rounded">t</span>
+          </div>
+          <!-- Add file button -->
+          <button class="px-3 py-1.5 rounded-lg glass-modal-btn font-medium flex items-center space-x-1">
+            <span>Add file</span>
+            <i data-lucide="chevron-down" class="w-3 h-3"></i>
+          </button>
+          <!-- Green Code Button -->
+          <button class="px-3 py-1.5 rounded-lg bg-emerald-600/90 hover:bg-emerald-500 font-semibold text-white flex items-center space-x-1.5 shadow-md shadow-emerald-600/30 border border-emerald-400/40">
+            <i data-lucide="code-2" class="w-3.5 h-3.5"></i>
+            <span>Code</span>
+            <i data-lucide="chevron-down" class="w-3 h-3"></i>
+          </button>
+          <!-- Outbound GitHub Direct Link -->
+          <a id="modalExternalLink" href="https://github.com/DietrichGebert/ponytail" target="_blank" title="Buka tab baru di GitHub asli" class="p-1.5 rounded-lg glass-modal-btn transition-all">
+            <i data-lucide="external-link" class="w-4 h-4"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Main GitHub Content Area (2 Kolom: File Tree + README di Kiri, About & Info di Kanan) -->
+      <div id="repoDetailBody" class="flex-1 overflow-y-auto p-5 grid grid-cols-1 lg:grid-cols-12 gap-6 glass-modal-body">
+        
+        <!-- Kolom Kiri: File Browser + README Renderer (8 Kolom) -->
+        <div class="lg:col-span-8 space-y-6">
+          
+          <!-- File Explorer Table -->
+          <div class="border border-white/15 rounded-2xl overflow-hidden glass-inner-panel">
+            <!-- Header bar table -->
+            <div class="bg-white/10 px-4 py-2.5 border-b border-white/10 flex items-center justify-between text-xs text-slate-200">
+              <div class="flex items-center space-x-2">
+                <span class="font-semibold text-slate-200">DietrichGebert</span>
+                <span class="text-slate-400 truncate max-w-xs">docs: stories banner in the README instead of raw text</span>
+              </div>
+              <span class="text-slate-500 font-mono text-[11px]">yesterday</span>
+            </div>
+
+            <!-- File List Items -->
+            <div class="divide-y divide-white/10 text-xs">
+              <div class="px-4 py-2 flex items-center justify-between glass-modal-row">
+                <div class="flex items-center space-x-2.5">
+                  <i data-lucide="folder" class="w-4 h-4 text-sky-400 fill-sky-400/20"></i>
+                  <span class="font-mono text-slate-200 hover:text-sky-400 cursor-pointer">.agents</span>
+                </div>
+                <span class="text-slate-500 truncate max-w-[200px]">feat: neutral shortcut marker</span>
+                <span class="text-slate-500 font-mono text-[11px]">3 days ago</span>
+              </div>
+              <div class="px-4 py-2 flex items-center justify-between glass-modal-row">
+                <div class="flex items-center space-x-2.5">
+                  <i data-lucide="folder" class="w-4 h-4 text-sky-400 fill-sky-400/20"></i>
+                  <span class="font-mono text-slate-200 hover:text-sky-400 cursor-pointer">.claude-plugin</span>
+                </div>
+                <span class="text-slate-500 truncate max-w-[200px]">chore: release v5.1.0</span>
+                <span class="text-slate-500 font-mono text-[11px]">5 days ago</span>
+              </div>
+              <div class="px-4 py-2 flex items-center justify-between glass-modal-row">
+                <div class="flex items-center space-x-2.5">
+                  <i data-lucide="folder" class="w-4 h-4 text-sky-400 fill-sky-400/20"></i>
+                  <span class="font-mono text-slate-200 hover:text-sky-400 cursor-pointer">src/core</span>
+                </div>
+                <span class="text-slate-500 truncate max-w-[200px]">fix: optimize prompt compression token cost</span>
+                <span class="text-slate-500 font-mono text-[11px]">last week</span>
+              </div>
+              <div class="px-4 py-2 flex items-center justify-between glass-modal-row bg-white/5">
+                <div class="flex items-center space-x-2.5">
+                  <i data-lucide="file-text" class="w-4 h-4 text-slate-400"></i>
+                  <span class="font-mono text-slate-200 font-semibold hover:text-sky-400 cursor-pointer">README.md</span>
+                </div>
+                <span class="text-slate-500 truncate max-w-[200px]">docs: add banner showcase</span>
+                <span class="text-slate-500 font-mono text-[11px]">yesterday</span>
+              </div>
+              <div class="px-4 py-2 flex items-center justify-between glass-modal-row">
+                <div class="flex items-center space-x-2.5">
+                  <i data-lucide="file-code" class="w-4 h-4 text-amber-400"></i>
+                  <span class="font-mono text-slate-200 hover:text-sky-400 cursor-pointer">package.json</span>
+                </div>
+                <span class="text-slate-500 truncate max-w-[200px]">chore: bump version 5.1.0</span>
+                <span class="text-slate-500 font-mono text-[11px]">5 days ago</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Authentic README.md Container -->
+          <div class="border border-white/15 rounded-2xl overflow-hidden glass-inner-panel">
+            <div class="bg-white/10 px-4 py-2.5 border-b border-white/10 flex items-center justify-between text-xs">
+              <div class="flex items-center space-x-2 text-slate-200 font-semibold">
+                <i data-lucide="book-open" class="w-4 h-4 text-slate-300"></i>
+                <span>README.md</span>
+              </div>
+              <div class="flex items-center space-x-2 text-slate-400">
+                <i data-lucide="code" class="w-3.5 h-3.5"></i>
+                <i data-lucide="copy" class="w-3.5 h-3.5 cursor-pointer hover:text-white"></i>
+              </div>
+            </div>
+
+            <!-- Rendered Markdown Body -->
+            <div class="p-6 sm:p-8 space-y-6 text-slate-100 text-sm leading-relaxed" id="modalReadmeBody">
+              <!-- Content injected dynamically via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Kolom Kanan: About, Languages, Releases, Contributors (4 Kolom) -->
+        <div class="lg:col-span-4 space-y-5 text-xs">
+          
+          <!-- About Panel -->
+          <div class="space-y-3 border-b border-white/10 pb-5">
+            <h4 class="font-bold text-slate-100 text-sm">About</h4>
+            <p class="text-slate-300 leading-relaxed" id="modalRepoDesc">
+              Makes your AI agent think like the laziest senior dev in the room. The best code is the code you never wrote.
+            </p>
+            <div class="flex items-center space-x-2 text-sky-400 text-xs">
+              <i data-lucide="link" class="w-3.5 h-3.5"></i>
+              <a href="#" class="hover:underline font-mono" id="modalRepoWebsite">ponytail.dev</a>
+            </div>
+
+            <!-- Topics Badges -->
+            <div class="flex flex-wrap gap-1.5 pt-2" id="modalRepoTopics">
+              <span class="px-2 py-0.5 rounded-full glass-modal-topic-badge text-[11px] font-mono">agent-skills</span>
+              <span class="px-2 py-0.5 rounded-full glass-modal-topic-badge text-[11px] font-mono">ai-agents</span>
+              <span class="px-2 py-0.5 rounded-full glass-modal-topic-badge text-[11px] font-mono">claude-code</span>
+              <span class="px-2 py-0.5 rounded-full glass-modal-topic-badge text-[11px] font-mono">prompt-engineering</span>
+            </div>
+          </div>
+
+          <!-- Metadata List -->
+          <div class="space-y-2.5 text-slate-400 border-b border-white/10 pb-5">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="scale" class="w-4 h-4 text-slate-400"></i>
+              <span class="text-slate-300">MIT License</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <i data-lucide="activity" class="w-4 h-4 text-slate-400"></i>
+              <span class="text-slate-300">Activity: High (Updated yesterday)</span>
+            </div>
+          </div>
+
+          <!-- Releases -->
+          <div class="space-y-2 border-b border-white/10 pb-5">
+            <div class="flex items-center justify-between">
+              <h5 class="font-bold text-slate-200">Releases</h5>
+              <span class="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-slate-400 font-mono">24</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <i data-lucide="tag" class="w-4 h-4 text-emerald-400"></i>
+              <span class="font-bold text-emerald-400 font-mono">v5.1.0</span>
+              <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded">Latest</span>
+            </div>
+          </div>
+
+          <!-- Languages Breakdown -->
+          <div class="space-y-2.5">
+            <h5 class="font-bold text-slate-200">Languages</h5>
+            <!-- Progress Bar -->
+            <div class="w-full h-2 rounded-full bg-slate-800 flex overflow-hidden">
+              <div class="bg-yellow-400 h-full" style="width: 61.5%"></div>
+              <div class="bg-blue-500 h-full" style="width: 35.1%"></div>
+              <div class="bg-purple-500 h-full" style="width: 3.4%"></div>
+            </div>
+            <div class="flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
+              <div class="flex items-center space-x-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-400"></span>
+                <span class="text-slate-200 font-medium">JavaScript</span>
+                <span class="text-slate-500 font-mono">61.5%</span>
+              </div>
+              <div class="flex items-center space-x-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                <span class="text-slate-200 font-medium">Python</span>
+                <span class="text-slate-500 font-mono">35.1%</span>
+              </div>
+              <div class="flex items-center space-x-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+                <span class="text-slate-200 font-medium">Other</span>
+                <span class="text-slate-500 font-mono">3.4%</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Lucide Icon Renderer & Prototype Controller Script -->
+  <script>
+    lucide.createIcons();
+
+    // Toggle Sidebar Collapsed State (Floating button)
+    function toggleSidebarCollapse() {
+      const sidebar = document.getElementById('mainSidebar');
+      const isCollapsed = sidebar.classList.toggle('collapsed');
+      const icon = document.getElementById('toggleIcon');
+      
+      // Update toggle icon and title
+      if (isCollapsed) {
+        icon.setAttribute('data-lucide', 'panel-left-open');
+      } else {
+        icon.setAttribute('data-lucide', 'columns-2');
+      }
+      lucide.createIcons();
+    }
+
+    // Keyboard shortcut (Ctrl+B / Cmd+B) to toggle sidebar
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        toggleSidebarCollapse();
+      }
+    });
+
+    // Toggle Category Group
+    function toggleCategoryGroup(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.toggle('hidden');
+      }
+    }
+
+    // Modal Control
+    function openAddRepoModal() {
+      document.getElementById('addRepoModal').classList.remove('hidden');
+    }
+    function closeAddRepoModal() {
+      document.getElementById('addRepoModal').classList.add('hidden');
+    }
+    function openCategoryModal() {
+      document.getElementById('addCategoryModal').classList.remove('hidden');
+    }
+    function closeCategoryModal() {
+      document.getElementById('addCategoryModal').classList.add('hidden');
+    }
+
+    // GitHub Repo Detail Modal Handlers (Fetch REAL DATA langsung dari GitHub REST API)
+    async function openRepoDetail(repoKeyOrFullName) {
+      let owner = 'DietrichGebert';
+      let repo = 'ponytail';
+
+      if (repoKeyOrFullName === 'vllm') {
+        owner = 'vllm-project'; repo = 'vllm';
+      } else if (repoKeyOrFullName === 'browser-use') {
+        owner = 'browser-use'; repo = 'browser-use';
+      } else if (repoKeyOrFullName.includes('/')) {
+        const parts = repoKeyOrFullName.split('/');
+        owner = parts[0]; repo = parts[1];
+      }
+
+      // Buka modal & tampilkan skeleton loading
+      document.getElementById('repoDetailModal').classList.remove('hidden');
+      document.getElementById('modalRepoOwner').innerText = owner;
+      document.getElementById('modalRepoName').innerText = repo;
+      document.getElementById('modalExternalLink').href = `https://github.com/${owner}/${repo}`;
+      
+      // Update avatar pemilik repositori
+      const avatarImg = document.getElementById('modalRepoAvatar');
+      const defaultIcon = document.getElementById('modalRepoDefaultIcon');
+      if (avatarImg) {
+        avatarImg.src = `https://github.com/${owner}.png`;
+        avatarImg.classList.remove('hidden');
+        if (defaultIcon) defaultIcon.classList.add('hidden');
+      }
+
+      document.getElementById('modalReadmeBody').innerHTML = `
+        <div class="flex flex-col items-center justify-center py-16 space-y-3 text-slate-400">
+          <i data-lucide="loader-2" class="w-8 h-8 animate-spin text-sky-400"></i>
+          <span class="text-xs font-mono">Mengambil data README langsung dari api.github.com/repos/${owner}/${repo}...</span>
+        </div>
+      `;
+      lucide.createIcons();
+
+      try {
+        // 1. Fetch Repository Core Metadata
+        let defaultBranch = 'main';
+        const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+        if (repoRes.ok) {
+          const repoData = await repoRes.json();
+          defaultBranch = repoData.default_branch || 'main';
+
+          // Update avatar dari response GitHub API jika ada
+          if (repoData.owner && repoData.owner.avatar_url && avatarImg) {
+            avatarImg.src = repoData.owner.avatar_url;
+          }
+          document.getElementById('modalRepoStars').innerText = (repoData.stargazers_count > 1000) 
+            ? (repoData.stargazers_count / 1000).toFixed(1) + 'k' 
+            : repoData.stargazers_count;
+          document.getElementById('modalRepoForks').innerText = (repoData.forks_count > 1000) 
+            ? (repoData.forks_count / 1000).toFixed(1) + 'k' 
+            : repoData.forks_count;
+          document.getElementById('modalRepoDesc').innerText = repoData.description || 'Tidak ada deskripsi.';
+          
+          if (repoData.homepage) {
+            document.getElementById('modalRepoWebsite').innerText = repoData.homepage.replace(/^https?:\/\//, '');
+            document.getElementById('modalRepoWebsite').href = repoData.homepage;
+            document.getElementById('modalRepoWebsite').parentElement.classList.remove('hidden');
+          } else {
+            document.getElementById('modalRepoWebsite').parentElement.classList.add('hidden');
+          }
+
+          if (repoData.topics && repoData.topics.length > 0) {
+            document.getElementById('modalRepoTopics').innerHTML = repoData.topics.map(t => 
+              `<span class="px-2 py-0.5 rounded-full glass-modal-topic-badge text-[11px] font-mono">${t}</span>`
+            ).join('');
+          }
+        }
+
+        // 2. Fetch File Explorer List Langsung dari GitHub Contents API
+        const contentsRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents`);
+        if (contentsRes.ok) {
+          const contents = await contentsRes.json();
+          const fileListContainer = document.querySelector('#repoDetailModal .divide-y');
+          if (fileListContainer && Array.isArray(contents)) {
+            // Sort folder first, then files
+            contents.sort((a, b) => (a.type === 'dir' ? -1 : 1));
+            fileListContainer.innerHTML = contents.slice(0, 15).map(item => `
+              <div class="px-4 py-2 flex items-center justify-between glass-modal-row">
+                <div class="flex items-center space-x-2.5">
+                  <i data-lucide="${item.type === 'dir' ? 'folder' : 'file-text'}" class="w-4 h-4 ${item.type === 'dir' ? 'text-sky-400 fill-sky-400/20' : 'text-slate-400'}"></i>
+                  <a href="${item.html_url}" target="_blank" class="font-mono text-slate-200 hover:text-sky-400 cursor-pointer text-xs">${item.name}</a>
+                </div>
+                <span class="text-slate-500 font-mono text-[11px]">${item.type === 'dir' ? 'Directory' : (item.size ? Math.round(item.size/1024) + ' KB' : '')}</span>
+              </div>
+            `).join('');
+          }
+        }
+
+        // 3. Fetch README langsung dirender sebagai HTML asli GitHub dengan Auto-Fix Image URLs
+        const readmeRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/readme`, {
+          headers: { 'Accept': 'application/vnd.github.html+json' }
+        });
+        if (readmeRes.ok) {
+          let htmlContent = await readmeRes.text();
+          
+          // Resolusikan relative path gambar dan anchor ke raw.githubusercontent.com
+          const altBranch = defaultBranch === 'main' ? 'master' : 'main';
+          const rawBaseUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${defaultBranch}/`;
+          const altRawBaseUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${altBranch}/`;
+          const cdnBaseUrl = `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${defaultBranch}/`;
+          const githubBaseUrl = `https://github.com/${owner}/${repo}/blob/${defaultBranch}/`;
+
+          // Buat parser DOM sementara untuk memperbaiki semua elemen img dan a
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(htmlContent, 'text/html');
+          
+          doc.querySelectorAll('img').forEach(img => {
+            const rawSrc = img.getAttribute('src') || '';
+            img.setAttribute('data-original-src', rawSrc);
+
+            if (rawSrc.includes(`github.com/${owner}/${repo}/blob/`)) {
+              img.setAttribute('src', rawSrc.replace(`github.com/${owner}/${repo}/blob/`, `raw.githubusercontent.com/${owner}/${repo}/`));
+            } else if (rawSrc && !rawSrc.startsWith('http://') && !rawSrc.startsWith('https://') && !rawSrc.startsWith('data:')) {
+              const cleanSrc = rawSrc.replace(/^(\.\/|\.\.\/|\/)+/, '');
+              img.setAttribute('src', rawBaseUrl + cleanSrc);
+              img.setAttribute('data-fallback-branch', altRawBaseUrl + cleanSrc);
+              img.setAttribute('data-fallback-cdn', cdnBaseUrl + cleanSrc);
+            } else if (rawSrc.startsWith('https://camo.githubusercontent.com/')) {
+              const canonical = img.getAttribute('data-canonical-src');
+              if (canonical) img.setAttribute('data-canonical-src', canonical);
+            }
+
+            img.setAttribute('loading', 'lazy');
+            img.setAttribute('decoding', 'async');
+            img.classList.add('rounded-xl', 'max-w-full', 'h-auto', 'my-3');
+          });
+
+          doc.querySelectorAll('a').forEach(a => {
+            const href = a.getAttribute('href');
+            if (href && !href.startsWith('http://') && !href.startsWith('https://') && !href.startsWith('#') && !href.startsWith('mailto:')) {
+              const cleanHref = href.replace(/^(\.\/|\.\.\/|\/)+/, '');
+              a.setAttribute('href', githubBaseUrl + cleanHref);
+            }
+            a.setAttribute('target', '_blank');
+            a.setAttribute('rel', 'noopener noreferrer');
+          });
+
+          const readmeEl = document.getElementById('modalReadmeBody');
+          readmeEl.innerHTML = `
+            <div class="github-rendered-markdown prose prose-invert max-w-none text-slate-200">
+              ${doc.body.innerHTML}
+            </div>
+          `;
+
+          // Multi-tier Broken Image Handler
+          readmeEl.querySelectorAll('img').forEach(img => {
+            img.onerror = function() {
+              const canonicalSrc = this.getAttribute('data-canonical-src');
+              const fallbackBranch = this.getAttribute('data-fallback-branch');
+              const fallbackCdn = this.getAttribute('data-fallback-cdn');
+              const originalSrc = this.getAttribute('data-original-src') || this.src;
+              const step = parseInt(this.getAttribute('data-error-step') || '0', 10);
+
+              if (step === 0 && canonicalSrc && this.src !== canonicalSrc) {
+                this.setAttribute('data-error-step', '1');
+                this.src = canonicalSrc;
+                return;
+              }
+              if (step <= 1 && fallbackBranch && this.src !== fallbackBranch) {
+                this.setAttribute('data-error-step', '2');
+                this.src = fallbackBranch;
+                return;
+              }
+              if (step <= 2 && fallbackCdn && this.src !== fallbackCdn) {
+                this.setAttribute('data-error-step', '3');
+                this.src = fallbackCdn;
+                return;
+              }
+
+              this.setAttribute('data-error-step', '4');
+              const isBadge = (this.naturalWidth > 0 && this.naturalWidth <= 16) || 
+                              (this.getAttribute('width') && parseInt(this.getAttribute('width'), 10) <= 16) ||
+                              (this.alt && /badge|shield|track|npm/i.test(this.alt)) ||
+                              /shields\.io|camo\.githubusercontent|badge/i.test(this.src);
+
+              if (isBadge) {
+                this.style.display = 'none';
+              } else {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'my-3 p-3.5 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md flex items-center justify-between gap-3 text-xs text-slate-300';
+                placeholder.innerHTML = `
+                  <div class="flex items-center space-x-2 min-w-0">
+                    <span class="p-1 rounded bg-white/10 text-slate-400">🖼️</span>
+                    <span class="truncate font-mono text-[11px] text-slate-300">${this.alt || 'Pratinjau Gambar'}</span>
+                  </div>
+                  <a href="${originalSrc}" target="_blank" rel="noopener noreferrer" class="shrink-0 text-sky-400 hover:underline flex items-center space-x-1 font-mono text-[11px] bg-white/5 px-2.5 py-1 rounded-md border border-white/10">
+                    <span>Buka di GitHub</span>
+                    <span>↗</span>
+                  </a>
+                `;
+                if (this.parentNode) this.parentNode.replaceChild(placeholder, this);
+              }
+            };
+          });
+        } else {
+          document.getElementById('modalReadmeBody').innerHTML = `
+            <p class="text-slate-400 italic">README.md tidak tersedia atau repository bersifat private.</p>
+          `;
+        }
+
+        // 4. Fetch Languages Breakdown
+        const langRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/languages`);
+        if (langRes.ok) {
+          const langData = await langRes.json();
+          const totalBytes = Object.values(langData).reduce((a, b) => a + b, 0);
+          const langEntries = Object.entries(langData);
+          if (totalBytes > 0 && langEntries.length > 0) {
+            const barContainer = document.querySelector('#repoDetailModal .bg-slate-800.flex');
+            const legendContainer = document.querySelector('#repoDetailModal .flex.flex-wrap.gap-x-4');
+            const colors = ['#f1e05a', '#3572A5', '#e34c26', '#563d7c', '#b07219', '#4F5D95'];
+
+            if (barContainer) {
+              barContainer.innerHTML = langEntries.map(([lang, bytes], i) => {
+                const pct = ((bytes / totalBytes) * 100).toFixed(1);
+                return `<div style="width: ${pct}%; background-color: ${colors[i % colors.length]};" class="h-full" title="${lang}: ${pct}%"></div>`;
+              }).join('');
+            }
+            if (legendContainer) {
+              legendContainer.innerHTML = langEntries.slice(0, 4).map(([lang, bytes], i) => {
+                const pct = ((bytes / totalBytes) * 100).toFixed(1);
+                return `
+                  <div class="flex items-center space-x-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${colors[i % colors.length]};"></span>
+                    <span class="text-slate-200 font-medium">${lang}</span>
+                    <span class="text-slate-500 font-mono">${pct}%</span>
+                  </div>
+                `;
+              }).join('');
+            }
+          }
+        }
+
+      } catch (err) {
+        console.error("Error fetching GitHub API:", err);
+        document.getElementById('modalReadmeBody').innerHTML = `
+          <div class="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+            Gagal mengambil data langsung dari api.github.com: ${err.message}. Periksa koneksi internet Anda.
+          </div>
+        `;
+      } finally {
+        lucide.createIcons();
+      }
+    }
+
+    function closeRepoDetail() {
+      document.getElementById('repoDetailModal').classList.add('hidden');
+    }
+
+    // Mock Auto Fetch
+    function mockAutoFetch() {
+      const url = document.getElementById('repoUrlInput').value;
+      const preview = document.getElementById('previewCard');
+      const btn = document.getElementById('btnFetch');
+      
+      btn.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Fetching...</span>`;
+      lucide.createIcons();
+
+      setTimeout(() => {
+        let repoName = "microsoft/autogen";
+        let desc = "A programming framework for agentic AI. Generate multi-agent workflows easily.";
+        let stars = "36.8k";
+        let forks = "5.2k";
+        let lang = "Python";
+
+        if (url && url.includes('github.com/')) {
+          const parts = url.replace('https://github.com/', '').split('/');
+          if (parts.length >= 2) {
+            repoName = `${parts[0]}/${parts[1]}`;
+          }
+        }
+
+        document.getElementById('previewName').innerText = repoName;
+        document.getElementById('previewDesc').innerText = desc;
+        document.getElementById('previewStars').innerText = stars;
+        document.getElementById('previewForks').innerText = forks;
+        document.getElementById('previewLang').innerText = lang;
+
+        preview.classList.remove('hidden');
+        btn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i><span>Selesai</span>`;
+        lucide.createIcons();
+      }, 700);
+    }
+
+    // Save Repo Mock
+    function saveNewRepo() {
+      alert("Repository berhasil disimpan ke Neon DB!");
+      closeAddRepoModal();
+    }
+
+    // Save Category Mock
+    function saveNewCategory() {
+      const name = document.getElementById('newCatName').value;
+      if (!name) return;
+      alert(`Kategori "${name}" berhasil ditambahkan ke Sidebar!`);
+      closeCategoryModal();
+    }
+
+    // Filter Trigger
+    function filterCategory(cat, sub = null) {
+      const title = document.getElementById('currentViewTitle');
+      const desc = document.getElementById('currentViewDesc');
+      if (cat === 'all') {
+        title.innerText = "Semua Repositori AI";
+        desc.innerText = "Koleksi terkurasi model, frameworks, tools, dan skill AI pilihan.";
+      } else {
+        title.innerText = sub ? `${cat} • ${sub}` : cat;
+        desc.innerText = `Menampilkan daftar repositori dalam filter kategori ${cat}${sub ? ' > ' + sub : ''}.`;
+      }
+    }
+
+    // Search Trigger
+    function handleSearch(val) {
+      // Mock filter search
+      console.log("Searching:", val);
+    }
+
+    // Dropdown Toggles with Airfall Motion
+    function toggleDropdown(menuId) {
+      const menu = document.getElementById(menuId);
+      const isHidden = menu.classList.contains('hidden');
+      
+      // Tutup semua dropdown lain dulu
+      document.querySelectorAll('#themeMenu, #sortMenu').forEach(m => {
+        if (m.id !== menuId) m.classList.add('hidden');
+      });
+      document.querySelectorAll('#themeChevron, #sortChevron').forEach(ch => {
+        ch.style.transform = 'rotate(0deg)';
+      });
+
+      if (isHidden) {
+        menu.classList.remove('hidden');
+        const chevron = menuId === 'themeMenu' ? document.getElementById('themeChevron') : document.getElementById('sortChevron');
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+        lucide.createIcons();
+      } else {
+        menu.classList.add('hidden');
+      }
+    }
+
+    // Select Theme Action
+    function selectTheme(themeKey, themeTitle, gradientClasses) {
+      const body = document.body;
+      const dot = document.getElementById('themeIndicatorDot');
+      const label = document.getElementById('themeLabelText');
+      const menu = document.getElementById('themeMenu');
+      const chevron = document.getElementById('themeChevron');
+
+      body.classList.remove('theme-sunset', 'theme-frost');
+
+      if (themeKey === 'sunset') {
+        body.classList.add('theme-sunset');
+        dot.className = "w-2.5 h-2.5 rounded-full bg-gradient-to-r from-rose-500 to-purple-600 shadow-sm shadow-rose-500/50";
+        label.innerText = "Tema: Sunset Velvet";
+      } else if (themeKey === 'frost') {
+        body.classList.add('theme-frost');
+        dot.className = "w-2.5 h-2.5 rounded-full bg-gradient-to-r from-sky-200 to-pink-200 border border-white shadow-sm";
+        label.innerText = "Tema: Ethereal Frost";
+      } else {
+        dot.className = "w-2.5 h-2.5 rounded-full bg-gradient-to-r from-teal-400 to-indigo-500 shadow-sm shadow-teal-500/50";
+        label.innerText = "Tema: Aurora";
+      }
+
+      menu.classList.add('hidden');
+      if (chevron) chevron.style.transform = 'rotate(0deg)';
+
+      // Sinkronisasi warna 3D mesh Three.js
+      updateThreeColors(themeKey);
+    }
+
+    // Select Sort Action
+    function selectSort(sortKey, sortTitle) {
+      const label = document.getElementById('sortLabelText');
+      const menu = document.getElementById('sortMenu');
+      const chevron = document.getElementById('sortChevron');
+
+      label.innerText = sortTitle;
+      menu.classList.add('hidden');
+      if (chevron) chevron.style.transform = 'rotate(0deg)';
+
+      console.log("Sorting repos by:", sortKey);
+    }
+
+    // Close Dropdowns on Click Outside
+    document.addEventListener('click', function(e) {
+      const themeContainer = document.getElementById('themeDropdownContainer');
+      const sortContainer = document.getElementById('sortDropdownContainer');
+
+      if (themeContainer && !themeContainer.contains(e.target)) {
+        const menu = document.getElementById('themeMenu');
+        if (menu) menu.classList.add('hidden');
+        const ch = document.getElementById('themeChevron');
+        if (ch) ch.style.transform = 'rotate(0deg)';
+      }
+
+      if (sortContainer && !sortContainer.contains(e.target)) {
+        const menu = document.getElementById('sortMenu');
+        if (menu) menu.classList.add('hidden');
+        const ch = document.getElementById('sortChevron');
+        if (ch) ch.style.transform = 'rotate(0deg)';
+      }
+    });
+
+    // ================= THREE.JS 3D CHROMATIC GLASS REFRACTION BACKDROP =================
+    // Menghadirkan pembiasan cahaya, depth of field, dan bayangan dinamis di balik panel kaca
+    let threeScene, threeCamera, threeRenderer, glassShapes = [];
+    let mouseX = 0, mouseY = 0;
+    let targetMouseX = 0, targetMouseY = 0;
+
+    function initThreeJSBackground() {
+      const canvas = document.getElementById('threeCanvas');
+      if (!canvas || typeof THREE === 'undefined') return;
+
+      threeScene = new THREE.Scene();
+      threeCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+      threeCamera.position.z = 12;
+
+      threeRenderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+      threeRenderer.setSize(window.innerWidth, window.innerHeight);
+      threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      // 1. Ambient & Directional Lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+      threeScene.add(ambientLight);
+
+      const dirLight1 = new THREE.DirectionalLight(0x38bdf8, 2.5); // Cyan light
+      dirLight1.position.set(5, 8, 4);
+      threeScene.add(dirLight1);
+
+      const dirLight2 = new THREE.DirectionalLight(0x818cf8, 2.2); // Indigo/Purple light
+      dirLight2.position.set(-6, -6, 3);
+      threeScene.add(dirLight2);
+
+      // 2. Dynamic Floating Prisms & Torus Knot with Physical Transmission Look
+      const geometries = [
+        new THREE.TorusKnotGeometry(1.6, 0.45, 120, 24),
+        new THREE.IcosahedronGeometry(1.3, 0),
+        new THREE.OctahedronGeometry(1.1, 0),
+        new THREE.TorusGeometry(1.4, 0.35, 20, 60),
+        new THREE.DodecahedronGeometry(1.2, 0)
+      ];
+
+      const materialThemes = {
+        aurora: [
+          new THREE.MeshStandardMaterial({ color: 0x06b6d4, roughness: 0.15, metalness: 0.25, transparent: true, opacity: 0.45 }),
+          new THREE.MeshStandardMaterial({ color: 0x6366f1, roughness: 0.2, metalness: 0.3, transparent: true, opacity: 0.4 }),
+          new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.35 })
+        ],
+        sunset: [
+          new THREE.MeshStandardMaterial({ color: 0xf43f5e, roughness: 0.15, metalness: 0.25, transparent: true, opacity: 0.45 }),
+          new THREE.MeshStandardMaterial({ color: 0x9333ea, roughness: 0.2, metalness: 0.3, transparent: true, opacity: 0.4 }),
+          new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.35 })
+        ],
+        frost: [
+          new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.35 }),
+          new THREE.MeshStandardMaterial({ color: 0xf472b6, roughness: 0.1, metalness: 0.15, transparent: true, opacity: 0.3 }),
+          new THREE.MeshStandardMaterial({ color: 0xa78bfa, roughness: 0.08, metalness: 0.1, transparent: true, opacity: 0.35 })
+        ]
+      };
+
+      const positions = [
+        { x: -5.5, y: 2.2, z: -2, rotSpeed: 0.003 },
+        { x: 5.8, y: -2.8, z: -1, rotSpeed: 0.004 },
+        { x: 3.2, y: 3.5, z: -3, rotSpeed: 0.0035 },
+        { x: -4.2, y: -3.2, z: -2.5, rotSpeed: 0.0028 },
+        { x: 0.5, y: 0.2, z: -4, rotSpeed: 0.002 }
+      ];
+
+      positions.forEach((pos, idx) => {
+        const geom = geometries[idx % geometries.length];
+        const mat = materialThemes.aurora[idx % materialThemes.aurora.length].clone();
+        const mesh = new THREE.Mesh(geom, mat);
+        mesh.position.set(pos.x, pos.y, pos.z);
+        threeScene.add(mesh);
+        glassShapes.push({ mesh, rotSpeed: pos.rotSpeed, basePos: { ...pos } });
+      });
+
+      // 3. Mouse Interactive Parallax
+      window.addEventListener('mousemove', (e) => {
+        targetMouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+        targetMouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+      });
+
+      // 4. Responsive Resize
+      window.addEventListener('resize', () => {
+        if (!threeCamera || !threeRenderer) return;
+        threeCamera.aspect = window.innerWidth / window.innerHeight;
+        threeCamera.updateProjectionMatrix();
+        threeRenderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      // 5. Animation Loop
+      let clock = new THREE.Clock();
+      function animate() {
+        requestAnimationFrame(animate);
+        const elapsedTime = clock.getElapsedTime();
+
+        // Smooth mouse damping
+        mouseX += (targetMouseX - mouseX) * 0.04;
+        mouseY += (targetMouseY - mouseY) * 0.04;
+
+        glassShapes.forEach((item, i) => {
+          item.mesh.rotation.x += item.rotSpeed;
+          item.mesh.rotation.y += item.rotSpeed * 1.3;
+          // Organic floating drift
+          item.mesh.position.y = item.basePos.y + Math.sin(elapsedTime * 0.7 + i) * 0.45 - (mouseY * 0.4);
+          item.mesh.position.x = item.basePos.x + Math.cos(elapsedTime * 0.5 + i) * 0.35 + (mouseX * 0.5);
+        });
+
+        threeRenderer.render(threeScene, threeCamera);
+      }
+      animate();
+    }
+
+    // Update Three.js Palette on Theme Change
+    function updateThreeColors(themeKey) {
+      if (!glassShapes.length) return;
+      const colorPalettes = {
+        aurora: [0x06b6d4, 0x6366f1, 0x10b981],
+        sunset: [0xf43f5e, 0x9333ea, 0xf97316],
+        frost: [0x38bdf8, 0xf472b6, 0xa78bfa]
+      };
+      const colors = colorPalettes[themeKey] || colorPalettes.aurora;
+      glassShapes.forEach((item, idx) => {
+        if (item.mesh && item.mesh.material) {
+          item.mesh.material.color.setHex(colors[idx % colors.length]);
+        }
+      });
+    }
+
+    // Call Three.js after DOM load
+    window.addEventListener('DOMContentLoaded', () => {
+      initThreeJSBackground();
+    });
+    // In case script executes after DOMContentLoaded
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      setTimeout(initThreeJSBackground, 50);
+    }
+  </script>
+</body>
+</html>
+

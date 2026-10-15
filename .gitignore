@@ -1,0 +1,38 @@
+# Next.js
+.next/
+out/
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Environment Variables
+.env
+.env*.local
+
+# Drizzle & DB
+drizzle/
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build & Output
+dist/
+be/dist/
+*.tsbuildinfo
+
+# Python & Cache
+__pycache__/
+*.pyc
+
+# Local MCP & Dev tools
+.codebase-memory/
+.vscode/
+
+# OS Files
+.DS_Store
+Thumbs.db
+

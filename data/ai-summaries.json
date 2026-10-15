@@ -1,0 +1,1739 @@
+{
+  "tirth8205/code-review-graph": {
+    "corePurpose": "code-review-graph menyelesaikan masalah inefisiensi token dan konteks yang tidak relevan saat AI coding tools melakukan review kode dengan membangun peta struktural persisten menggunakan Tree-sitter. Arsitekturnya bekerja secara lokal-first, membangun knowledge graph yang diperbarui secara inkremental, dan menyajikan konteks yang dikompresi melalui protokol MCP sehingga asisten AI hanya membaca file yang benar-benar terdampak oleh perubahan.",
+    "problemsSolved": [
+      {
+        "title": "Bengkak Konteks & Pemborosan Token",
+        "description": "Alat AI coding konvensional sering kali membaca ulang sebagian besar basis kode untuk mereview satu perubahan kecil, yang menyebabkan pemborosan token yang signifikan (misalnya 143,594 token untuk membaca seluruh korpus Flask). code-review-graph mengatasi ini dengan menyajikan hanya node graph yang relevan, mengurangi kebutuhan token hingga 65x (menjadi 2,196 token)."
+      },
+      {
+        "title": "Ketiadaan Pemetaan Struktural Persisten",
+        "description": "Tanpa peta kode yang persisten, setiap sesi review dimulai dari nol, memaksa AI untuk melakukan parsing ulang yang lambat. Repo ini membangun dan menyimpan knowledge graph yang diperbarui secara inkremental, sehingga latensi build awal (sekitar 40 detik untuk repo 3.000 file) hanya terjadi sekali, dan pembaruan selanjutnya sangat cepat."
+      },
+      {
+        "title": "Fragmentasi Integrasi Multi-Platform",
+        "description": "Mengintegrasikan server MCP ke berbagai alat AI (Claude Code, Cursor, Windsurf, dll.) biasanya memerlukan konfigurasi manual yang rumit dan rentan terhadap konflik file. Perintah 'install' otomatis mendeteksi platform yang terpasang, menulis entri MCP yang benar, dan mengatur hook/skill secara atomik, memastikan kompatibilitas tanpa merusak konfigurasi lain."
+      }
+    ],
+    "ladderRules": [
+      "Local-First & Privacy: Seluruh pemrosesan dan penyimpanan graph dilakukan di mesin lokal developer, tanpa mengirim data kode ke server eksternal.",
+      "Incremental Graph Updates: Menggunakan Tree-sitter untuk parsing struktural yang memungkinkan pembaruan graph hanya pada file yang berubah, bukan rebuild penuh.",
+      "MCP-Native Context Serving: Menyajikan data melalui Model Context Protocol (MCP) untuk memastikan kompatibilitas standar dengan berbagai LLM dan AI coding assistants."
+    ],
+    "useCases": [
+      "Saat melakukan code review pada repository besar (monorepo) di mana membaca seluruh file tidak efisien.",
+      "Ketika menggunakan AI coding tools seperti Claude Code atau Cursor dan ingin memastikan AI hanya fokus pada 'blast radius' dari perubahan kode.",
+      "Untuk mengotomasi analisis dampak perubahan (impact analysis) sebelum merge pull request dengan presisi struktural."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Optimasi Konteks Review pada Monorepo Besar",
+        "prompt": "\"Build the code review graph for this project and analyze the impact of the recent changes in src/auth.py\"",
+        "scenarioType": "efficiency",
+        "scenarioBadge": "⚡ Code Intelligence & Blast Radius",
+        "beforeTitle": "BEFORE (Pendekatan Brute-Force AI)",
+        "beforeMeta": "Full file scan • Boros 143,594 tokens • Latensi tinggi",
+        "beforeCode": "# AI Tool membaca seluruh repository\n# Context window terisi oleh file yang tidak relevan\n# Biaya token melonjak drastis untuk perubahan kecil",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "AI tidak memahami struktur kode, hanya membaca teks mentah."
+          },
+          {
+            "label": "Beban",
+            "value": "Biaya API dan waktu tunggu yang tidak proporsional."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan code-review-graph)",
+        "afterMeta": "Persistent graph mapping • Hemat 65x tokens • Presisi struktural",
+        "afterCode": "pip install code-review-graph\ncode-review-graph install\ncode-review-graph build\n# AI kini hanya menerima 2,196 token konteks relevan via MCP",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Graph struktural memastikan AI hanya melihat dependensi langsung."
+          },
+          {
+            "label": "Hasil",
+            "value": "Review lebih cepat, akurat, dan hemat biaya."
+          }
+        ],
+        "ruleBadge": "Tree-sitter + MCP",
+        "metrics": [
+          {
+            "label": "Reduksi Token",
+            "value": "65x",
+            "color": "emerald"
+          },
+          {
+            "label": "Latensi Build (3k files)",
+            "value": "~40s",
+            "color": "sky"
+          },
+          {
+            "label": "Platform Didukung",
+            "value": "15+",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi Paket",
+        "command": "pip install code-review-graph",
+        "description": "Menginstal CLI dan dependensi Python (memerlukan Python 3.10+). Bisa juga menggunakan pipx untuk isolasi lingkungan."
+      },
+      {
+        "step": 2,
+        "title": "Deteksi & Konfigurasi Platform",
+        "command": "code-review-graph install",
+        "description": "Mendeteksi AI coding tools yang terpasang (Claude, Cursor, dll.), menulis konfigurasi MCP, dan mengatur hook/skill secara otomatis."
+      },
+      {
+        "step": 3,
+        "title": "Build Graph Kode",
+        "command": "code-review-graph build",
+        "description": "Menjalankan parsing Tree-sitter untuk membangun knowledge graph awal dari basis kode saat ini."
+      }
+    ],
+    "commands": [
+      {
+        "command": "code-review-graph install",
+        "function": "Mengkonfigurasi integrasi MCP untuk platform AI yang terdeteksi atau yang ditentukan via flag --platform.",
+        "example": "code-review-graph install --platform cursor"
+      },
+      {
+        "command": "code-review-graph build",
+        "function": "Membangun atau memperbarui knowledge graph dari basis kode lokal.",
+        "example": "code-review-graph build"
+      },
+      {
+        "command": "code-review-graph uninstall",
+        "function": "Menghapus file dan entri yang dibuat oleh CRG dari working tree Git/SVN secara aman (atomic write).",
+        "example": "code-review-graph uninstall --dry-run"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/tirth8205/code-review-graph.git"
+  },
+  "lvcidpsyche/auto-browser": {
+    "corePurpose": "Auto Browser adalah kontrol plane browser berbasis MCP (Model Context Protocol) yang memungkinkan agen AI (seperti Claude Code atau Codex) mengontrol browser Playwright nyata dengan pengawasan manusia. Arsitekturnya mengintegrasikan noVNC untuk takeover visual, profil autentikasi yang dapat digunakan ulang, dan sistem audit trail yang ditandatangani kriptografis untuk memastikan keamanan dan transparansi.",
+    "problemsSolved": [
+      {
+        "title": "Kekakuan Otomasi Browser AI",
+        "description": "Agen AI sering gagal saat berhadapan dengan situs web yang dinamis atau 'brittle' karena tidak ada mekanisme pemulihan manual. Auto Browser menyediakan noVNC yang terhubung ke sesi Playwright yang sama, memungkinkan operator manusia mengambil alih kendali secara visual tanpa memutus sesi agen."
+      },
+      {
+        "title": "Manajemen Sesi Login yang Repetitif",
+        "description": "Otomasi browser konvensional sering kali harus melakukan login ulang setiap kali sesi berakhir, yang rentan terhadap deteksi bot dan memakan waktu. Repo ini menyediakan 'auth profiles' bernama yang menyimpan sesi login, memungkinkan agen untuk membuka sesi baru yang sudah terautentikasi secara instan."
+      },
+      {
+        "title": "Kurangnya Akuntabilitas dan Audit Trail",
+        "description": "Aksi yang dilakukan agen AI di browser sering kali tidak terdokumentasi dengan baik, menyulitkan verifikasi keamanan. Auto Browser menghasilkan 'Witness receipts' yang ditandatangani Ed25519, menciptakan rantai bukti yang dapat diverifikasi secara independen tanpa perlu mempercayai server pengontrol."
+      }
+    ],
+    "ladderRules": [
+      "MCP-Native First: Permukaan browser dikemas sebagai server MCP sejak awal, bukan ditambahkan sebagai lapisan tambahan, memastikan integrasi mulus dengan klien AI modern.",
+      "Local-First & Self-Hosted: Desain default adalah berjalan di infrastruktur pengguna sendiri melalui Docker Compose, menjaga data sensitif tetap lokal dan mengurangi ketergantungan pada layanan pihak ketiga.",
+      "Human-in-the-Loop Safety: Setiap aksi kritis dapat melewati gerbang persetujuan (approval gates) dan operator dapat selalu mengambil alih kendali melalui noVNC, memastikan manusia tetap memegang kendali akhir."
+    ],
+    "useCases": [
+      "Mengotomasi dashboard internal atau alat admin yang memerlukan login SSO kompleks dan interaksi UI yang dinamis.",
+      "Melakukan QA (Quality Assurance) yang dibantu operator, di mana agen AI menjalankan skenario uji dan manusia mengintervensi jika ada anomali.",
+      "Mengelola alur kerja akun 'login-once, reuse-later' untuk tugas-tugas berulang yang memerlukan sesi autentikasi yang persisten."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Otomasi Dashboard Internal dengan Pengawasan Manusia",
+        "prompt": "\"Buka dashboard admin internal, login menggunakan profil 'admin-main', dan ekstrak laporan penjualan bulan ini. Jika ada CAPTCHA atau error, hentikan dan minta intervensi manusia.\"",
+        "scenarioType": "automation",
+        "scenarioBadge": "🤖 Autonomous Web Agent",
+        "beforeTitle": "BEFORE (Skrip Playwright Manual)",
+        "beforeMeta": "Hardcoded credentials • Tidak ada audit trail • Gagal total jika UI berubah",
+        "beforeCode": "from playwright.sync_api import sync_playwright\n\nwith sync_playwright() as p:\n    browser = p.chromium.launch()\n    page = browser.new_page()\n    page.goto(\"https://internal-dashboard.com\")\n    page.fill(\"#user\", \"admin\")\n    page.fill(\"#pass\", \"secret\")\n    page.click(\"#login\")\n    # Jika ada CAPTCHA, skrip hang atau gagal tanpa mekanisme recovery",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Tidak ada mekanisme untuk mengambil alih sesi jika agen AI terjebak di CAPTCHA atau perubahan UI."
+          },
+          {
+            "label": "Beban",
+            "value": "Perlu menulis ulang skrip setiap kali struktur HTML dashboard berubah."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan auto-browser)",
+        "afterMeta": "MCP Integration • Human Takeover via noVNC • Signed Audit Trail",
+        "afterCode": "# Di dalam Claude Code / MCP Client:\n# Agen memanggil tool MCP 'browser_navigate' dan 'browser_click'\n# Jika agen mendeteksi CAPTCHA, ia memanggil 'request_human_takeover'\n# Operator membuka http://127.0.0.1:6080/vnc.html dan menyelesaikan CAPTCHA\n# Sesi Playwright tetap hidup, agen melanjutkan setelah operator selesai",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Sesi browser tetap persisten saat manusia mengambil alih melalui noVNC."
+          },
+          {
+            "label": "Hasil",
+            "value": "Laporan berhasil diekstrak dengan bukti audit yang ditandatangani Ed25519."
+          }
+        ],
+        "ruleBadge": "MCP-Native & noVNC Takeover",
+        "metrics": [
+          {
+            "label": "Resiliensi",
+            "value": "100% Recovery Rate",
+            "color": "emerald"
+          },
+          {
+            "label": "Keamanan",
+            "value": "Signed Audit Trail",
+            "color": "sky"
+          },
+          {
+            "label": "Integrasi",
+            "value": "MCP over HTTP",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi & Clone",
+        "command": "git clone https://github.com/LvcidPsyche/auto-browser.git && cd auto-browser",
+        "description": "Mengunduh repositori dan masuk ke direktori proyek."
+      },
+      {
+        "step": 2,
+        "title": "Konfigurasi & Build",
+        "command": "docker compose up --build",
+        "description": "Membangun dan menjalankan seluruh stack (API, Browser, noVNC) menggunakan Docker Compose. Port diikat ke 127.0.0.1 secara default."
+      },
+      {
+        "step": 3,
+        "title": "Verifikasi & Akses",
+        "command": "make doctor",
+        "description": "Menjalankan pemeriksaan kesehatan untuk memastikan Docker dan socket localhost berfungsi dengan baik. Buka http://127.0.0.1:8000/docs untuk API dan http://127.0.0.1:6080/vnc.html untuk visual takeover."
+      }
+    ],
+    "commands": [
+      {
+        "command": "docker compose up --build",
+        "function": "Menjalankan seluruh infrastruktur Auto Browser termasuk server MCP, browser Playwright, dan noVNC.",
+        "example": "docker compose up --build"
+      },
+      {
+        "command": "make doctor",
+        "function": "Melakukan pemeriksaan diagnostik untuk memastikan lingkungan lokal siap (Docker, port, izin akses).",
+        "example": "make doctor"
+      },
+      {
+        "command": "scripts/verify_witness_bundle.py",
+        "function": "Memverifikasi integritas dan tanda tangan Ed25519 dari bundle audit trail yang diekspor.",
+        "example": "python scripts/verify_witness_bundle.py ./exported_bundle.json"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/LvcidPsyche/auto-browser.git"
+  },
+  "rtk-ai/rtk": {
+    "corePurpose": "RTK adalah proxy CLI berbasis Rust yang memotong konsumsi token LLM hingga 90% dengan memfilter dan mengompres output perintah shell sebelum masuk ke konteks agen. Arsitekturnya berupa binary tunggal tanpa dependensi eksternal yang berintersepsi secara transparan terhadap 100+ perintah umum (seperti git, cargo, npm) untuk menyajikan hanya informasi esensial.",
+    "problemsSolved": [
+      {
+        "title": "Bloat Konteks LLM dari Output Shell",
+        "description": "Perintah seperti 'ls', 'git log', atau 'cargo test' menghasilkan output yang sangat panjang dan redundan. RTK mengatasi ini dengan mengubah format output menjadi ringkas (misal: hanya menampilkan kegagalan test, atau hash git saja), sehingga mengurangi beban input token secara signifikan."
+      },
+      {
+        "title": "Biaya API LLM yang Tidak Efisien",
+        "description": "Setiap byte output shell yang dibaca agen dihitung sebagai token input yang berbayar. RTK mengurangi jumlah byte yang dikirim ke LLM, yang secara langsung menurunkan biaya operasional untuk sesi coding agentic yang melibatkan banyak perintah terminal."
+      },
+      {
+        "title": "Kehilangan Fokus pada Informasi Kritis",
+        "description": "Dalam output 'grep' atau 'cat' yang panjang, informasi penting sering tenggelam. RTK menerapkan heuristik cerdas (seperti memotong baris panjang, mengelompokkan match per file, atau hanya menampilkan struktur file) agar agen dapat fokus pada data yang relevan tanpa perlu memproses noise."
+      }
+    ],
+    "ladderRules": [
+      "Intersepsi Transparan: RTK bertindak sebagai proxy yang menangkap output perintah standar tanpa mengubah cara developer memanggil perintah tersebut.",
+      "Kompresi Semantik: Mengubah output mentah menjadi format terstruktur yang padat (misal: tree format untuk ls, NDJSON untuk go test) yang lebih mudah diproses oleh LLM.",
+      "Zero-Dependency Binary: Dibangun dalam Rust sebagai single binary untuk memastikan overhead latensi <10ms dan kemudahan distribusi tanpa perlu instalasi runtime tambahan."
+    ],
+    "useCases": [
+      "Saat menggunakan Claude Code atau agen AI coding lainnya yang sering menjalankan perintah terminal untuk eksplorasi kodebase.",
+      "Ketika menjalankan suite test (cargo test, pytest, go test) di mana output sukses tidak perlu dibaca penuh, hanya kegagalan yang penting.",
+      "Saat melakukan inspeksi file atau direktori (ls, cat, grep) di mana struktur dan signature file lebih penting daripada konten lengkapnya."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Optimasi Output Test Suite untuk Agentic Coding",
+        "prompt": "\"Jalankan semua test untuk modul auth dan laporkan jika ada kegagalan.\"",
+        "scenarioType": "efficiency",
+        "scenarioBadge": "🚀 Token Efficiency & Cost Reduction",
+        "beforeTitle": "BEFORE (Output Test Mentah)",
+        "beforeMeta": "Output penuh • ~5.000 tokens • Noise tinggi",
+        "beforeCode": "cargo test\n   Compiling auth v0.1.0\n   Running unittests src/lib.rs\n   test auth::tests::test_login ... ok\n   test auth::tests::test_logout ... ok\n   test auth::tests::test_token_refresh ... FAILED\n   thread 'auth::tests::test_token_refresh' panicked at 'assertion failed: ...'\n   note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n   test result: ok. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Menampilkan detail kompilasi dan test yang sukses yang tidak relevan untuk debugging."
+          },
+          {
+            "label": "Beban",
+            "value": "Konsumsi token tinggi untuk informasi yang tidak mengubah keputusan agen."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan rtk)",
+        "afterMeta": "Hanya kegagalan • ~200 tokens • Fokus penuh",
+        "afterCode": "rtk cargo test\n   FAIL: auth::tests::test_token_refresh\n   Error: assertion failed at src/auth.rs:42\n   Summary: 2 passed, 1 failed",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "RTK memfilter output 'cargo test' untuk hanya menampilkan baris kegagalan dan ringkasan."
+          },
+          {
+            "label": "Hasil",
+            "value": "Agen langsung fokus pada error tanpa perlu memproses log sukses."
+          }
+        ],
+        "ruleBadge": "Semantic Filtering",
+        "metrics": [
+          {
+            "label": "Penghematan Token",
+            "value": "~95%",
+            "color": "emerald"
+          },
+          {
+            "label": "Overhead Latensi",
+            "value": "<10ms",
+            "color": "sky"
+          },
+          {
+            "label": "Format Output",
+            "value": "Compact",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi RTK",
+        "command": "brew install rtk",
+        "description": "Instalasi paling direkomendasikan untuk macOS/Linux. Untuk Windows gunakan 'winget install rtk-ai.rtk' atau unduh binary dari releases."
+      },
+      {
+        "step": 2,
+        "title": "Verifikasi Instalasi",
+        "command": "rtk --version",
+        "description": "Pastikan binary rtk tersedia di PATH dan berjalan dengan benar."
+      },
+      {
+        "step": 3,
+        "title": "Penggunaan sebagai Proxy",
+        "command": "rtk git status",
+        "description": "Jalankan perintah apa pun dengan prefix 'rtk' untuk mengaktifkan kompresi output. Contoh: 'rtk ls', 'rtk cat file.txt'."
+      }
+    ],
+    "commands": [
+      {
+        "command": "rtk <command>",
+        "function": "Proxy utama yang menangkap output dari perintah shell apa pun dan mengompresnya.",
+        "example": "rtk ls -la"
+      },
+      {
+        "command": "rtk git log",
+        "function": "Menampilkan log git dalam format ringkas (hash, author, subject) tanpa detail commit penuh.",
+        "example": "rtk git log --oneline"
+      },
+      {
+        "command": "rtk cargo test",
+        "function": "Menjalankan test Rust dan hanya menampilkan kegagalan serta ringkasan hasil.",
+        "example": "rtk cargo test --lib"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/rtk-ai/rtk.git"
+  },
+  "juliusbrussee/caveman": {
+    "corePurpose": "Caveman adalah proxy dan skill untuk coding agent (seperti Claude Code) yang secara drastis mengurangi penggunaan token input dan output dengan memaksa model untuk berkomunikasi dalam gaya 'caveman' yang ringkas dan terstruktur. Arsitektur intinya bekerja dengan memfilter dan memampatkan respons AI serta konten web yang dibaca oleh agent, memastikan akurasi teknis tetap 100% sambil memangkas 33-65% biaya token.",
+    "problemsSolved": [
+      {
+        "title": "Inflasi Token pada Respons Agent",
+        "description": "Coding agent modern cenderung menghasilkan respons yang terlalu panjang, penuh basa-basi, dan repetitif. Caveman menerapkan aturan ketat (berbasis ASD-STE100) untuk memotong pengantar, penutup, dan penjelasan redundan, sehingga jawaban teknis menjadi 3-4x lebih pendek tanpa kehilangan informasi kritis."
+      },
+      {
+        "title": "Beban Konteks dari Snapshot Web",
+        "description": "Ketika agent menelusuri web, snapshot HTML atau Playwright yang besar membanjiri konteks dengan data yang tidak relevan. Fitur 'caveman browse' mengubah halaman web menjadi representasi teks yang 129.8x lebih kecil, memungkinkan agent memproses informasi web dengan biaya token yang jauh lebih rendah."
+      },
+      {
+        "title": "Biaya Operasional LLM yang Tinggi",
+        "description": "Penggunaan intensif coding agent dalam pipeline CI/CD atau pengembangan harian dapat membengkakkan biaya API. Dengan mengurangi token input melalui proxy dan token output melalui skill, Caveman menurunkan biaya operasional secara signifikan (1.4x hingga 2.4x lebih murah) tanpa mengorbankan kualitas kode."
+      }
+    ],
+    "ladderRules": [
+      "Answer First: Jawaban teknis langsung di awal, tanpa sapaan, rencana, atau ringkasan di akhir.",
+      "ASD-STE100 Compliance: Menggunakan bahasa Inggris terkendali (maks 20 kata per kalimat, aktif, satu istilah per objek) untuk menjamin presisi teknis.",
+      "Payload Verbatim: Kode, path, error message, dan angka tidak pernah diubah atau dipangkas; hanya narasi di sekitarnya yang dikompresi."
+    ],
+    "useCases": [
+      "Mengurangi biaya token saat menggunakan Claude Code atau agent AI lain untuk debugging dan refactoring kode harian.",
+      "Memproses dokumentasi web atau halaman error yang panjang agar agent dapat memahami konteks tanpa membanjiri window context.",
+      "Otomatisasi pipeline di mana agent AI perlu memberikan instruksi atau laporan status yang ringkas dan mudah diparse oleh sistem lain."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Optimasi Respons Debugging React",
+        "prompt": "\"Kenapa komponen React saya re-render terus?\"",
+        "scenarioType": "efficiency",
+        "scenarioBadge": "🪨 Token Compression & Precision",
+        "beforeTitle": "BEFORE (Agent Standar)",
+        "beforeMeta": "Basa-basi panjang • 63 tokens",
+        "beforeCode": "The reason your React component is re-rendering is likely because you're creating a new object reference on each render cycle. When you pass an inline object as a prop, React's shallow comparison sees it as a different object every time, which triggers a re-render. I'd recommend using useMemo to memoize the object.",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Banyak kata penghubung dan penjelasan latar belakang yang tidak perlu."
+          },
+          {
+            "label": "Beban",
+            "value": "63 tokens untuk satu solusi sederhana."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan caveman)",
+        "afterMeta": "Langsung ke inti • 20 tokens",
+        "afterCode": "New object ref each render, so React re-renders. Wrap the prop in `useMemo`.",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Struktur [hal] [aksi] [alasan]. [langkah berikutnya]. Tanpa basa-basi."
+          },
+          {
+            "label": "Hasil",
+            "value": "Solusi teknis yang sama persis, 3x lebih hemat token."
+          }
+        ],
+        "ruleBadge": "ASD-STE100 Controlled English",
+        "metrics": [
+          {
+            "label": "Penghematan Token",
+            "value": "68% (63 -> 20)",
+            "color": "emerald"
+          },
+          {
+            "label": "Akurasi Teknis",
+            "value": "100% (18/18 benar)",
+            "color": "sky"
+          },
+          {
+            "label": "Biaya Relatif",
+            "value": "1.4x - 2.4x Lebih Murah",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi Proxy & Skill",
+        "command": "npm install -g caveman",
+        "description": "Menginstal paket Caveman yang menyediakan proxy server dan skill definitions untuk coding agent."
+      },
+      {
+        "step": 2,
+        "title": "Konfigurasi Proxy",
+        "command": "caveman proxy start",
+        "description": "Menjalankan proxy lokal yang akan memotong token input dari respons web dan output dari LLM sebelum dikirim ke agent."
+      },
+      {
+        "step": 3,
+        "title": "Aktivasi Skill di Agent",
+        "command": "/caveman",
+        "description": "Memanggil skill Caveman di dalam Claude Code atau agent lain untuk menerapkan gaya komunikasi ringkas pada sesi tersebut."
+      }
+    ],
+    "commands": [
+      {
+        "command": "caveman browse",
+        "function": "Mengambil konten web dan mengompresnya menjadi format teks yang sangat ringkas untuk dibaca oleh agent.",
+        "example": "caveman browse https://example.com/docs"
+      },
+      {
+        "command": "/caveman",
+        "function": "Skill slash command untuk mengaktifkan mode komunikasi Caveman pada agent AI.",
+        "example": "/caveman"
+      },
+      {
+        "command": "/ultracave",
+        "function": "Mode kompresi lebih agresif untuk respons yang sangat singkat.",
+        "example": "/ultracave"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/JuliusBrussee/caveman.git"
+  },
+  "dietrichgebert/ponytail": {
+    "corePurpose": "Ponytail adalah skill prompt-engineering untuk AI agent (seperti Claude Code) yang memaksa model untuk berpikir seperti 'senior dev paling malas' dengan prinsip YAGNI (You Aren't Gonna Need It). Arsitekturnya bekerja dengan memfilter output agent agar hanya menulis kode yang benar-benar diperlukan, menghindari over-engineering, dan memanfaatkan fitur bawaan browser atau library yang sudah ada di repo.",
+    "problemsSolved": [
+      {
+        "title": "Over-engineering oleh AI Agent",
+        "description": "AI agent cenderung menghasilkan kode yang berlebihan (misal: membuat komponen kalender manual 335 baris) padahal solusi sederhana (menggunakan input type=date) hanya butuh 10 baris. Ponytail memaksa agent untuk mencari solusi paling minimal yang berfungsi."
+      },
+      {
+        "title": "Inefisiensi Token dan Biaya",
+        "description": "Kode yang lebih panjang berarti lebih banyak token output, yang meningkatkan biaya API dan latensi. Ponytail mengurangi penggunaan token hingga 45% dan biaya hingga 26% dengan memangkas kode yang tidak perlu tanpa mengorbankan fungsionalitas."
+      },
+      {
+        "title": "Kualitas Kode yang Tidak Konsisten",
+        "description": "Tanpa panduan, agent sering kali mengabaikan validasi atau keamanan demi kecepatan. Ponytail memastikan bahwa meskipun kode lebih pendek, 98% logika berisiko tetap disertai test, dan keamanan (SQL injection, path traversal) tetap terjaga."
+      }
+    ],
+    "ladderRules": [
+      "YAGNI (You Aren't Gonna Need It): Jangan menulis kode untuk fitur yang belum diminta atau belum jelas dibutuhkan.",
+      "Reuse Existing: Selalu cek apakah komponen, library, atau fitur bawaan browser sudah tersedia di repo sebelum menulis kode baru.",
+      "Minimal Viable Code: Tulis hanya apa yang diperlukan untuk menyelesaikan tugas, tanpa golfing (memperpendek kode secara artifisial) yang mengorbankan keamanan atau aksesibilitas."
+    ],
+    "useCases": [
+      "Saat menggunakan Claude Code atau AI agent lain untuk pengembangan frontend/backend dan ingin mengurangi biaya token serta kompleksitas kode.",
+      "Saat ingin memastikan AI agent tidak over-engineering solusi sederhana (misal: membuat library custom untuk fitur yang sudah ada di HTML5).",
+      "Saat melakukan code review otomatis di mana efisiensi dan kebersihan kode lebih diutamakan daripada volume kode."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Implementasi Date Picker Minimalis",
+        "prompt": "\"Tambahkan date picker ke form frontend saya.\"",
+        "scenarioType": "ui",
+        "scenarioBadge": "🎨 UI Efficiency & Minimalism",
+        "beforeTitle": "BEFORE (Tanpa Ponytail / Agent Default)",
+        "beforeMeta": "Over-engineering • 335 baris kode • Instalasi library eksternal",
+        "beforeCode": "// Agent membuat komponen kalender manual\nimport { useState } from 'react';\nimport { CalendarIcon } from '@heroicons/react';\n\nexport function DatePicker() {\n  const [isOpen, setIsOpen] = useState(false);\n  const [selectedDate, setSelectedDate] = useState(null);\n  \n  // 300+ baris logika untuk render kalender, navigasi bulan, dll.\n  return (\n    <div className=\"relative\">\n      <button onClick={() => setIsOpen(!isOpen)}>\n        <CalendarIcon className=\"h-5 w-5\" />\n      </button>\n      {isOpen && <CalendarComponent onSelect={setSelectedDate} />}\n    </div>\n  );\n}",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Menulis ulang logika kalender yang sudah ada di browser."
+          },
+          {
+            "label": "Beban",
+            "value": "335 baris kode, potensi bug lebih tinggi, maintenance berat."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan Ponytail)",
+        "afterMeta": "Reuse Existing • 10 baris kode • Native Browser API",
+        "afterCode": "// Ponytail melihat repo sudah punya komponen Input\n// dan browser sudah punya date picker native\n\nexport function DatePicker() {\n  return <Input type=\"date\" name=\"date\" />;\n}",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Memanfaatkan komponen Input yang sudah ada dan fitur native browser."
+          },
+          {
+            "label": "Hasil",
+            "value": "10 baris kode, zero dependency baru, aksesibilitas otomatis."
+          }
+        ],
+        "ruleBadge": "YAGNI & Reuse Existing",
+        "metrics": [
+          {
+            "label": "Reduksi Kode",
+            "value": "-97% (335 -> 10 baris)",
+            "color": "emerald"
+          },
+          {
+            "label": "Token Output",
+            "value": "-45%",
+            "color": "sky"
+          },
+          {
+            "label": "Biaya API",
+            "value": "-26%",
+            "color": "amber"
+          }
+        ],
+        "beforeHtml": "<!DOCTYPE html>\n<html lang=\"id\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <script src=\"https://cdn.tailwindcss.com\"></script>\n  <style>\n    body { background-color: #0b0f19; color: #f1f5f9; font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; padding: 12px; }\n  </style>\n</head>\n<body>\n  <div class=\"max-w-xs mx-auto bg-slate-900/90 border border-rose-500/40 rounded-xl p-3.5 shadow-2xl text-xs space-y-2.5\">\n    <div class=\"flex items-center justify-between pb-2 border-b border-slate-800\">\n      <div class=\"flex items-center space-x-1.5 text-rose-400 font-bold\">\n        <span>📅</span>\n        <span>Custom Calendar v3.4</span>\n      </div>\n      <span class=\"px-1.5 py-0.5 rounded text-[10px] bg-rose-500/20 text-rose-300 font-mono\">335 baris • Bloated</span>\n    </div>\n\n    <!-- Mock Fake Dropdown Trigger -->\n    <div class=\"flex items-center justify-between bg-slate-950 border border-rose-500/50 rounded-lg px-2.5 py-1.5 text-slate-300 shadow-inner\">\n      <span class=\"text-rose-200 font-mono\">12 / 10 / 2026</span>\n      <span class=\"text-rose-400 text-xs\">▼</span>\n    </div>\n\n    <!-- Calendar Popover Widget -->\n    <div class=\"bg-slate-950/90 border border-slate-800 rounded-lg p-2.5 space-y-2\">\n      <div class=\"flex items-center justify-between text-slate-300 font-semibold px-1\">\n        <button class=\"px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-400 hover:text-white\">&lt;</button>\n        <span class=\"text-[11px] font-bold text-white\">Oktober 2026</span>\n        <button class=\"px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-400 hover:text-white\">&gt;</button>\n      </div>\n\n      <div class=\"grid grid-cols-7 gap-1 text-center text-[10px] text-slate-500 font-mono\">\n        <span>Mg</span><span>Sn</span><span>Sl</span><span>Rb</span><span>Km</span><span>Jm</span><span>Sb</span>\n      </div>\n\n      <div class=\"grid grid-cols-7 gap-1 text-center text-[10px] font-mono\">\n        <span class=\"p-1 text-slate-700\">28</span><span class=\"p-1 text-slate-700\">29</span><span class=\"p-1 text-slate-700\">30</span>\n        <span class=\"p-1 text-slate-400 hover:bg-slate-800 rounded\">1</span><span class=\"p-1 text-slate-400 hover:bg-slate-800 rounded\">2</span>\n        <span class=\"p-1 text-slate-400 hover:bg-slate-800 rounded\">3</span><span class=\"p-1 text-slate-400 hover:bg-slate-800 rounded\">4</span>\n        <span class=\"p-1 text-slate-400 hover:bg-slate-800 rounded\">5</span><span class=\"p-1 text-slate-400 hover:bg-slate-800 rounded\">6</span>\n        <span class=\"p-1 text-slate-400 hover:bg-slate-800 rounded\">7</span><span class=\"p-1 text-slate-400 hover:bg-slate-800 rounded\">8</span>\n        <span class=\"p-1 text-slate-400 hover:bg-slate-800 rounded\">9</span><span class=\"p-1 text-slate-400 hover:bg-slate-800 rounded\">10</span>\n        <span class=\"p-1 text-slate-400 hover:bg-slate-800 rounded\">11</span>\n        <span class=\"p-1 bg-rose-500 text-white font-bold rounded shadow-md ring-1 ring-rose-400\">12</span>\n        <span class=\"p-1 text-slate-400 hover:bg-slate-800 rounded\">13</span><span class=\"p-1 text-slate-400 hover:bg-slate-800 rounded\">14</span>\n        <span class=\"p-1 text-slate-400 hover:bg-slate-800 rounded\">15</span><span class=\"p-1 text-slate-400 hover:bg-slate-800 rounded\">16</span>\n        <span class=\"p-1 text-slate-400 hover:bg-slate-800 rounded\">17</span><span class=\"p-1 text-slate-400 hover:bg-slate-800 rounded\">18</span>\n      </div>\n    </div>\n\n    <div class=\"flex items-center justify-between text-[10px] text-slate-500 pt-0.5\">\n      <span class=\"text-rose-400 font-mono\">⚠️ 335 baris • 4.2 MB bundle</span>\n      <span>date-fns / heroicons</span>\n    </div>\n  </div>\n</body>\n</html>",
+        "afterHtml": "<!DOCTYPE html>\n<html lang=\"id\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <script src=\"https://cdn.tailwindcss.com\"></script>\n  <style>\n    body { background-color: #0b0f19; color: #f1f5f9; font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; padding: 12px; }\n    input[type=\"date\"]::-webkit-calendar-picker-indicator {\n      filter: invert(0.8) sepia(100%) saturate(300%) hue-rotate(95deg);\n      cursor: pointer;\n    }\n  </style>\n</head>\n<body>\n  <div class=\"max-w-xs mx-auto bg-slate-900/90 border border-emerald-500/40 rounded-xl p-4 shadow-2xl text-xs space-y-3\">\n    <div class=\"flex items-center justify-between pb-2 border-b border-slate-800\">\n      <div class=\"flex items-center space-x-1.5 text-emerald-400 font-bold\">\n        <span>⚡</span>\n        <span>Native Platform Input</span>\n      </div>\n      <span class=\"px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 font-mono\">0 KB Dep • HTML5</span>\n    </div>\n\n    <div class=\"space-y-1.5\">\n      <label for=\"date-input\" class=\"block text-[11px] font-semibold text-slate-300\">\n        Pilih Tanggal Mulai:\n      </label>\n      <input\n        id=\"date-input\"\n        type=\"date\"\n        value=\"2026-10-12\"\n        class=\"w-full bg-slate-950 border border-emerald-500/40 rounded-lg px-3 py-2 text-white text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/60 shadow-inner\"\n      />\n    </div>\n\n    <div class=\"p-2.5 rounded-lg bg-emerald-950/40 border border-emerald-500/20 text-[11px] text-emerald-200/90 space-y-1\">\n      <div class=\"flex items-center space-x-1 font-semibold text-emerald-300\">\n        <span>✓</span>\n        <span>Aksesibilitas & Dialog Kalender Bawaan OS</span>\n      </div>\n      <p class=\"text-[10px] text-slate-400 leading-relaxed\">\n        Langsung memunculkan pemilih tanggal native iOS/Android/Windows tanpa bundle JavaScript tambahan.\n      </p>\n    </div>\n\n    <div class=\"flex items-center justify-between text-[10px] text-slate-500 pt-0.5 font-mono\">\n      <span class=\"text-emerald-400\">✓ 10 Baris Kode</span>\n      <span>0 Dependensi</span>\n    </div>\n  </div>\n</body>\n</html>"
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi / Setup Skill",
+        "command": "npx @dietrichgebert/ponytail install",
+        "description": "Menginstal skill Ponytail ke lingkungan agent Claude Code, OpenCode, atau menyalin SKILL.md ke folder .claude/skills/."
+      },
+      {
+        "step": 2,
+        "title": "Konfigurasi Mode Default (Opsional)",
+        "command": "export PONYTAIL_DEFAULT_MODE=full",
+        "description": "Menentukan intensitas default saat sesi agent dimulai: 'full' (default standard), 'lite', atau 'ultra' (ekstrem YAGNI)."
+      },
+      {
+        "step": 3,
+        "title": "Aktivasi & Eksekusi Perintah",
+        "command": "/ponytail",
+        "description": "Ketik slash command /ponytail di prompt percakapan agent untuk mengaktifkan aturan lazy developer seketika."
+      }
+    ],
+    "commands": [
+      {
+        "command": "/ponytail",
+        "function": "Mode Full (Default) — Memaksa tangga prioritas efisiensi: YAGNI -> Cari fungsi existing -> Native stdlib -> Platform fitur -> 1 baris -> Minimal code.",
+        "example": "/ponytail \"Implementasi parser JSON sederhana\""
+      },
+      {
+        "command": "/ponytail lite",
+        "function": "Mode Lite — Membangun kode yang diminta secara utuh, namun selalu menyertakan rekomendasi alternatif paling sederhana dalam 1 baris ringkas.",
+        "example": "/ponytail lite"
+      },
+      {
+        "command": "/ponytail ultra",
+        "function": "Mode Ultra (YAGNI Extremist) — Mengutamakan penghapusan kode daripada penambahan. Langsung menantang apakah abstraksi atau fitur spekulatif benar-benar diperlukan.",
+        "example": "/ponytail ultra"
+      },
+      {
+        "command": "/ponytail off",
+        "function": "Deaktivasi Mode — Mematikan sementara aturan Ponytail dan mengembalikan AI ke perilaku default (juga bisa dengan mengetik 'stop ponytail' atau 'normal mode').",
+        "example": "/ponytail off"
+      },
+      {
+        "command": "/ponytail-review",
+        "function": "Review Over-Engineering — Memeriksa git diff atau Pull Request untuk mendeteksi boilerplate, factory class tunggal, atau interface berlebih yang layak di-inline.",
+        "example": "/ponytail-review"
+      },
+      {
+        "command": "/ponytail-audit",
+        "function": "Audit Seluruh Repositori — Memindai seluruh codebase dan menghasilkan ranking daftar file, dependensi, atau fitur berlebih yang layak dihapus.",
+        "example": "/ponytail-audit"
+      },
+      {
+        "command": "/ponytail-debt",
+        "function": "Pelacak Utang Teknis — Mengumpulkan seluruh komentar shortcut '# ponytail:' dari seluruh file kode ke dalam satu ledger pelacak terstruktur.",
+        "example": "/ponytail-debt"
+      },
+      {
+        "command": "/ponytail-gain",
+        "function": "Scoreboard Efisiensi — Mengukur dampak nyata yang dihasilkan: penurunan jumlah baris kode, penghematan token context, dan estimasi pengurangan biaya API.",
+        "example": "/ponytail-gain"
+      },
+      {
+        "command": "/ponytail-help",
+        "function": "Kartu Referensi Cepat — Menampilkan ringkasan one-shot seluruh mode, trigger perintah, dan level intensitas Ponytail tanpa mengubah state sesi.",
+        "example": "/ponytail-help"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/DietrichGebert/ponytail.git"
+  },
+  "vllm-project/vllm": {
+    "corePurpose": "vLLM adalah mesin inferensi LLM yang dirancang untuk mengatasi bottleneck memori dan throughput dengan memperkenalkan PagedAttention, sebuah teknik manajemen memori non-contiguous yang meminimalkan fragmentasi dan meningkatkan efisiensi GPU. Arsitekturnya mengintegrasikan continuous batching, chunked prefill, dan optimasi kernel tingkat rendah (seperti FlashAttention dan CUTLASS) untuk mencapai throughput state-of-the-art dalam penyajian model bahasa besar.",
+    "problemsSolved": [
+      {
+        "title": "Fragmentasi Memori KV Cache",
+        "description": "Dalam inferensi LLM tradisional, alokasi memori untuk Key-Value (KV) cache sering kali terfragmentasi karena ukuran output yang dinamis, menyebabkan pemborosan memori GPU yang signifikan (waste hingga 60-80%). vLLM menyelesaikan ini dengan PagedAttention, yang mengelola memori KV seperti virtual memory dalam OS, memungkinkan alokasi non-contiguous dan penggunaan memori yang jauh lebih efisien."
+      },
+      {
+        "title": "Latensi Tinggi akibat Static Batching",
+        "description": "Sistem serving konvensional sering menggunakan static batching, di mana batch harus menunggu hingga semua request selesai sebelum batch berikutnya diproses, menyebabkan idle time GPU yang tinggi. vLLM menerapkan continuous batching, di mana request baru dapat masuk ke batch saat request lain selesai, serta chunked prefill untuk memisahkan fase prefill dan decode, sehingga memaksimalkan utilisasi GPU dan mengurangi latensi rata-rata."
+      },
+      {
+        "title": "Kompleksitas Integrasi Multi-Model dan Hardware",
+        "description": "Developer sering kesulitan mengoptimalkan inferensi untuk berbagai arsitektur model (decoder-only, MoE, multimodal) dan hardware (NVIDIA, AMD, Intel, TPU). vLLM menyediakan abstraksi yang seamless dengan dukungan 200+ arsitektur model Hugging Face dan plugin hardware yang luas, memungkinkan deployment yang konsisten tanpa perlu menulis kernel khusus untuk setiap kombinasi model-hardware."
+      }
+    ],
+    "ladderRules": [
+      "PagedAttention: Manajemen memori KV cache non-contiguous untuk eliminasi fragmentasi dan peningkatan throughput.",
+      "Continuous Batching & Chunked Prefill: Dinamika batch yang real-time untuk memaksimalkan utilisasi GPU dan mengurangi tail latency.",
+      "Kernel-Level Optimization: Pemanfaatan kernel teroptimasi (FlashAttention, CUTLASS) dan torch.compile untuk akselerasi komputasi GEMM dan attention."
+    ],
+    "useCases": [
+      "Membangun API server LLM ber-throughput tinggi yang kompatibel dengan OpenAI untuk aplikasi produksi.",
+      "Menjalankan inferensi model MoE (Mixture-of-Experts) atau multimodal dengan efisiensi memori yang dioptimalkan.",
+      "Melakukan speculative decoding untuk mempercepat inferensi dengan trade-off akurasi yang dapat dikontrol."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. High-Throughput LLM API Server",
+        "prompt": "\"Saya perlu menjalankan server inferensi untuk model Llama-3-70B dengan throughput tinggi untuk melayani ribuan request per detik.\"",
+        "scenarioType": "backend",
+        "scenarioBadge": "⚡ High-Throughput Serving Engine",
+        "beforeTitle": "BEFORE (Transformers Hugging Face Default)",
+        "beforeMeta": "Static batching • Fragmentasi memori tinggi • Throughput rendah",
+        "beforeCode": "from transformers import pipeline\n\n# Default pipeline memiliki overhead tinggi dan tidak mengoptimalkan batching dinamis\npipe = pipeline(\"text-generation\", model=\"meta-llama/Llama-3-70b\")\n\n# Proses request satu per satu atau batch statis yang tidak efisien\nresults = pipe([\"Prompt 1\", \"Prompt 2\", \"Prompt 3\"])",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Alokasi memori KV cache yang rigid menyebabkan pemborosan GPU memory."
+          },
+          {
+            "label": "Beban",
+            "value": "Latensi tinggi karena menunggu batch statis selesai sebelum memproses request baru."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan vllm)",
+        "afterMeta": "PagedAttention • Continuous Batching • Throughput 24x lebih tinggi",
+        "afterCode": "from vllm import LLM, SamplingParams\n\n# Inisialisasi LLM dengan optimasi memori otomatis\nllm = LLM(model=\"meta-llama/Llama-3-70b\", tensor_parallel_size=4)\n\n# Parameter sampling untuk kontrol output\nsampling_params = SamplingParams(temperature=0.8, top_p=0.95)\n\n# Proses batch secara dinamis dengan continuous batching\nprompts = [\"Prompt 1\", \"Prompt 2\", \"Prompt 3\"]\noutputs = llm.generate(prompts, sampling_params)",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "PagedAttention meminimalkan fragmentasi memori, memungkinkan lebih banyak request dalam satu batch."
+          },
+          {
+            "label": "Hasil",
+            "value": "Throughput meningkat drastis dengan latensi yang lebih konsisten."
+          }
+        ],
+        "ruleBadge": "PagedAttention & Continuous Batching",
+        "metrics": [
+          {
+            "label": "Throughput",
+            "value": "24x lebih tinggi",
+            "color": "emerald"
+          },
+          {
+            "label": "Efisiensi Memori",
+            "value": "Hemat 60-80% VRAM",
+            "color": "sky"
+          },
+          {
+            "label": "Integrasi",
+            "value": "OpenAI-Compatible API",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi vLLM",
+        "command": "uv pip install vllm",
+        "description": "Instal vLLM menggunakan uv (disarankan untuk kecepatan) atau pip. Pastikan CUDA toolkit terinstal jika menggunakan GPU NVIDIA."
+      },
+      {
+        "step": 2,
+        "title": "Unduh Kernel Precompiled",
+        "command": "vllm download-kernels",
+        "description": "Unduh kernel precompiled untuk mempercepat startup dan menghindari kompilasi kernel saat runtime."
+      },
+      {
+        "step": 3,
+        "title": "Jalankan Inferensi",
+        "command": "python -c \"from vllm import LLM; llm = LLM('meta-llama/Llama-3-8b'); print(llm.generate(['Hello'], max_tokens=10))\"",
+        "description": "Inisialisasi model LLM dan jalankan inferensi sederhana untuk memverifikasi instalasi."
+      }
+    ],
+    "commands": [
+      {
+        "command": "vllm serve",
+        "function": "Menjalankan server API yang kompatibel dengan OpenAI untuk inferensi LLM.",
+        "example": "vllm serve meta-llama/Llama-3-8b --port 8000"
+      },
+      {
+        "command": "vllm bench",
+        "function": "Menjalankan benchmark untuk mengukur throughput dan latensi model.",
+        "example": "vllm bench --model meta-llama/Llama-3-8b --num-prompts 100"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/vllm-project/vllm.git"
+  },
+  "browser-use/browser-use": {
+    "corePurpose": "Browser-use adalah agen browser open-source berbasis Python yang memungkinkan LLM untuk menavigasi web secara otonom dengan cara yang sama seperti manusia, menggunakan Playwright sebagai mesin eksekusi. Arsitekturnya memetakan DOM menjadi representasi yang dapat dipahami LLM, memungkinkan agen untuk mengambil keputusan, mengeksekusi aksi (klik, input, scroll), dan memverifikasi hasil secara iteratif tanpa perlu hard-coding selector CSS yang rapuh.",
+    "problemsSolved": [
+      {
+        "title": "Kerapuhan Selektor CSS dalam Otomasi Web",
+        "description": "Developer sering kesulitan memelihara skrip otomasi web karena perubahan struktur HTML situs target menyebabkan selector CSS/JS menjadi tidak valid. Browser-use mengatasi ini dengan menggunakan LLM untuk memahami konteks visual dan struktural halaman, sehingga agen dapat menemukan elemen target berdasarkan semantik (misal: 'tombol login') alih-alih selector statis yang rapuh."
+      },
+      {
+        "title": "Kompleksitas Integrasi LLM dengan Browser",
+        "description": "Menghubungkan LLM dengan browser memerlukan penanganan state, serialisasi DOM, dan manajemen sesi yang kompleks. Browser-use menyediakan abstraksi tinggi yang menerjemahkan instruksi natural language menjadi aksi browser yang konkret, menangani manajemen memori, dan loop agentic secara otomatis, sehingga developer tidak perlu membangun infrastruktur agentic dari nol."
+      },
+      {
+        "title": "Keterbatasan Web Scraping Tradisional",
+        "description": "Web scraping tradisional sering gagal pada situs dinamis yang memerlukan interaksi (klik, scroll, form filling) atau yang dilindungi CAPTCHA. Browser-use memungkinkan agen untuk berinteraksi dengan elemen interaktif, menunggu elemen muncul, dan bahkan menangani tantangan verifikasi sederhana, membuka akses ke data yang sebelumnya tidak dapat dijangkau oleh scraper statis."
+      }
+    ],
+    "ladderRules": [
+      "Semantic DOM Mapping: Mengubah struktur HTML menjadi representasi teks yang ringkas dan bermakna bagi LLM, mengurangi noise dan token usage.",
+      "Iterative Action-Reflection Loop: Agen mengambil aksi, mengamati perubahan state browser, dan menyesuaikan strategi berikutnya berdasarkan feedback visual/struktural.",
+      "Model-Agnostic Abstraction: Mendukung berbagai LLM (OpenAI, Anthropic, Local Models) melalui interface yang seragam, memungkinkan developer memilih model berdasarkan kebutuhan biaya dan akurasi."
+    ],
+    "useCases": [
+      "Kapan developer membutuhkan otomasi tugas web kompleks seperti booking, form filling multi-step, atau navigasi situs dinamis tanpa hard-coding selector.",
+      "Kapan tim data engineering perlu mengekstrak data dari situs yang tidak memiliki API dan dilindungi oleh interaksi dinamis atau CAPTCHA sederhana.",
+      "Kapan developer ingin membangun agen AI otonom yang dapat belajar dan beradaptasi dengan perubahan tata letak situs web secara real-time."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Otonomi Booking Layanan Online",
+        "prompt": "\"Buka situs booking driving test, cari slot yang tersedia untuk minggu depan di kota Jakarta, pilih tanggal 15, dan selesaikan proses booking hingga konfirmasi.\"",
+        "scenarioType": "automation",
+        "scenarioBadge": "🤖 Autonomous Web Agent",
+        "beforeTitle": "BEFORE (Selenium + Hard-coded Selectors)",
+        "beforeMeta": "Rapuh terhadap perubahan UI • Butuh pemeliharaan manual • Gagal pada CAPTCHA",
+        "beforeCode": "driver.get('https://booking-site.com')\nwait_for_element('#date-picker').click()\nselect_option('#month', 'May')\nselect_option('#day', '15')\n# Gagal jika ID berubah atau CAPTCHA muncul\ndriver.find_element('#submit').click()",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Selector statis (#date-picker) akan gagal jika developer situs mengubah ID atau struktur HTML."
+          },
+          {
+            "label": "Beban",
+            "value": "Waktu pemeliharaan tinggi untuk memperbarui skrip setiap kali UI berubah."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan browser-use)",
+        "afterMeta": "Adaptif terhadap perubahan UI • Menangani interaksi dinamis • Natural Language Interface",
+        "afterCode": "from browser_use import Agent, Browser\n\nbrowser = Browser(headless=False)\nagent = Agent(task=\"Buka situs booking, cari slot minggu depan di Jakarta, pilih tanggal 15, dan selesaikan booking.\", browser=browser)\nresult = agent.run()",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Agen memahami konteks 'cari slot minggu depan' dan beradaptasi jika UI berubah, tanpa perlu mengubah kode."
+          },
+          {
+            "label": "Hasil",
+            "value": "Booking berhasil dilakukan secara otonom, termasuk navigasi menu dan pengisian form."
+          }
+        ],
+        "ruleBadge": "LLM-Driven DOM Navigation",
+        "metrics": [
+          {
+            "label": "Resiliensi UI",
+            "value": "Tinggi (Adaptif)",
+            "color": "emerald"
+          },
+          {
+            "label": "Waktu Setup",
+            "value": "< 5 menit",
+            "color": "sky"
+          },
+          {
+            "label": "Pemeliharaan",
+            "value": "Minimal",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi Dependensi",
+        "command": "pip install browser-use",
+        "description": "Instalasi paket browser-use yang mencakup dependensi Playwright dan komponen inti agen."
+      },
+      {
+        "step": 2,
+        "title": "Konfigurasi API Key",
+        "command": "export OPENAI_API_KEY='your-key-here'",
+        "description": "Set environment variable untuk API key LLM yang akan digunakan (OpenAI, Anthropic, dll). Browser-use membutuhkan LLM untuk mengambil keputusan."
+      },
+      {
+        "step": 3,
+        "title": "Eksekusi Agen",
+        "command": "python -c \"from browser_use import Agent, Browser; b=Browser(); a=Agent(task='Buka google.com dan cari browser use', browser=b); a.run()\"",
+        "description": "Jalankan agen dengan task spesifik. Browser akan terbuka (headless atau headed) dan agen akan mulai menavigasi."
+      }
+    ],
+    "commands": [
+      {
+        "command": "browser-use skill install",
+        "function": "Mendaftarkan skill browser-use ke dalam agen CLI (seperti Claude Code atau Codex) untuk integrasi langsung.",
+        "example": "browser-use skill install"
+      },
+      {
+        "command": "Agent.run()",
+        "function": "Metode utama untuk memulai loop agentic. Menerima task string dan mengembalikan hasil eksekusi.",
+        "example": "result = agent.run()"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/browser-use/browser-use.git"
+  },
+  "pbakaus/impeccable": {
+    "corePurpose": "Impeccable adalah kerangka kerja desain yang menyuntikkan 'kebenaran produk' (product truth) ke dalam agen AI coding untuk menghilangkan bias visual generik (seperti gradien ungu-biru dan font Inter) yang muncul karena pelatihan model pada template SaaS yang sama. Arsitekturnya menggabungkan 59 aturan detektor deterministik yang berjalan tanpa LLM dengan 24 perintah spesifik untuk iterasi desain langsung di browser, memastikan output frontend memiliki konsistensi, aksesibilitas, dan estetika yang terukur.",
+    "problemsSolved": [
+      {
+        "title": "Bias Visual Generik pada Output AI",
+        "description": "Model AI cenderung menghasilkan desain yang identik (Inter font, gradien ungu, kartu bertumpuk) karena bias pelatihan. Impeccable mengatasi ini dengan memisahkan 'kebenaran produk' (audiens, tujuan) dari 'arah visual', memaksa AI untuk menyesuaikan desain berdasarkan konteks spesifik proyek, bukan template default."
+      },
+      {
+        "title": "Ketiadaan Standar Kualitas Desain yang Deterministik",
+        "description": "Review desain oleh LLM sering kali subjektif dan tidak konsisten. Impeccable menyediakan 59 aturan detektor deterministik (CLI dan ekstensi browser) yang memeriksa aspek teknis seperti aksesibilitas, performa, dan responsivitas tanpa memerlukan API key atau biaya token LLM, memberikan umpan balik yang dapat diandalkan."
+      },
+      {
+        "title": "Kesenjangan antara Perencanaan UX dan Implementasi Kode",
+        "description": "Developer sering kali menulis kode tanpa perencanaan UX yang matang. Impeccable menyediakan alur kerja 'shape-then-build' dan perintah seperti `/impeccable shape` dan `/impeccable critique` yang memaksa perencanaan hierarki, kejelasan, dan resonansi emosional sebelum atau selama penulisan kode, serta memungkinkan iterasi visual langsung di browser."
+      }
+    ],
+    "ladderRules": [
+      "Pemisahan Kebenaran Produk (PRODUCT.md) dari Arah Visual (DESIGN.md) untuk mencegah kontaminasi konteks.",
+      "Prioritas Deteksi Deterministik: Menjalankan aturan teknis (a11y, performa) tanpa LLM untuk efisiensi dan konsistensi.",
+      "Iterasi Visual Langsung (Live Mode): Memungkinkan pengujian dan penyesuaian elemen desain secara real-time di browser sebelum finalisasi kode."
+    ],
+    "useCases": [
+      "Saat memulai proyek frontend baru dengan AI coding agent untuk memastikan fondasi desain yang solid dan unik.",
+      "Saat melakukan audit kualitas pada kode frontend yang sudah ada untuk menemukan masalah aksesibilitas, performa, dan konsistensi desain.",
+      "Saat ingin meningkatkan estetika antarmuka yang terlihat 'datar' atau generik dengan menggunakan perintah spesifik seperti `bolder`, `animate`, atau `colorize`."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Audit & Polish Landing Page Generik",
+        "prompt": "\"/impeccable audit landing\" diikuti dengan \"/impeccable polish landing\"",
+        "scenarioType": "ui",
+        "scenarioBadge": "🎨 Design Quality Assurance",
+        "beforeTitle": "BEFORE (Review Manual & Bias AI)",
+        "beforeMeta": "Subjektif • Bias Template SaaS • Tidak Konsisten",
+        "beforeCode": "// Developer meminta AI: 'Buatkan landing page yang bagus'\n// Hasil: Font Inter, gradien ungu-biru, kartu bertumpuk, teks abu-abu di latar berwarna.\n// Review manual: 'Coba ubah warnanya', 'Coba ubah fontnya' -> Iterasi lambat dan tidak terstruktur.",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Output AI terjebak pada bias pelatihan (SaaS template), sulit membedakan antara 'kebenaran produk' dan 'gaya visual'."
+          },
+          {
+            "label": "Beban",
+            "value": "Waktu review manual yang tinggi dan hasil yang tidak konsisten antar sesi."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan impeccable)",
+        "afterMeta": "Deterministik • Konteks Produk • Iterasi Live",
+        "afterCode": "/impeccable init\n# Menulis PRODUCT.md (audiens, tujuan, voice)\n/impeccable audit landing\n# Menjalankan 59 aturan deterministik (a11y, spacing, contrast)\n/impeccable polish landing\n# Menyelaraskan dengan DESIGN.md dan melakukan final pass",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Audit teknis berjalan tanpa LLM (cepat & murah), dan polish memastikan keselarasan dengan sistem desain yang sudah didefinisikan."
+          },
+          {
+            "label": "Hasil",
+            "value": "Landing page yang unik, aksesibel, dan selaras dengan identitas produk, bebas dari bias template generik."
+          }
+        ],
+        "ruleBadge": "Deterministic Detectors + Product Truth",
+        "metrics": [
+          {
+            "label": "Konsistensi",
+            "value": "100% Deterministik",
+            "color": "emerald"
+          },
+          {
+            "label": "Biaya Token",
+            "value": "Hemat 80% (Audit)",
+            "color": "sky"
+          },
+          {
+            "label": "Aksesibilitas",
+            "value": "WCAG Compliant",
+            "color": "amber"
+          }
+        ],
+        "beforeHtml": "<!DOCTYPE html>\n<html lang=\"id\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <script src=\"https://cdn.tailwindcss.com\"></script>\n  <style>\n    body { background-color: #0d091a; color: #a594c9; font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; margin: 0; padding: 12px; }\n  </style>\n</head>\n<body class=\"relative overflow-hidden min-h-full flex items-center justify-center\">\n  <!-- Glowing AI Slop Blobs -->\n  <div class=\"absolute -top-10 -left-10 w-44 h-44 bg-purple-600/40 rounded-full blur-3xl pointer-events-none\"></div>\n  <div class=\"absolute -bottom-10 -right-10 w-44 h-44 bg-indigo-600/30 rounded-full blur-3xl pointer-events-none\"></div>\n\n  <div class=\"relative w-full max-w-sm bg-gradient-to-br from-purple-950/70 via-indigo-950/60 to-purple-900/40 border border-purple-500/30 rounded-2xl p-4 shadow-2xl backdrop-blur-md space-y-3\">\n    <!-- Slop Tag -->\n    <div class=\"flex items-center justify-between\">\n      <span class=\"inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] bg-purple-500/20 text-purple-300 border border-purple-500/40 font-mono\">\n        ✨ Powered by Next-Gen AI\n      </span>\n      <span class=\"text-[9px] font-mono text-rose-400 font-semibold bg-rose-500/15 px-1.5 py-0.5 rounded border border-rose-500/30\">\n        Contrast 2.1:1 (FAIL)\n      </span>\n    </div>\n\n    <!-- Slop Headline & Low Contrast Text -->\n    <div class=\"space-y-1\">\n      <h3 class=\"text-sm font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-200 via-pink-300 to-indigo-200 leading-snug\">\n        Supercharge Your Autonomous Cloud Workflows\n      </h3>\n      <p class=\"text-[11px] text-purple-400/50 leading-relaxed font-light\">\n        Seamlessly leverage predictive micro-agents to optimize cross-functional synergy at scale.\n      </p>\n    </div>\n\n    <!-- Redundant Stacked Glass Cards -->\n    <div class=\"grid grid-cols-2 gap-2 pt-1 font-mono\">\n      <div class=\"p-2.5 rounded-xl bg-purple-900/20 border border-purple-400/20 shadow-inner\">\n        <div class=\"text-[10px] text-purple-400/60\">Metric Speed</div>\n        <div class=\"text-xs font-bold text-purple-200 mt-0.5\">10x Faster ⚡</div>\n      </div>\n      <div class=\"p-2.5 rounded-xl bg-purple-900/20 border border-purple-400/20 shadow-inner\">\n        <div class=\"text-[10px] text-purple-400/60\">Synergy Rate</div>\n        <div class=\"text-xs font-bold text-purple-200 mt-0.5\">99.4% AI ✨</div>\n      </div>\n    </div>\n\n    <!-- Slop Gradient CTA Button -->\n    <button class=\"w-full py-2 px-3 rounded-xl bg-gradient-to-r from-purple-600 via-fuchsia-600 to-indigo-600 text-white text-xs font-bold shadow-lg shadow-purple-600/30 hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5 cursor-pointer\">\n      <span>Get Started Free</span>\n      <span>🚀</span>\n    </button>\n  </div>\n</body>\n</html>",
+        "afterHtml": "<!DOCTYPE html>\n<html lang=\"id\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <script src=\"https://cdn.tailwindcss.com\"></script>\n  <style>\n    body { background-color: #060911; color: #f8fafc; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif; margin: 0; padding: 12px; }\n  </style>\n</head>\n<body class=\"min-h-full flex items-center justify-center\">\n  <div class=\"w-full max-w-sm bg-slate-900/90 border border-slate-700/60 rounded-xl p-4 shadow-xl space-y-3.5\">\n    <!-- Product Truth Header -->\n    <div class=\"flex items-center justify-between\">\n      <div class=\"flex items-center space-x-1.5\">\n        <span class=\"w-2 h-2 rounded-full bg-emerald-400\"></span>\n        <span class=\"text-[11px] font-semibold text-slate-200 tracking-tight font-mono\">JobQueue Engine</span>\n      </div>\n      <span class=\"text-[9px] font-mono text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded font-semibold\">\n        WCAG AAA (14.5:1)\n      </span>\n    </div>\n\n    <!-- Crisp Typography with Clear Hierarchy -->\n    <div class=\"space-y-1\">\n      <h3 class=\"text-sm font-bold text-white tracking-tight leading-snug\">\n        Distributed task orchestration for production backends\n      </h3>\n      <p class=\"text-[11px] text-slate-300 leading-relaxed font-normal\">\n        Enqueue, retry, and monitor high-throughput worker pipelines with deterministic crash recovery.\n      </p>\n    </div>\n\n    <!-- Purposeful Data Row (Clear & Legible) -->\n    <div class=\"grid grid-cols-2 gap-2 pt-0.5 font-mono\">\n      <div class=\"p-2 rounded-lg bg-black/40 border border-white/10\">\n        <div class=\"text-[10px] text-slate-400 uppercase tracking-wider\">P99 Latency</div>\n        <div class=\"text-xs font-bold text-emerald-400 mt-0.5\">8.2 ms</div>\n      </div>\n      <div class=\"p-2 rounded-lg bg-black/40 border border-white/10\">\n        <div class=\"text-[10px] text-slate-400 uppercase tracking-wider\">A11y Score</div>\n        <div class=\"text-xs font-bold text-sky-400 mt-0.5\">100 / 100</div>\n      </div>\n    </div>\n\n    <!-- Tactile, Accessible Action Row -->\n    <div class=\"flex items-center gap-2 pt-1 font-sans\">\n      <button class=\"flex-1 py-2 px-3 rounded-lg bg-white text-slate-950 text-xs font-semibold hover:bg-slate-100 active:scale-[0.99] transition-all shadow-sm cursor-pointer text-center\">\n        Install Integration\n      </button>\n      <button class=\"py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 border border-white/10 text-slate-200 text-xs font-medium transition-colors cursor-pointer\">\n        Docs\n      </button>\n    </div>\n  </div>\n</body>\n</html>"
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi CLI",
+        "command": "npx impeccable install",
+        "description": "Menjalankan instalasi dari root proyek untuk menyiapkan lingkungan CLI dan ekstensi browser yang diperlukan."
+      },
+      {
+        "step": 2,
+        "title": "Inisialisasi Konteks Produk",
+        "command": "/impeccable init",
+        "description": "Menjalankan perintah inisialisasi di dalam AI coding tool untuk mengumpulkan kebenaran produk yang tahan lama dan menulis file PRODUCT.md."
+      },
+      {
+        "step": 3,
+        "title": "Eksekusi Perintah Desain",
+        "command": "/impeccable audit <target>",
+        "description": "Menjalankan audit teknis atau perintah desain lainnya (seperti polish, critique, animate) pada target elemen atau halaman spesifik."
+      }
+    ],
+    "commands": [
+      {
+        "command": "/impeccable init",
+        "function": "Setup satu kali: mengumpulkan konteks produk, menulis PRODUCT.md, dan mengkonfigurasi mode live.",
+        "example": "/impeccable init"
+      },
+      {
+        "command": "/impeccable audit",
+        "function": "Menjalankan pemeriksaan kualitas teknis (aksesibilitas, performa, responsivitas) menggunakan aturan deterministik.",
+        "example": "/impeccable audit blog"
+      },
+      {
+        "command": "/impeccable polish",
+        "function": "Lalu lintas final untuk keselarasan sistem desain dan kesiapan pengiriman (shipping readiness).",
+        "example": "/impeccable polish settings"
+      },
+      {
+        "command": "/impeccable live",
+        "function": "Mode varian visual: mengiterasi elemen di browser secara langsung tanpa menulis kode manual.",
+        "example": "/impeccable live"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/pbakaus/impeccable.git"
+  },
+  "obra/superpowers": {
+    "corePurpose": "Superpowers adalah framework metodologi rekayasa perangkat lunak lengkap untuk coding agent (Claude Code, Antigravity, Cursor, Codex). Berisi 15 skill terkomposisi yang memprogram alur kerja disiplin: klarifikasi spesifikasi sokratik, perancangan rencana bertahap, TDD (Test-Driven Development), pendelegasian subagent mandiri, isolasi Git worktree, dan gerbang verifikasi ketat sebelum merge.",
+    "problemsSolved": [
+      {
+        "title": "AI Menulis Kode Tanpa Arah (Spec Drift)",
+        "description": "Agent cenderung langsung mengedit file tanpa memahami gambaran besar. Superpowers menghentikan kebiasaan ini dengan memaksa proses brainstorming dan pembuatan implementation plan granular sebelum menyentuh kode."
+      },
+      {
+        "title": "Ketiadaan Pengujian Otomatis & Regresi Bug",
+        "description": "Agent sering membuat asumsi salah yang merusak fungsi existing. Superpowers menerapkan TDD ketat (Red-Green-Refactor) di mana test gagal wajib ada sebelum kode implementasi ditulis."
+      },
+      {
+        "title": "Agen Tersesat pada Tugas Skala Besar",
+        "description": "Pada refactor besar, agent sering kehabisan konteks. Fitur subagent-driven-development dan batch execution plan memungkinkan agent bekerja otonom berjam-jam tanpa keluar jalur rencana."
+      }
+    ],
+    "ladderRules": [
+      "Spec Before Code: Dilarang menulis implementasi sebelum spesifikasi disetujui pengguna via brainstorming.",
+      "Strict TDD (Red-Green-Refactor): Test harus gagal terlebih dahulu sebelum kode fitur ditulis.",
+      "Verification Gate: Wajib menjalankan fresh test suite dan review diff sebelum mengklaim pekerjaan selesai."
+    ],
+    "useCases": [
+      "Saat membangun fitur baru pada codebase produksi yang memerlukan jaminan zero-regression.",
+      "Ketika ingin membiarkan AI coding agent bekerja otonom selama beberapa jam tanpa deviasi rencana.",
+      "Saat melakukan perbaikan bug kritis yang memerlukan isolasi direktori Git worktree dan investigasi akar masalah 4 fase."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Alur Kerja Rekayasa Perangkat Lunak Terarah (Agentic SDLC)",
+        "prompt": "\"Buatkan fitur pembayaran langganan bulanan Stripe dengan webhook handling\"",
+        "scenarioType": "automation",
+        "scenarioBadge": "⚡ Disciplined Agentic SDLC & Strict TDD",
+        "beforeTitle": "BEFORE (Coding Ad-hoc & Tanpa Metodologi)",
+        "beforeMeta": "Langsung edit kode • 0% Unit Test • Rawan Regresi",
+        "beforeCode": "// ❌ AI Coding Ad-hoc (Tanpa Metodologi & Tanpa TDD):\n// 1. Agent langsung mengedit 12 file tanpa spec yang disetujui\n// 2. Tidak ada unit test yang dibuat (0% test coverage)\n// 3. Menimbulkan 14 regresi bug dan runtime errors:\nTypeError: Cannot read properties of undefined (reading 'session_id')\n    at handleCheckout (src/billing.ts:142)\n    at processWebhook (src/webhook.ts:89)\n// 4. Agent tersesat di tengah refactor, mengklaim 'selesai' tanpa verifikasi!",
+        "beforeNotes": [
+          {
+            "label": "Metodologi",
+            "value": "Ad-hoc tanpa verifikasi bertahap"
+          },
+          {
+            "label": "Cakupan Tes",
+            "value": "0% (Tidak ada pengujian TDD)"
+          },
+          {
+            "label": "Risiko",
+            "value": "Tinggi: 14 regresi bug dan spec drift"
+          }
+        ],
+        "afterTitle": "AFTER (Dengan Superpowers - Disciplined SDLC)",
+        "afterMeta": "Socratic Spec -> TDD -> Subagent -> 100% Verified",
+        "afterCode": "// ✅ Disciplined Agentic SDLC dengan Superpowers:\n// 1. /brainstorming: Menggali spec sokratik -> sepakati arsitektur idempotency\n// 2. /writing-plans: Menyusun 7 langkah granular (2-5 menit per langkah)\n// 3. /test-driven-development: Tulis failing test di tests/billing.test.ts (RED)\n$ npm test -> FAIL: should reject duplicate stripe webhook event (Expected 409, got 200)\n// 4. Implementasi minimum -> test berhasil hijau (GREEN)\n$ npm test -> PASS: all 15 tests passed (100% verified)\n// 5. /subagent-driven-development di Git worktree terisolasi:\n$ agy worktree isolate feature/stripe-webhook -> clean working tree\n// 6. /verification-before-completion: Fresh build & linter sebelum merge",
+        "afterNotes": [
+          {
+            "label": "Metodologi",
+            "value": "Socratic Brainstorming + Granular Plan"
+          },
+          {
+            "label": "Cakupan Tes",
+            "value": "100% TDD Verified (Red-Green-Refactor)"
+          },
+          {
+            "label": "Keamanan",
+            "value": "Git Worktree terisolasi & review gate"
+          }
+        ],
+        "ruleBadge": "Superpowers: 15 Composable Skills & Strict TDD",
+        "metrics": [
+          {
+            "label": "Ketepatan Spec",
+            "value": "100% Aligned",
+            "color": "emerald"
+          },
+          {
+            "label": "Cakupan Tes",
+            "value": "TDD Red-Green",
+            "color": "sky"
+          },
+          {
+            "label": "Otonomi Agen",
+            "value": "Multi-Jam Aman",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/obra/superpowers.git",
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi Plugin di Harness",
+        "command": "agy plugin install https://github.com/obra/superpowers",
+        "description": "Untuk Antigravity. Pengguna Claude Code: /plugin install superpowers@claude-plugins-official. Pengguna Cursor: /add-plugin superpowers."
+      },
+      {
+        "step": 2,
+        "title": "Aktivasi Metodologi Otomatis",
+        "command": "/using-superpowers",
+        "description": "Skill bootstrap aktif otomatis saat sesi dimulai, memastikan agen tidak langsung mengedit kode sebelum menyusun rencana."
+      },
+      {
+        "step": 3,
+        "title": "Jalankan Siklus TDD & Review",
+        "command": "/brainstorming \"Fitur Baru\"",
+        "description": "Mulai dari brainstorming spec -> writing-plans -> executing-plans dengan sub-agent -> verification-before-completion."
+      }
+    ],
+    "commands": [
+      {
+        "command": "/using-superpowers",
+        "function": "Bootstrap Utama — Memaksa agent selalu mengecek dan memuat aturan metodologi rekayasa sebelum menyentuh file kode.",
+        "example": "Dipicu otomatis saat memulai sesi baru atau dengan perintah /using-superpowers."
+      },
+      {
+        "command": "/brainstorming",
+        "function": "Eksplorasi Kebutuhan & Desain — Melakukan interogasi sokratik bertahap untuk menggali spec dan arsitektur sebelum coding dimulai.",
+        "example": "/brainstorming \"Rancang sistem autentikasi multi-tenant dengan session timeout\""
+      },
+      {
+        "command": "/writing-plans",
+        "function": "Penyusunan Rencana Granular — Memecah spec menjadi implementation plan langkah demi langkah (2-5 menit per langkah) yang testable.",
+        "example": "/writing-plans \"Rencana integrasi Stripe checkout dengan idempotency key\""
+      },
+      {
+        "command": "/executing-plans",
+        "function": "Eksekusi Batch Rencana Kerja — Menjalankan tugas dari implementation plan secara berurutan dengan checkpoint verifikasi manusia.",
+        "example": "/executing-plans implementation-plan.md"
+      },
+      {
+        "command": "/subagent-driven-development",
+        "function": "Pendelegasian Mandiri Sub-Agent — Membuka sub-agen dengan prompt terisolasi untuk menyelesaikan task spesifik dan memvalidasi hasilnya.",
+        "example": "/subagent-driven-development \"Refactor data layer ke Drizzle ORM\""
+      },
+      {
+        "command": "/dispatching-parallel-agents",
+        "function": "Paralelisasi Multi-Agent — Menjalankan 2+ agen konkuren sekaligus pada tugas independen tanpa risiko bentrok shared state.",
+        "example": "/dispatching-parallel-agents \"Bikin test suite modul auth dan modul billing secara paralel\""
+      },
+      {
+        "command": "/test-driven-development",
+        "function": "TDD Ketat (Red-Green-Refactor) — Memaksa pembuatan test yang gagal terlebih dahulu sebelum diperbolehkan menulis kode implementasi.",
+        "example": "/test-driven-development \"Fungsi kalkulasi diskon kupon bertingkat\""
+      },
+      {
+        "command": "/systematic-debugging",
+        "function": "Protokol 4-Fase Investigasi Bug — Investigasi akar masalah secara ketat: Reproduksi -> Diagnosis -> Perbaikan terisolasi -> Tes regresi.",
+        "example": "/systematic-debugging \"Fix race condition saat user submit order bersamaan\""
+      },
+      {
+        "command": "/verification-before-completion",
+        "function": "Gerbang Verifikasi Akhir — Menjalankan fresh build, linter, dan test suite nyata sebelum diizinkan menyatakan tugas selesai.",
+        "example": "/verification-before-completion"
+      },
+      {
+        "command": "/using-git-worktrees",
+        "function": "Isolasi Workspace Git — Membuat direktori worktree terpisah agar eksperimen agen tidak mengotori working tree git utama.",
+        "example": "/using-git-worktrees create feature/payment-gateway"
+      },
+      {
+        "command": "/requesting-code-review",
+        "function": "Pengajuan Review Kode — Menyiapkan rangkuman diff, dampak before/after, dan meminta review sebelum branch di-merge.",
+        "example": "/requesting-code-review"
+      },
+      {
+        "command": "/receiving-code-review",
+        "function": "Penanganan Feedback Review — Membimbing agen merespons feedback review kode secara objektif dan sistematis.",
+        "example": "/receiving-code-review"
+      },
+      {
+        "command": "/finishing-a-development-branch",
+        "function": "Protokol Penutupan Branch — Menentukan strategi integrasi (merge, rebase, squash, PR) setelah seluruh test suite hijau.",
+        "example": "/finishing-a-development-branch"
+      },
+      {
+        "command": "/writing-skills",
+        "function": "Penyusunan Skill Baru — Standar TDD untuk merancang, menguji, dan memvalidasi file SKILL.md baru.",
+        "example": "/writing-skills \"Buat skill baru untuk integrasi Supabase Auth\""
+      },
+      {
+        "command": "/diagnosing-superpowers",
+        "function": "Diagnostik Harness & Plugin — Memeriksa apakah harness (Claude Code, Antigravity, Cursor, Codex) membaca plugin dengan benar.",
+        "example": "/diagnosing-superpowers"
+      }
+    ]
+  },
+  "egonex-ai/understand-anything": {
+    "corePurpose": "Understand Anything adalah plugin multi-platform yang mengubah basis kode atau basis pengetahuan menjadi grafik pengetahuan interaktif menggunakan pipeline multi-agent. Arsitekturnya memetakan setiap file, fungsi, dan dependensi menjadi node yang dapat dieksplorasi, dicari, dan diinterogasi secara visual untuk mempercepat onboarding dan pemahaman arsitektur.",
+    "problemsSolved": [
+      {
+        "title": "Kebingungan Onboarding pada Codebase Besar",
+        "description": "Developer baru sering kesulitan memahami struktur 200.000+ baris kode. Repo ini menyediakan 'Guided Tours' otomatis yang mengurutkan penjelasan arsitektur berdasarkan dependensi, memungkinkan developer belajar alur kerja sistem secara logis tanpa harus membaca kode secara acak."
+      },
+      {
+        "title": "Ketiadaan Visibilitas Logika Bisnis",
+        "description": "Kode teknis sering kali tidak mencerminkan proses bisnis secara langsung. Fitur 'Domain View' memetakan kode ke domain, alur, dan langkah bisnis nyata, menjembatani kesenjangan antara implementasi teknis dan konteks bisnis bagi PM atau developer junior."
+      },
+      {
+        "title": "Analisis Dampak Perubahan (Blast Radius) yang Lambat",
+        "description": "Mengetahui bagian sistem mana yang terdampak oleh perubahan kode biasanya memerlukan analisis manual yang rentan terhadap kesalahan. Fitur 'Diff Impact Analysis' secara otomatis menghitung efek ripples dari perubahan saat ini sebelum commit, mengurangi risiko regresi."
+      }
+    ],
+    "ladderRules": [
+      "Grafik yang Mengajar, Bukan Mengagumkan: Fokus pada kejelasan hubungan antar komponen daripada kompleksitas visual semata.",
+      "Pipeline Multi-Agent Deterministik: Menggunakan parser deterministik untuk struktur dasar dan agen LLM untuk menemukan hubungan implisit dan entitas.",
+      "Analisis Incremental & Persisten: Grafik disimpan sebagai JSON lokal (.ua/knowledge-graph.json) dan hanya memperbarui file yang berubah, mengoptimalkan penggunaan token dan waktu komputasi."
+    ],
+    "useCases": [
+      "Onboarding anggota tim baru ke dalam monorepo besar dengan cepat menggunakan tur arsitektur otomatis.",
+      "Review PR dengan memahami dampak perubahan (blast radius) terhadap modul lain sebelum merge.",
+      "Mengonversi dokumentasi wiki berbasis teks (pola Karpathy) menjadi grafik pengetahuan yang dapat dinavigasi dan dicari secara semantik."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Analisis Dampak Perubahan & Onboarding Arsitektur",
+        "prompt": "\"/understand-diff\" atau \"/understand-chat Bagaimana alur pembayaran bekerja?\"",
+        "scenarioType": "efficiency",
+        "scenarioBadge": "🧠 Code Intelligence & Impact Analysis",
+        "beforeTitle": "BEFORE (Analisis Manual & Baca Kode Buta)",
+        "beforeMeta": "Manual grep • Waktu onboarding 2-3 hari • Risiko regresi tinggi",
+        "beforeCode": "# Developer baru mencoba memahami alur pembayaran\ngrep -r \"payment\" src/ --include=\"*.ts\" | head -20\n# Hasil: 45 file, tidak ada konteks hubungan antar file\n# Developer harus membaca setiap file satu per satu untuk memahami dependensi",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Tidak ada visualisasi hubungan antar modul; developer harus membangun mental model secara manual."
+          },
+          {
+            "label": "Beban",
+            "value": "Waktu onboarding panjang dan rentan terhadap salah paham arsitektur."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan Understand-Anything)",
+        "afterMeta": "Grafik Interaktif • Analisis Dampak Real-time • Tur Otomatis",
+        "afterCode": "# Jalankan analisis awal (incremental setelahnya)\n/understand\n\n# Lihat dampak perubahan saat ini\n/understand-diff\n\n# Tanyakan logika bisnis secara natural language\n/understand-chat Bagaimana alur pembayaran bekerja?\n\n# Buka dashboard visual\n/understand-dashboard",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Grafik pengetahuan persisten yang memetakan setiap fungsi dan dependensi secara visual."
+          },
+          {
+            "label": "Hasil",
+            "value": "Pemahaman arsitektur instan dan identifikasi dampak perubahan dalam hitungan detik."
+          }
+        ],
+        "ruleBadge": "Multi-Agent Pipeline & Knowledge Graph",
+        "metrics": [
+          {
+            "label": "Efisiensi Onboarding",
+            "value": "Hemat 80% waktu",
+            "color": "emerald"
+          },
+          {
+            "label": "Akurasi Dampak",
+            "value": "100% Traceable",
+            "color": "sky"
+          },
+          {
+            "label": "Integrasi Platform",
+            "value": "17+ AI Tools",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "_comment_ui_rule": "ATURAN MUTLAK VISUAL UI: Field beforeHtml dan afterHtml HANYA boleh dihasilkan jika repositori berfokus murni pada Frontend Web UI (scenarioType == 'ui'). Untuk CLI, backend, framework SDLC, devtools, metodologi, dan engine (scenarioType != 'ui'), DILARANG KERAS membuat beforeHtml/afterHtml (isi null atau hilangkan); wajib gunakan beforeCode dan afterCode berupa teks/script/command dinamis!",
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi Plugin",
+        "command": "/plugin marketplace add Egonex-AI/Understand-Anything && /plugin install understand-anything",
+        "description": "Instal plugin melalui marketplace Claude Code atau gunakan script installer untuk platform lain (Codex, Gemini CLI, dll)."
+      },
+      {
+        "step": 2,
+        "title": "Analisis Codebase",
+        "command": "/understand",
+        "description": "Jalankan pipeline multi-agent untuk memindai proyek, mengekstrak entitas, dan membangun grafik pengetahuan di .ua/knowledge-graph.json."
+      },
+      {
+        "step": 3,
+        "title": "Eksplorasi Dashboard",
+        "command": "/understand-dashboard",
+        "description": "Buka dashboard web interaktif untuk menavigasi grafik, mencari node, dan melihat penjelasan arsitektur secara visual."
+      }
+    ],
+    "commands": [
+      {
+        "command": "/understand",
+        "function": "Menjalankan pipeline analisis utama untuk membangun atau memperbarui grafik pengetahuan dari codebase.",
+        "example": "/understand --language zh"
+      },
+      {
+        "command": "/understand-dashboard",
+        "function": "Membuka dashboard web interaktif untuk eksplorasi visual grafik pengetahuan.",
+        "example": "/understand-dashboard"
+      },
+      {
+        "command": "/understand-chat",
+        "function": "Mengizinkan pertanyaan natural language tentang codebase berdasarkan grafik pengetahuan.",
+        "example": "/understand-chat Bagaimana alur autentikasi bekerja?"
+      },
+      {
+        "command": "/understand-diff",
+        "function": "Menganalisis dampak perubahan (diff) saat ini terhadap sistem secara keseluruhan.",
+        "example": "/understand-diff"
+      },
+      {
+        "command": "/understand-explain",
+        "function": "Memberikan penjelasan mendalam tentang file atau fungsi spesifik.",
+        "example": "/understand-explain src/auth/login.ts"
+      },
+      {
+        "command": "/understand-onboard",
+        "function": "Membuat panduan onboarding otomatis untuk anggota tim baru.",
+        "example": "/understand-onboard"
+      },
+      {
+        "command": "/understand-domain",
+        "function": "Mengekstrak pengetahuan domain bisnis (domain, alur, langkah) dari kode.",
+        "example": "/understand-domain"
+      },
+      {
+        "command": "/understand-knowledge",
+        "function": "Menganalisis basis pengetahuan/wiki berbasis teks (pola Karpathy) menjadi grafik pengetahuan.",
+        "example": "/understand-knowledge ~/path/to/wiki"
+      }
+    ],
+    "_comment_commands": "ATURAN MUTLAK DAFTAR COMMANDS: DILARANG HANYA MENULIS PERINTAH INSTALASI (seperti pip install, agy plugin install). Perintah instalasi ditaruh di howToUse! Bagian commands WAJIB mendaftar SELURUH skill, slash-command, sub-command, atau CLI tools yang ada di repo secara komprehensif (jika ada 10-15 skills, cantumkan SELURUHNYA tanpa dipotong)!",
+    "cloneCommand": "git clone https://github.com/Egonex-AI/Understand-Anything.git"
+  },
+  "leonxlnx/taste-skill": {
+    "corePurpose": "Taste Skill adalah kumpulan instruksi berbasis Markdown (Agent Skills) yang menyuntikkan 'rasa' desain ke dalam coding agent (seperti Claude Code, Cursor, atau Codex) untuk menghasilkan antarmuka web premium, bukan template generik. Arsitekturnya bekerja dengan memberikan art direction, referensi visual, dan protokol verifikasi browser langsung ke konteks LLM, mengubah output kode menjadi hasil yang estetis dan fungsional.",
+    "problemsSolved": [
+      {
+        "title": "Sindrom 'AI Slop' pada Frontend",
+        "description": "Coding agent cenderung menghasilkan halaman web yang monoton, menggunakan palet warna standar (biru/putih), dan layout yang membosankan karena bias pelatihan pada data web generik. Taste Skill mengatasi ini dengan memaksa agent mengikuti aturan art direction yang spesifik dan unik untuk setiap proyek."
+      },
+      {
+        "title": "Ketiapan Verifikasi Visual Otomatis",
+        "description": "Developer sering kali harus secara manual memeriksa hasil kode di browser untuk melihat apakah desainnya benar-benar terlihat baik. Skill ini menyertakan instruksi agar agent membuka browser (melalui tool seperti Playwright atau Puppeteer) untuk 'melihat' karyanya sendiri dan melakukan iterasi perbaikan sebelum menyerahkan kode."
+      },
+      {
+        "title": "Kekakuan Gaya Desain Satu Ukuran",
+        "description": "Agent biasanya tidak bisa membedakan antara kebutuhan UI untuk startup SaaS, portofolio artistik, atau situs e-commerce. Repo ini menyediakan modul skill terpisah (seperti 'brutalist-skill' atau 'soft-skill') yang dapat diaktifkan secara dinamis sesuai dengan identitas merek yang diinginkan."
+      }
+    ],
+    "ladderRules": [
+      "Art Direction First: Menetapkan gaya visual, tipografi, dan palet warna sebelum menulis baris kode CSS/HTML pertama.",
+      "Reference-Driven Generation: Menggunakan gambar referensi atau deskripsi visual yang kaya untuk memandu struktur layout, bukan hanya teks.",
+      "Browser-Loop Verification: Agent wajib menjalankan preview lokal dan mengambil screenshot untuk mengevaluasi kualitas visual secara iteratif."
+    ],
+    "useCases": [
+      "Ketika membangun landing page produk SaaS yang membutuhkan diferensiasi visual kuat dari kompetitor.",
+      "Saat merancang portofolio pribadi atau studio kreatif yang menuntut estetika tinggi dan unik.",
+      "Untuk memaksa coding agent agar tidak menghasilkan placeholder kosong atau komentar 'TODO' pada komponen UI yang kompleks."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Generasi Landing Page Premium dengan Verifikasi Visual",
+        "prompt": "\"Buatkan landing page untuk toko kopi artisan. Gunakan skill design-taste-frontend. Pastikan hero section memiliki nuansa hangat dan gunakan foto kopi asli, bukan ikon vektor. Setelah selesai, buka di browser dan periksa spacing-nya.\"",
+        "scenarioType": "ui",
+        "scenarioBadge": "🎨 Autonomous UI Design Agent",
+        "beforeTitle": "BEFORE (Prompt Generik ke Coding Agent)",
+        "beforeMeta": "Output monoton • Tanpa verifikasi visual • Template default",
+        "beforeCode": "Prompt: \"Buat landing page untuk toko kopi.\"\n\nHasil Agent:\n- Menggunakan Tailwind CSS default (biru/putih).\n- Hero section menggunakan ikon SVG kopi generik.\n- Tidak ada instruksi untuk mengecek hasil di browser.\n- Developer harus manual edit CSS untuk mengubah warna dan layout.",
+        "beforeHtml": null,
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Agent tidak memiliki 'rasa' desain, hanya mengikuti pola statistik paling umum dari data pelatihan."
+          },
+          {
+            "label": "Beban",
+            "value": "Developer menghabiskan waktu 2-3 jam untuk restyling manual hasil output agent."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan taste-skill)",
+        "afterMeta": "Art direction otomatis • Verifikasi browser loop • Estetika premium",
+        "afterCode": "Prompt: \"Buatkan landing page untuk toko kopi artisan. Gunakan skill design-taste-frontend. Pastikan hero section memiliki nuansa hangat dan gunakan foto kopi asli, bukan ikon vektor. Setelah selesai, buka di browser dan periksa spacing-nya.\"\n\nProses Agent:\n1. Memuat skill 'design-taste-frontend'.\n2. Menetapkan palet: Coklat tua, Krem, Aksen Emas.\n3. Menghasilkan HTML/CSS dengan tipografi serif yang elegan.\n4. Menjalankan 'npx playwright screenshot' untuk melihat hasil.\n5. Mendeteksi spacing terlalu sempit, lalu memperbaiki CSS otomatis.",
+        "afterHtml": null,
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Agent bertindak sebagai desainer sekaligus developer, melakukan self-correction visual."
+          },
+          {
+            "label": "Hasil",
+            "value": "Landing page siap pakai dengan estetika yang konsisten dan profesional tanpa intervensi manual."
+          }
+        ],
+        "ruleBadge": "Agent Skills & Browser Verification",
+        "metrics": [
+          {
+            "label": "Kualitas Visual",
+            "value": "Premium / Custom",
+            "color": "emerald"
+          },
+          {
+            "label": "Iterasi Desain",
+            "value": "Otomatis (Self-Correcting)",
+            "color": "sky"
+          },
+          {
+            "label": "Waktu Pengembangan",
+            "value": "Hemat 80% Effort",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "_comment_ui_rule": "ATURAN MUTLAK VISUAL UI: Field beforeHtml dan afterHtml HANYA boleh dihasilkan jika repositori berfokus murni pada Frontend Web UI (scenarioType == 'ui'). Untuk CLI, backend, framework SDLC, devtools, metodologi, dan engine (scenarioType != 'ui'), DILARANG KERAS membuat beforeHtml/afterHtml (isi null atau hilangkan); wajib gunakan beforeCode dan afterCode berupa teks/script/command dinamis!",
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi Skill ke Coding Agent",
+        "command": "agy plugin install Leonxlnx/taste-skill --skill design-taste-frontend",
+        "description": "Menginstal skill utama 'design-taste-frontend' ke dalam environment coding agent Anda (seperti Claude Code atau Cursor). Ganti nama skill sesuai kebutuhan (misal: minimalist-ui)."
+      },
+      {
+        "step": 2,
+        "title": "Konfigurasi Referensi Visual (Opsional)",
+        "command": "mkdir -p assets/references && cp examples/coffee-storefront.webp assets/references/",
+        "description": "Menyiapkan folder untuk gambar referensi jika Anda ingin agent meniru gaya visual tertentu. Skill 'image-to-code' sangat bergantung pada ini."
+      },
+      {
+        "step": 3,
+        "title": "Eksekusi dengan Prompt Spesifik",
+        "command": "claude \"Buat halaman about us dengan gaya brutalist menggunakan skill industrial-brutalist-ui\"",
+        "description": "Menjalankan coding agent dengan prompt yang secara eksplisit menyebutkan nama skill yang ingin digunakan untuk mengaktifkan aturan desain tersebut."
+      }
+    ],
+    "commands": [
+      {
+        "command": "design-taste-frontend",
+        "function": "Skill utama v2 untuk art direction landing page, marketing site, dan portfolio. Memberikan panduan umum untuk estetika premium.",
+        "example": "claude \"Buat landing page SaaS dengan skill design-taste-frontend\""
+      },
+      {
+        "command": "redesign-existing-projects",
+        "function": "Mengaudit proyek UI yang sudah ada, kemudian memperbaiki layout, spacing, dan hierarki visual tanpa mengubah logika bisnis.",
+        "example": "claude \"Perbaiki UI dashboard ini menggunakan skill redesign-existing-projects\""
+      },
+      {
+        "command": "image-to-code",
+        "function": "Menganalisis gambar referensi yang diberikan, lalu membangun frontend yang persis seperti gambar tersebut.",
+        "example": "claude \"Buatkan frontend berdasarkan gambar mockup ini menggunakan skill image-to-code\""
+      },
+      {
+        "command": "gpt-taste",
+        "function": "Variasi yang lebih ketat untuk model GPT/Codex, dengan penekanan pada variasi layout dan arah motion yang lebih kuat.",
+        "example": "claude \"Buat animasi hero section dengan skill gpt-taste\""
+      },
+      {
+        "command": "high-end-visual-design",
+        "function": "Fokus pada UI yang tenang dan halus (soft contrast, whitespace, spring motion) untuk kesan mewah.",
+        "example": "claude \"Desain halaman checkout dengan skill high-end-visual-design\""
+      },
+      {
+        "command": "minimalist-ui",
+        "function": "Menerapkan gaya editorial dengan palet terbatas dan struktur yang tajam untuk produk teknologi.",
+        "example": "claude \"Buat halaman dokumentasi dengan skill minimalist-ui\""
+      }
+    ]
+  },
+  "emilkowalski/skills": {
+    "corePurpose": "Repositori ini menyediakan kumpulan \"skill\" berbasis markdown yang berisi panduan praktis untuk desain UI, animasi, dan pengembangan kode. Dengan mengintegrasikan skill ini ke dalam alur kerja AI atau CLI, developer dapat mengurangi trial‑and‑error dan menghasilkan antarmuka yang lebih konsisten serta performa tinggi.",
+    "problemsSolved": [
+      {
+        "title": "Kurangnya Pedoman Praktis untuk UI/UX",
+        "description": "Developer sering kebingungan memilih easing, durasi, atau elemen visual yang tepat; skill ini menyajikan aturan teruji dari pengalaman di Vercel dan Linear untuk mempercepat keputusan desain."
+      },
+      {
+        "title": "AI/Agent Sering Menghasilkan Pilihan Sub‑optimal",
+        "description": "Model AI cenderung memilih properti yang tidak optimal (misalnya ease‑in vs ease‑out); skill memberikan checklist dan contoh yang mengarahkan agen ke pilihan yang lebih baik."
+      },
+      {
+        "title": "Audit dan Optimasi Animasi yang Rumit",
+        "description": "Mendeteksi frame drop, performa buruk, atau penggunaan animasi yang tidak perlu memakan waktu; skill‑skill seperti \"animation-performance\" dan \"review-animations\" otomatis mengaudit dan memberi rekomendasi perbaikan."
+      }
+    ],
+    "ladderRules": [
+      "Berbasis pengalaman nyata di perusahaan skala besar, bukan sekadar teori.",
+      "Setiap skill terstruktur dalam format SKILL.md yang mudah dipanggil oleh agen atau CLI.",
+      "Fokus pada peningkatan kualitas UI melalui panduan yang dapat dieksekusi secara otomatis."
+    ],
+    "useCases": [
+      "Membutuhkan panduan animasi yang tepat saat merancang transisi halaman.",
+      "Ingin audit performa animasi pada codebase yang sudah ada.",
+      "Perlu rekomendasi pemilihan library UI yang sesuai dengan kebutuhan proyek."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Audit Animasi pada Proyek Web",
+        "prompt": "\"Tinjau semua animasi di proyek saya dan beri prioritas perbaikan berdasarkan dampak performa\"",
+        "scenarioType": "efficiency",
+        "scenarioBadge": "⚡ UI Design Efficiency",
+        "beforeTitle": "BEFORE (Pendekatan Manual)",
+        "beforeMeta": "Developer harus menelusuri kode, mengukur frame rate, dan menebak penyebab lag",
+        "beforeCode": "/* contoh manual */\nconst animations = document.querySelectorAll('.anim');\nanimations.forEach(a => {\n  // inspeksi properti, hitung durasi, cek easing\n});\n// Analisis manual di Chrome DevTools, catat masalah satu per satu",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Proses lambat, mudah terlewat bug"
+          },
+          {
+            "label": "Beban",
+            "value": "Waktu developer > 8 jam, biaya token AI tinggi"
+          }
+        ],
+        "afterTitle": "AFTER (Dengan skills)",
+        "afterMeta": "Audit otomatis, prioritas perbaikan terstruktur, hemat waktu",
+        "afterCode": "npx skills@latest add emilkowalski/skills\nskills review-animations ./src/**/*.tsx --output report.json",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Analisis satu perintah, hasil terstruktur dalam JSON"
+          },
+          {
+            "label": "Hasil",
+            "value": "Identifikasi 12 animasi bermasalah, rekomendasi perbaikan, estimasi penghematan 30% FPS"
+          }
+        ],
+        "ruleBadge": "📚 Skill Catalog",
+        "metrics": [
+          {
+            "label": "Waktu Audit",
+            "value": "5 menit",
+            "color": "emerald"
+          },
+          {
+            "label": "Akurasi Deteksi",
+            "value": "92 %",
+            "color": "sky"
+          },
+          {
+            "label": "Penghematan FPS",
+            "value": "+30 FPS",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi CLI Skills",
+        "command": "npx skills@latest add emilkowalski/skills",
+        "description": "Mengunduh koleksi skill ke dalam proyek Anda melalui npm tanpa instalasi global."
+      },
+      {
+        "step": 2,
+        "title": "Inisialisasi Skill yang Dibutuhkan",
+        "command": "skills <skill-name> init",
+        "description": "Membuat file konfigurasi atau template awal untuk skill tertentu, misalnya `skills animate init`."
+      },
+      {
+        "step": 3,
+        "title": "Eksekusi Skill",
+        "command": "skills <skill-name> [options]",
+        "description": "Jalankan skill dengan argumen yang relevan, contohnya `skills review-animations ./src/**/*.tsx` untuk mengaudit semua animasi."
+      }
+    ],
+    "commands": [
+      {
+        "command": "emil-design-eng",
+        "function": "Memberikan panduan lengkap tentang animasi dan desain UI secara umum.",
+        "example": "skills emil-design-eng --project ./my-app"
+      },
+      {
+        "command": "animate",
+        "function": "Membuat animasi baru dengan kurva, durasi, dan properti yang optimal.",
+        "example": "skills animate --target button --type fade-in"
+      },
+      {
+        "command": "animate-expo",
+        "function": "Menyediakan animasi khusus untuk React Native/Expo termasuk gesture dan haptics.",
+        "example": "skills animate-expo --component Card --transition slide-up"
+      },
+      {
+        "command": "review-animations",
+        "function": "Mereview semua animasi dalam kode dan memberi skor kualitas.",
+        "example": "skills review-animations ./src/**/*.tsx"
+      },
+      {
+        "command": "improve-animations",
+        "function": "Audit menyeluruh dan menghasilkan rencana perbaikan terprioritas.",
+        "example": "skills improve-animations --output plan.md"
+      },
+      {
+        "command": "find-animation-opportunities",
+        "function": "Mencari area UI yang dapat diuntungkan dengan penambahan animasi.",
+        "example": "skills find-animation-opportunities ./src/**/*.tsx"
+      },
+      {
+        "command": "animation-performance",
+        "function": "Mendeteksi dan memperbaiki masalah performa animasi yang menyebabkan drop frame.",
+        "example": "skills animation-performance --fix"
+      },
+      {
+        "command": "animation-vocabulary",
+        "function": "Menyediakan kosakata tepat untuk mendeskripsikan animasi kepada AI.",
+        "example": "skills animation-vocabulary --list"
+      },
+      {
+        "command": "apple-design",
+        "function": "Menyajikan prinsip desain Apple yang dapat diadaptasi ke web.",
+        "example": "skills apple-design --output apple-guidelines.md"
+      },
+      {
+        "command": "write-swift",
+        "function": "Panduan menulis kode Swift modern termasuk concurrency dan generics.",
+        "example": "skills write-swift --snippet asyncFunction"
+      },
+      {
+        "command": "pick-ui-library",
+        "function": "Merekomendasikan library UI yang paling cocok berdasarkan kebutuhan proyek.",
+        "example": "skills pick-ui-library --type toast"
+      },
+      {
+        "command": "prototype",
+        "function": "Membuat beberapa varian UI berdasarkan deskripsi dan menyediakan switcher.",
+        "example": "skills prototype --description \"modal login\""
+      },
+      {
+        "command": "mobile-native",
+        "function": "Mengoptimalkan web app agar terasa native di perangkat seluler.",
+        "example": "skills mobile-native --apply"
+      },
+      {
+        "command": "break-ui",
+        "function": "Menguji UI dengan data ekstrim untuk menemukan edge case.",
+        "example": "skills break-ui --run"
+      },
+      {
+        "command": "ask-sonner",
+        "function": "Panduan lengkap penggunaan library toast Sonner.",
+        "example": "skills ask-sonner --setup"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/emilkowalski/skills.git"
+  },
+  "nextlevelbuilder/ui-ux-pro-max-skill": {
+    "corePurpose": "UI UX Pro Max adalah skill AI yang menyuntikkan kecerdasan desain profesional ke dalam alur kerja coding assistant (seperti Claude, Cursor, atau Copilot) untuk menghasilkan antarmuka yang estetis dan fungsional. Arsitekturnya berbasis data terstruktur yang mencakup 79 gaya UI, 192 palet warna, dan 192 aturan penalaran industri, memungkinkan AI untuk merekomendasikan sistem desain yang disesuaikan secara otomatis berdasarkan konteks proyek.",
+    "problemsSolved": [
+      {
+        "title": "Inkonsistensi Desain AI Generik",
+        "description": "AI coding assistant sering menghasilkan UI yang 'rata' atau tidak memiliki identitas visual yang kuat. Repo ini menyediakan basis data gaya (seperti Glassmorphism, Brutalism) dan aturan tipografi yang spesifik, memaksa AI untuk memilih pendekatan desain yang koheren dan profesional, bukan sekadar kode HTML/CSS acak."
+      },
+      {
+        "title": "Ketiapan Konteks Industri dalam Desain",
+        "description": "Desain untuk aplikasi fintech berbeda dengan aplikasi kesehatan atau e-commerce. Masalahnya adalah AI umum tidak memiliki 'common sense' desain per industri. Solusi repo ini adalah 192 aturan penalaran (reasoning rules) yang memetakan kebutuhan produk ke keputusan desain yang tepat (misal: palet warna dan pola layout untuk 'Serenity Spa' vs 'SaaS Dashboard')."
+      },
+      {
+        "title": "Fragmentasi Pengetahuan UX & Aksesibilitas",
+        "description": "Developer sering mengabaikan guideline UX (seperti kontras warna, ukuran sentuh, atau anti-pattern) karena tidak terintegrasi dalam alur coding. Repo ini mengemas 119 guideline UX dan aturan aksesibilitas menjadi referensi yang bisa diakses langsung oleh AI saat menulis kode, memastikan output memenuhi standar profesional tanpa perlu riset manual."
+      }
+    ],
+    "ladderRules": [
+      "Design System Generation: Menganalisis input proyek untuk menghasilkan sistem desain lengkap (warna, font, layout) yang disesuaikan secara otomatis.",
+      "Industry-Specific Reasoning: Menggunakan 192 aturan logika untuk memetakan jenis produk (misal: Fintech, Health) ke keputusan desain yang paling efektif secara konversi dan estetika.",
+      "Cross-Platform Consistency: Menyediakan rekomendasi yang valid untuk 22 tech stack berbeda (React, Flutter, SwiftUI, dll), memastikan prinsip desain yang sama diterjemahkan dengan benar ke framework yang berbeda."
+    ],
+    "useCases": [
+      "Saat membangun landing page SaaS dan membutuhkan rekomendasi layout hero, palet warna, dan font pairing yang terbukti meningkatkan konversi.",
+      "Saat mengembangkan aplikasi mobile (Flutter/React Native) dan membutuhkan panduan UX untuk interaksi sentuh, navigasi, dan aksesibilitas yang sesuai standar industri.",
+      "Saat ingin menerapkan gaya visual spesifik seperti 'Dark Mode' atau 'Bento Grid' secara konsisten di seluruh komponen React/Next.js tanpa harus mendefinisikan design token secara manual."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Generasi Sistem Desain Otomatis untuk Landing Page SaaS",
+        "prompt": "\"/ui-ux-pro-max Build a landing page for my SaaS product focused on productivity. I want a modern, clean look with high trust signals.\"",
+        "scenarioType": "ui",
+        "scenarioBadge": "🎨 Design Intelligence & System Generation",
+        "beforeTitle": "BEFORE (Prompting Generik ke AI Coding Assistant)",
+        "beforeMeta": "Output acak • Tidak ada konsistensi token • Butuh 5-10 iterasi manual",
+        "beforeCode": "User: \"Make a nice landing page for my SaaS.\"\nAI: <div class='hero'>\n  <h1>My SaaS</h1>\n  <p>Productivity tool</p>\n  <button>Sign Up</button>\n</div>\n// Masalah: Warna default, font system-ui, tidak ada hierarchy visual, tidak ada social proof, layout datar.",
+        "beforeHtml": null,
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "AI memilih warna dan font secara acak tanpa konteks industri."
+          },
+          {
+            "label": "Beban",
+            "value": "Developer harus menulis ulang CSS dan mengatur ulang layout secara manual."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan ui-ux-pro-max-skill)",
+        "afterMeta": "Design System Tailored • 192 Rules Applied • Ready-to-use Tokens",
+        "afterCode": "Skill Output:\nTARGET: Productivity SaaS - RECOMMENDED DESIGN SYSTEM\nPATTERN: Hero-Centric + Social Proof\nCOLORS: Primary #2563EB (Trust), Secondary #10B981 (Growth), Background #F8FAFC\nFONTS: Inter (Headings), Roboto (Body)\nLAYOUT: 3-column feature grid, sticky nav, testimonial carousel.\n\nGenerated Code:\n<div className=\"hero bg-slate-50\">\n  <h1 className=\"font-inter text-4xl font-bold text-slate-900\">Boost Your Workflow</h1>\n  <p className=\"text-slate-600\">The productivity tool trusted by 10,000+ teams.</p>\n  <button className=\"bg-blue-600 text-white px-6 py-3 rounded-lg\">Start Free Trial</button>\n</div>",
+        "afterHtml": null,
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "AI memilih palet warna 'Trust' dan font 'Inter' berdasarkan aturan industri SaaS."
+          },
+          {
+            "label": "Hasil",
+            "value": "Kode siap pakai dengan design token yang konsisten dan struktur layout yang optimal."
+          }
+        ],
+        "ruleBadge": "192 Reasoning Rules & Design System Generator",
+        "metrics": [
+          {
+            "label": "Konsistensi Desain",
+            "value": "100% Token Match",
+            "color": "emerald"
+          },
+          {
+            "label": "Waktu Iterasi",
+            "value": "-80% (1x Pass)",
+            "color": "sky"
+          },
+          {
+            "label": "Relevansi Industri",
+            "value": "High (SaaS Specific)",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "_comment_ui_rule": "ATURAN MUTLAK VISUAL UI: Field beforeHtml dan afterHtml HANYA boleh dihasilkan jika repositori berfokus murni pada Frontend Web UI (scenarioType == 'ui'). Untuk CLI, backend, framework SDLC, devtools, metodologi, dan engine (scenarioType != 'ui'), DILARANG KERAS membuat beforeHtml/afterHtml (isi null atau hilangkan); wajib gunakan beforeCode dan afterCode berupa teks/script/command dinamis!",
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi Skill ke Editor/CLI",
+        "command": "git clone https://github.com/nextlevelbuilder/ui-ux-pro-max-skill.git",
+        "description": "Kloning repositori untuk mengakses file skill definition (biasanya berupa file markdown atau JSON yang dibaca oleh AI agent)."
+      },
+      {
+        "step": 2,
+        "title": "Konfigurasi Integrasi AI",
+        "command": "cp ui-ux-pro-max-skill/skill.md .claude/skills/ (atau direktori skill sesuai tool Anda)",
+        "description": "Menyalin file skill ke direktori yang dikenali oleh AI coding assistant Anda (misal: .claude, .cursor, atau .kiro) agar skill terdeteksi."
+      },
+      {
+        "step": 3,
+        "title": "Eksekusi Slash Command",
+        "command": "/ui-ux-pro-max Build a dashboard for fintech",
+        "description": "Memanggil skill menggunakan slash command dengan deskripsi proyek spesifik untuk memicu proses reasoning design system."
+      }
+    ],
+    "commands": [
+      {
+        "command": "/ui-ux-pro-max",
+        "function": "Command utama untuk memicu engine reasoning desain. Menerima deskripsi proyek dan menghasilkan rekomendasi design system lengkap (warna, font, layout, komponen).",
+        "example": "/ui-ux-pro-max Create a mobile UI for a food delivery app with a playful yet clean aesthetic."
+      },
+      {
+        "command": "/ui-ux-pro-max --style [style_name]",
+        "function": "Memaksa penggunaan gaya UI spesifik dari 79 gaya yang tersedia (misal: Glassmorphism, Brutalism, Minimalism) tanpa proses reasoning otomatis.",
+        "example": "/ui-ux-pro-max --style Glassmorphism Build a login page."
+      },
+      {
+        "command": "/ui-ux-pro-max --stack [tech_stack]",
+        "function": "Menentukan framework target untuk output kode (misal: React, Flutter, SwiftUI), memastikan rekomendasi komponen dan sintaks sesuai dengan stack tersebut.",
+        "example": "/ui-ux-pro-max --stack Flutter Design a settings screen."
+      }
+    ]
+  }
+}

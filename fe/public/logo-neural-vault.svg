@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b" />
+      <stop offset="50%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+    <linearGradient id="borderGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.65)" />
+      <stop offset="50%" stop-color="rgba(56,189,248,0.4)" />
+      <stop offset="100%" stop-color="rgba(255,255,255,0.1)" />
+    </linearGradient>
+    <linearGradient id="topFace1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.85" />
+      <stop offset="100%" stop-color="#818cf8" stop-opacity="0.4" />
+    </linearGradient>
+    <linearGradient id="leftFace1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#1e1b4b" stop-opacity="0.6" />
+    </linearGradient>
+    <linearGradient id="rightFace1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.75" />
+      <stop offset="100%" stop-color="#312e81" stop-opacity="0.5" />
+    </linearGradient>
+    <filter id="neonGlow1" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="3.5" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <filter id="ambientLight1" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" />
+    </filter>
+  </defs>
+  <rect x="6" y="6" width="108" height="108" rx="28" fill="url(#bgGrad1)" stroke="url(#borderGrad1)" stroke-width="2" />
+  <circle cx="60" cy="60" r="30" fill="#38bdf8" opacity="0.35" filter="url(#ambientLight1)" />
+  <g transform="translate(0, -2)">
+    <polygon points="60,28 88,44 60,60 32,44" fill="url(#topFace1)" stroke="rgba(255,255,255,0.7)" stroke-width="1.2" stroke-linejoin="round" />
+    <polygon points="32,44 60,60 60,92 32,76" fill="url(#leftFace1)" stroke="rgba(255,255,255,0.25)" stroke-width="1.2" stroke-linejoin="round" />
+    <polygon points="60,60 88,44 88,76 60,92" fill="url(#rightFace1)" stroke="rgba(255,255,255,0.3)" stroke-width="1.2" stroke-linejoin="round" />
+    <line x1="60" y1="28" x2="60" y2="60" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" opacity="0.8" />
+    <line x1="60" y1="60" x2="60" y2="92" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round" opacity="0.9" />
+    <g filter="url(#neonGlow1)">
+      <path d="M60,60 Q65,48 60,38" fill="none" stroke="#e0f2fe" stroke-width="2.2" stroke-linecap="round" />
+      <path d="M60,60 Q44,66 42,74" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" />
+      <path d="M60,60 Q76,66 78,74" fill="none" stroke="#818cf8" stroke-width="2.2" stroke-linecap="round" />
+      <circle cx="60" cy="60" r="4.5" fill="#ffffff" stroke="#38bdf8" stroke-width="2" />
+      <circle cx="60" cy="60" r="2" fill="#0284c7" />
+      <circle cx="60" cy="38" r="3" fill="#38bdf8" stroke="#ffffff" stroke-width="1.2" />
+      <circle cx="42" cy="74" r="3.2" fill="#06b6d4" stroke="#ffffff" stroke-width="1.2" />
+      <circle cx="78" cy="74" r="3.2" fill="#818cf8" stroke="#ffffff" stroke-width="1.2" />
+    </g>
+  </g>
+</svg>
+

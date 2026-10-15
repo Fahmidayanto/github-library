@@ -1,0 +1,929 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-gradient: radial-gradient(at 0% 0%, #1e1b4b 0px, transparent 50%),
+                   radial-gradient(at 100% 0%, #064e3b 0px, transparent 50%),
+                   radial-gradient(at 100% 100%, #312e81 0px, transparent 50%),
+                   radial-gradient(at 0% 100%, #0f172a 0px, transparent 50%),
+                   linear-gradient(135deg, #090d16 0%, #111827 50%, #1e1b4b 100%);
+    --orb-1: radial-gradient(circle, rgba(14, 165, 233, 0.35) 0%, rgba(14, 165, 233, 0) 70%);
+    --orb-2: radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, rgba(99, 102, 241, 0) 70%);
+    --orb-3: radial-gradient(circle, rgba(168, 85, 247, 0.30) 0%, rgba(168, 85, 247, 0) 70%);
+    --accent: #38bdf8;
+    --scrollbar-thumb: rgba(255, 255, 255, 0.18);
+    --scrollbar-thumb-hover: rgba(255, 255, 255, 0.35);
+    --scrollbar-thumb-active: rgba(56, 189, 248, 0.6);
+  }
+
+  body.theme-sunset {
+    --bg-gradient: radial-gradient(at 0% 0%, #881337 0px, transparent 50%),
+                   radial-gradient(at 100% 0%, #4c1d95 0px, transparent 50%),
+                   radial-gradient(at 100% 100%, #be123c 0px, transparent 50%),
+                   radial-gradient(at 0% 100%, #1e1b4b 0px, transparent 50%),
+                   linear-gradient(135deg, #180914 0%, #2b0c24 50%, #3b0764 100%);
+    --orb-1: radial-gradient(circle, rgba(244, 63, 94, 0.45) 0%, rgba(244, 63, 94, 0) 70%);
+    --orb-2: radial-gradient(circle, rgba(249, 115, 22, 0.40) 0%, rgba(249, 115, 22, 0) 70%);
+    --orb-3: radial-gradient(circle, rgba(168, 85, 247, 0.45) 0%, rgba(168, 85, 247, 0) 70%);
+    --accent: #fb7185;
+    --scrollbar-thumb: rgba(244, 63, 94, 0.25);
+    --scrollbar-thumb-hover: rgba(244, 63, 94, 0.45);
+    --scrollbar-thumb-active: rgba(244, 63, 94, 0.7);
+    color: #ffffff;
+  }
+
+  body.theme-frost {
+    --bg-gradient: radial-gradient(at 0% 0%, #bae6fd 0px, transparent 50%),
+                   radial-gradient(at 100% 0%, #fbcfe8 0px, transparent 50%),
+                   radial-gradient(at 100% 100%, #ddd6fe 0px, transparent 50%),
+                   radial-gradient(at 0% 100%, #c7d2fe 0px, transparent 50%),
+                   linear-gradient(135deg, #e0f2fe 0%, #f3e8ff 50%, #fce7f3 100%);
+    --orb-1: radial-gradient(circle, rgba(56, 189, 248, 0.55) 0%, rgba(56, 189, 248, 0) 70%);
+    --orb-2: radial-gradient(circle, rgba(236, 72, 153, 0.50) 0%, rgba(236, 72, 153, 0) 70%);
+    --orb-3: radial-gradient(circle, rgba(168, 85, 247, 0.45) 0%, rgba(168, 85, 247, 0) 70%);
+    --accent: #0284c7;
+    --scrollbar-thumb: rgba(15, 23, 42, 0.22);
+    --scrollbar-thumb-hover: rgba(15, 23, 42, 0.4);
+    --scrollbar-thumb-active: rgba(2, 132, 199, 0.6);
+    color: #000000;
+  }
+
+  body {
+    background: var(--bg-gradient);
+    background-attachment: fixed;
+    color: #ffffff;
+    overflow-x: hidden;
+    min-height: 100vh;
+    transition: background 0.4s ease;
+  }
+}
+
+/* Looping Background Video Atmosphere */
+.glass-bg-video {
+  opacity: 0.38;
+  mix-blend-mode: screen;
+  transition: opacity 0.6s ease, filter 0.6s ease;
+}
+body.theme-sunset .glass-bg-video {
+  opacity: 0.42;
+  mix-blend-mode: screen;
+  filter: hue-rotate(290deg) saturate(1.2);
+}
+body.theme-frost .glass-bg-video {
+  opacity: 0.18;
+  mix-blend-mode: multiply;
+  filter: saturate(0.85);
+}
+
+/* Ambient Glow Orbs */
+.glass-orb-1 {
+  position: fixed;
+  width: 650px;
+  height: 650px;
+  top: -150px;
+  left: 5%;
+  background: var(--orb-1);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+  animation: floatOrb 18s ease-in-out infinite alternate;
+}
+.glass-orb-2 {
+  position: fixed;
+  width: 550px;
+  height: 550px;
+  bottom: 5%;
+  right: 5%;
+  background: var(--orb-2);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+  animation: floatOrb 14s ease-in-out infinite alternate-reverse;
+}
+.glass-orb-3 {
+  position: fixed;
+  width: 480px;
+  height: 480px;
+  top: 40%;
+  left: 35%;
+  background: var(--orb-3);
+  filter: blur(90px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes floatOrb {
+  0% { transform: translateY(0px) scale(1); }
+  100% { transform: translateY(40px) scale(1.08); }
+}
+
+/* ================= PHYSICAL GLASSMORPHISM ================= */
+.glass-panel {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%);
+  backdrop-filter: blur(28px) saturate(210%);
+  -webkit-backdrop-filter: blur(28px) saturate(210%);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.45);
+  border-left: 1.5px solid rgba(255, 255, 255, 0.30);
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 16px 40px 0 rgba(0, 0, 0, 0.35),
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.glass-panel-elevated {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.05) 100%);
+  backdrop-filter: blur(36px) saturate(220%);
+  -webkit-backdrop-filter: blur(36px) saturate(220%);
+  border-top: 2px solid rgba(255, 255, 255, 0.55);
+  border-left: 1.5px solid rgba(255, 255, 255, 0.38);
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 
+    0 30px 70px 0 rgba(0, 0, 0, 0.45),
+    inset 0 2px 3px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1.5px 3px 0 rgba(0, 0, 0, 0.3);
+}
+
+body.theme-frost .glass-panel-elevated {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.90) 0%, rgba(255, 255, 255, 0.65) 100%) !important;
+  border-top: 2px solid rgba(255, 255, 255, 0.98) !important;
+  border-left: 1.8px solid rgba(255, 255, 255, 0.90) !important;
+  border-right: 1px solid rgba(203, 213, 225, 0.6) !important;
+  border-bottom: 1px solid rgba(203, 213, 225, 0.5) !important;
+  box-shadow: 0 24px 60px rgba(100, 116, 139, 0.22), inset 0 2px 3px rgba(255, 255, 255, 1) !important;
+}
+
+.glass-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.02) 100%);
+  backdrop-filter: blur(24px) saturate(210%);
+  -webkit-backdrop-filter: blur(24px) saturate(210%);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.38);
+  border-left: 1.5px solid rgba(255, 255, 255, 0.24);
+  border-right: 1px solid rgba(255, 255, 255, 0.10);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 
+    0 14px 30px -5px rgba(0, 0, 0, 0.30),
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.2);
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), 
+              background 180ms ease-out, 
+              box-shadow 180ms ease-out, 
+              border-color 180ms ease-out;
+  position: relative;
+}
+.glass-card:hover {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border-top-color: rgba(255, 255, 255, 0.65);
+  border-left-color: rgba(255, 255, 255, 0.45);
+  box-shadow: 
+    0 24px 50px -10px rgba(0, 0, 0, 0.45),
+    0 0 25px rgba(56, 189, 248, 0.2),
+    inset 0 2px 3px 0 rgba(255, 255, 255, 0.5);
+  transform: translateY(-4px) scale(1.01);
+}
+
+.glass-input {
+  background: rgba(255, 255, 255, 0.06) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+  transition: all 180ms ease-out;
+}
+.glass-input:focus {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(56, 189, 248, 0.6) !important;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+
+/* Dropdown Airfall Motion */
+@keyframes airfallMenu {
+  0% { opacity: 0; transform: translateY(-14px) scale(0.94); filter: blur(8px); }
+  60% { transform: translateY(3px) scale(1.01); filter: blur(0px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); }
+}
+.dropdown-airfall {
+  animation: airfallMenu 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: top center;
+}
+
+.glass-dropdown-surface {
+  background: rgba(13, 18, 30, 0.94) !important;
+  backdrop-filter: blur(36px) saturate(210%) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.35) !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.22) !important;
+  box-shadow: 0 24px 60px -10px rgba(0, 0, 0, 0.75), inset 0 1px 1px 0 rgba(255, 255, 255, 0.3) !important;
+}
+body.theme-sunset .glass-dropdown-surface {
+  background: rgba(28, 14, 30, 0.95) !important;
+  box-shadow: 0 24px 60px -10px rgba(10, 4, 15, 0.8), inset 0 1px 1px 0 rgba(255, 255, 255, 0.3) !important;
+}
+body.theme-frost .glass-dropdown-surface {
+  background: rgba(245, 248, 255, 0.96) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 0 24px 50px -10px rgba(100, 116, 139, 0.35), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+/* ================= SIDEBAR COLLAPSE EXACT STYLES (UI-PROTOTYPE) ================= */
+.sidebar-container {
+  transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.sidebar-container.collapsed {
+  width: 4.5rem !important; /* 72px pas untuk centering icon 36px/40px tanpa overflow */
+}
+.sidebar-container.collapsed .sidebar-text,
+.sidebar-container.collapsed .sidebar-badge,
+.sidebar-container.collapsed #categoryTree,
+.sidebar-container.collapsed #quickFilterContainer,
+.sidebar-container.collapsed .sidebar-footer-btn {
+  display: none !important;
+}
+.sidebar-container.collapsed .brand-header-inner {
+  justify-content: center !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+.sidebar-container.collapsed .sidebar-icon-only {
+  display: flex !important;
+}
+
+/* Floating toggle button transition & hover styles (Muncul HANYA saat diarahkan) */
+.sidebar-toggle-btn {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateX(50%) scale(0.9) !important;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.sidebar-container:hover .sidebar-toggle-btn,
+.sidebar-toggle-btn:hover {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: translateX(50%) scale(1) !important;
+}
+.sidebar-toggle-btn:active {
+  transform: translateX(50%) scale(0.92) !important;
+}
+
+/* Modal Physical Glass */
+#repoDetailModal {
+  background: rgba(5, 7, 13, 0.65) !important;
+  backdrop-filter: blur(24px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+}
+body.theme-sunset #repoDetailModal {
+  background: rgba(20, 8, 22, 0.65) !important;
+}
+body.theme-frost #repoDetailModal {
+  background: rgba(210, 225, 245, 0.65) !important;
+}
+
+.glass-modal-container {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%) !important;
+  backdrop-filter: blur(40px) saturate(220%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(220%) !important;
+  border-top: 2px solid rgba(255, 255, 255, 0.55) !important;
+  border-left: 1.5px solid rgba(255, 255, 255, 0.35) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
+  box-shadow: 0 30px 80px -10px rgba(0, 0, 0, 0.55), inset 0 2px 3px 0 rgba(255, 255, 255, 0.4) !important;
+}
+.glass-modal-header {
+  background: rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(28px) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+.glass-modal-subbar {
+  background: rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(24px) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
+}
+.glass-modal-body {
+  background: transparent !important;
+}
+.glass-inner-panel {
+  background: rgba(255, 255, 255, 0.06) !important;
+  backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.2) !important;
+}
+.glass-modal-btn {
+  background: rgba(255, 255, 255, 0.10) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  color: #ffffff !important;
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 160ms ease, border-color 160ms ease !important;
+}
+.glass-modal-btn:hover {
+  background: rgba(255, 255, 255, 0.22) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+}
+.glass-modal-btn:active {
+  transform: scale(0.97) !important;
+}
+.glass-modal-row {
+  background: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  transition: background 140ms ease;
+}
+.glass-modal-row:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+.glass-modal-topic-badge {
+  background: rgba(56, 189, 248, 0.20) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(56, 189, 248, 0.45) !important;
+}
+
+/* ================= ZERO GREY POLICY FOR AURORA & SUNSET ================= */
+/* Semua teks abu-abu di tema Aurora dan Sunset Velvet diubah menjadi Putih Bersih */
+body:not(.theme-frost) {
+  color: #ffffff !important;
+}
+
+body:not(.theme-frost) p,
+body:not(.theme-frost) li,
+body:not(.theme-frost) h1,
+body:not(.theme-frost) h2,
+body:not(.theme-frost) h3,
+body:not(.theme-frost) h4,
+body:not(.theme-frost) h5,
+body:not(.theme-frost) h6,
+body:not(.theme-frost) .text-slate-100,
+body:not(.theme-frost) .text-slate-200,
+body:not(.theme-frost) .text-slate-300,
+body:not(.theme-frost) .text-slate-400,
+body:not(.theme-frost) .text-slate-500,
+body:not(.theme-frost) .text-slate-600,
+body:not(.theme-frost) .text-gray-100,
+body:not(.theme-frost) .text-gray-200,
+body:not(.theme-frost) .text-gray-300,
+body:not(.theme-frost) .text-gray-400,
+body:not(.theme-frost) .text-gray-500,
+body:not(.theme-frost) .text-gray-600 {
+  color: #ffffff !important;
+}
+
+body:not(.theme-frost) span:not([class*="text-sky"]):not([class*="text-indigo"]):not([class*="text-pink"]):not([class*="text-amber"]):not([class*="text-emerald"]):not([class*="text-cyan"]):not([class*="text-yellow"]):not([class*="text-fuchsia"]) {
+  color: #ffffff !important;
+}
+
+body:not(.theme-frost) input::placeholder,
+body:not(.theme-frost) .placeholder-slate-400::placeholder {
+  color: rgba(255, 255, 255, 0.70) !important;
+}
+
+body:not(.theme-frost) svg.text-slate-400,
+body:not(.theme-frost) svg.text-slate-500,
+body:not(.theme-frost) svg.text-slate-600,
+body:not(.theme-frost) i.text-slate-400,
+body:not(.theme-frost) i.text-slate-500,
+body:not(.theme-frost) i.text-slate-600 {
+  color: #ffffff !important;
+}
+
+/* Modal GitHub README Typography di Aurora & Sunset */
+body:not(.theme-frost) .prose {
+  --tw-prose-body: #ffffff;
+  --tw-prose-headings: #ffffff;
+  --tw-prose-lead: #ffffff;
+  --tw-prose-links: #38bdf8;
+  --tw-prose-bold: #ffffff;
+  --tw-prose-counters: #ffffff;
+  --tw-prose-bullets: #ffffff;
+  --tw-prose-hr: rgba(255, 255, 255, 0.2);
+  --tw-prose-quotes: #ffffff;
+  --tw-prose-quote-borders: rgba(255, 255, 255, 0.3);
+  --tw-prose-captions: #ffffff;
+  --tw-prose-code: #ffffff;
+  --tw-prose-pre-code: #ffffff;
+  --tw-prose-pre-bg: rgba(0, 0, 0, 0.4);
+  --tw-prose-th-borders: rgba(255, 255, 255, 0.2);
+  --tw-prose-td-borders: rgba(255, 255, 255, 0.1);
+  color: #ffffff !important;
+}
+
+body:not(.theme-frost) .prose :where(p, span, li, h1, h2, h3, h4, h5, h6, strong, code, td, th, blockquote) {
+  color: #ffffff !important;
+}
+
+body:not(.theme-frost) .prose a {
+  color: #38bdf8 !important;
+}
+
+body:not(.theme-frost) .prose a:hover {
+  color: #7dd3fc !important;
+}
+
+/* ================= ZERO WHITE POLICY FOR THEME FROST ================= */
+/* Semua teks, icon, border, input, placeholder, dan elemen putih di tema Ethereal Frost diubah menjadi Hitam Tegas */
+body.theme-frost {
+  color: #000000 !important;
+}
+
+body.theme-frost h1,
+body.theme-frost h2,
+body.theme-frost h3,
+body.theme-frost h4,
+body.theme-frost h5,
+body.theme-frost h6 {
+  color: #000000 !important;
+  text-shadow: none !important;
+  font-weight: 700 !important;
+}
+
+body.theme-frost p,
+body.theme-frost li,
+body.theme-frost label,
+body.theme-frost div:not([class*="bg-indigo"]):not([class*="bg-emerald"]):not([class*="bg-cyan"]):not([class*="bg-amber"]):not([class*="bg-rose"]):not([class*="bg-purple"]),
+body.theme-frost span:not([class*="text-sky"]):not([class*="text-indigo"]):not([class*="text-pink"]):not([class*="text-amber"]):not([class*="text-emerald"]):not([class*="text-cyan"]):not([class*="text-yellow"]):not([class*="text-fuchsia"]),
+body.theme-frost a:not([class*="text-sky"]):not([class*="text-indigo"]):not([class*="text-emerald"]) {
+  color: #000000 !important;
+  text-shadow: none !important;
+}
+
+body.theme-frost p,
+body.theme-frost .text-slate-400,
+body.theme-frost .text-slate-500 {
+  color: #1e293b !important;
+}
+
+body.theme-frost .text-white,
+body.theme-frost .text-slate-100,
+body.theme-frost .text-slate-200,
+body.theme-frost .text-slate-300,
+body.theme-frost .text-gray-100,
+body.theme-frost .text-gray-200,
+body.theme-frost .text-gray-300,
+body.theme-frost .text-gray-400 {
+  color: #000000 !important;
+  text-shadow: none !important;
+}
+
+/* Global Border & White Overlay Overrides di Tema Frost */
+body.theme-frost .border-white\/10,
+body.theme-frost .border-white\/15,
+body.theme-frost .border-white\/20,
+body.theme-frost .border-white\/25,
+body.theme-frost .border-white\/30,
+body.theme-frost .border-white\/40,
+body.theme-frost .border-white\/50,
+body.theme-frost .divide-white\/10,
+body.theme-frost .divide-white\/15 {
+  border-color: rgba(15, 23, 42, 0.16) !important;
+}
+
+body.theme-frost .bg-white\/5,
+body.theme-frost .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+body.theme-frost .hover\:bg-white\/5:hover,
+body.theme-frost .hover\:bg-white\/10:hover {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Icons & SVGs di Tema Frost */
+body.theme-frost svg:not([class*="fill-amber"]):not([class*="text-amber"]):not([class*="fill-yellow"]):not([class*="text-yellow"]):not([class*="text-indigo"]):not([class*="text-cyan"]):not([class*="text-emerald"]):not([class*="text-sky"]):not([class*="text-red"]) {
+  color: #000000 !important;
+}
+
+/* Input & Placeholder di Tema Frost */
+body.theme-frost input,
+body.theme-frost select,
+body.theme-frost textarea {
+  color: #000000 !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(15, 23, 42, 0.22) !important;
+}
+
+body.theme-frost input::placeholder,
+body.theme-frost .placeholder-slate-400::placeholder {
+  color: #475569 !important;
+}
+
+/* Top Header & Dropdowns di Tema Frost */
+body.theme-frost header.glass-panel {
+  background: rgba(255, 255, 255, 0.90) !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.14) !important;
+}
+
+body.theme-frost header .glass-input {
+  background: #ffffff !important;
+  border: 1px solid rgba(15, 23, 42, 0.22) !important;
+  color: #000000 !important;
+}
+
+body.theme-frost header span.font-mono {
+  background: rgba(0, 0, 0, 0.06) !important;
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+body.theme-frost .glass-dropdown-surface {
+  background: #ffffff !important;
+  border: 1px solid rgba(15, 23, 42, 0.16) !important;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.16) !important;
+}
+
+body.theme-frost .glass-dropdown-surface button {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+body.theme-frost .glass-dropdown-surface button:hover {
+  background: rgba(0, 0, 0, 0.06) !important;
+}
+
+body.theme-frost .glass-dropdown-surface .text-slate-400 {
+  color: #475569 !important;
+}
+
+/* Sidebar Menu Navigation di Tema Frost */
+body.theme-frost #mainSidebar {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(241, 245, 249, 0.80) 100%) !important;
+  border-right: 1px solid rgba(15, 23, 42, 0.14) !important;
+}
+
+body.theme-frost .sidebar-container .sidebar-text h1 {
+  color: #000000 !important;
+  font-weight: 800 !important;
+  text-shadow: none !important;
+}
+
+body.theme-frost .sidebar-container .sidebar-text span {
+  color: #4338ca !important;
+  font-weight: 700 !important;
+  text-shadow: none !important;
+}
+
+body.theme-frost #mainSidebar .sidebar-badge {
+  color: #000000 !important;
+  background: rgba(0, 0, 0, 0.06) !important;
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  text-shadow: none !important;
+  font-weight: 700 !important;
+}
+
+body.theme-frost #mainSidebar button {
+  color: #000000 !important;
+  text-shadow: none !important;
+}
+
+body.theme-frost #mainSidebar button:hover {
+  background: rgba(0, 0, 0, 0.06) !important;
+}
+
+body.theme-frost #categoryTree button {
+  color: #000000 !important;
+  font-weight: 600 !important;
+  text-shadow: none !important;
+}
+
+body.theme-frost #categoryTree span {
+  color: #000000 !important;
+  text-shadow: none !important;
+}
+
+body.theme-frost #categoryTree .text-slate-500 {
+  color: #475569 !important;
+  font-weight: 600 !important;
+}
+
+body.theme-frost #quickFilterContainer button {
+  color: #000000 !important;
+}
+
+body.theme-frost #quickFilterContainer button .sidebar-badge {
+  background: #e0e7ff !important;
+  color: #312e81 !important;
+  border: 1px solid #c7d2fe !important;
+  font-weight: 700 !important;
+  text-shadow: none !important;
+}
+
+body.theme-frost .sidebar-toggle-btn {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #000000 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
+}
+
+body.theme-frost .sidebar-footer-btn {
+  background: rgba(0, 0, 0, 0.03) !important;
+  border-top: 1px solid rgba(15, 23, 42, 0.12) !important;
+}
+
+body.theme-frost .sidebar-footer-btn button {
+  color: #000000 !important;
+  border: 1px dashed rgba(15, 23, 42, 0.35) !important;
+  font-weight: 600 !important;
+}
+
+body.theme-frost .sidebar-footer-btn button:hover {
+  background: rgba(0, 0, 0, 0.06) !important;
+  border-color: #000000 !important;
+  color: #000000 !important;
+}
+
+/* Headline Stats Bar di Tema Frost */
+body.theme-frost .glass-panel {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border: 1px solid rgba(15, 23, 42, 0.14) !important;
+  color: #000000 !important;
+}
+
+/* Cards Repositori di Tema Frost */
+body.theme-frost .glass-card { 
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.75) 100%) !important; 
+  border: 1px solid rgba(15, 23, 42, 0.15) !important;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.95) !important;
+  color: #000000 !important;
+}
+
+body.theme-frost .glass-card:hover {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.3) !important;
+  box-shadow: 0 18px 36px -8px rgba(15, 23, 42, 0.16) !important;
+}
+
+body.theme-frost .glass-card .text-slate-100 {
+  color: #000000 !important;
+  font-weight: 800 !important;
+}
+
+body.theme-frost .glass-card p {
+  color: #1e293b !important;
+  font-weight: 450 !important;
+}
+
+body.theme-frost .glass-card .border-t {
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+body.theme-frost .glass-card .border-t span {
+  color: #000000 !important;
+  font-weight: 700 !important;
+}
+
+body.theme-frost .glass-card span.font-mono {
+  color: #000000 !important;
+  background: rgba(0, 0, 0, 0.06) !important;
+  border: 1px solid rgba(0, 0, 0, 0.14) !important;
+  font-weight: 600 !important;
+}
+
+body.theme-frost .glass-card .text-slate-500 {
+  color: #334155 !important;
+}
+
+/* Modal GitHub README Detail di Tema Frost */
+body.theme-frost #repoDetailModal {
+  background: rgba(15, 23, 42, 0.65) !important;
+  backdrop-filter: blur(28px) !important;
+}
+
+body.theme-frost .glass-modal-container {
+  background: #ffffff !important;
+  border: 1px solid rgba(15, 23, 42, 0.20) !important;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.35) !important;
+  color: #000000 !important;
+}
+
+body.theme-frost .glass-modal-header {
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  color: #000000 !important;
+}
+
+body.theme-frost .glass-modal-header h3,
+body.theme-frost .glass-modal-header span,
+body.theme-frost .glass-modal-header a,
+body.theme-frost .glass-modal-header button {
+  color: #000000 !important;
+}
+
+body.theme-frost .glass-modal-subbar {
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  color: #000000 !important;
+}
+
+body.theme-frost .glass-modal-btn {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+body.theme-frost .glass-modal-btn:hover {
+  background: #e2e8f0 !important;
+  color: #000000 !important;
+  border-color: #94a3b8 !important;
+}
+
+body.theme-frost .glass-inner-panel {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.theme-frost .glass-inner-panel .bg-white\/10 {
+  background: #f1f5f9 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  color: #000000 !important;
+}
+
+body.theme-frost .glass-inner-panel .bg-white\/10 span,
+body.theme-frost .glass-inner-panel .bg-white\/10 div {
+  color: #000000 !important;
+}
+
+body.theme-frost .glass-modal-row {
+  border-bottom: 1px solid #f1f5f9 !important;
+  color: #000000 !important;
+}
+
+body.theme-frost .glass-modal-row a {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+body.theme-frost .glass-modal-row a:hover {
+  color: #0284c7 !important;
+}
+
+body.theme-frost .glass-modal-row span {
+  color: #475569 !important;
+  font-weight: 500 !important;
+}
+
+body.theme-frost .glass-modal-row:hover {
+  background: #f8fafc !important;
+}
+
+body.theme-frost .prose {
+  --tw-prose-body: #000000;
+  --tw-prose-headings: #000000;
+  --tw-prose-lead: #1e293b;
+  --tw-prose-links: #0284c7;
+  --tw-prose-bold: #000000;
+  --tw-prose-counters: #334155;
+  --tw-prose-bullets: #334155;
+  --tw-prose-hr: #e2e8f0;
+  --tw-prose-quotes: #000000;
+  --tw-prose-quote-borders: #cbd5e1;
+  --tw-prose-captions: #475569;
+  --tw-prose-code: #000000;
+  --tw-prose-pre-code: #000000;
+  --tw-prose-pre-bg: #f8fafc;
+  --tw-prose-th-borders: #cbd5e1;
+  --tw-prose-td-borders: #e2e8f0;
+  color: #000000 !important;
+}
+
+body.theme-frost .prose :where(p, span, li, h1, h2, h3, h4, h5, h6, strong, code, td, th, blockquote) {
+  color: #000000 !important;
+}
+
+body.theme-frost .prose pre {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #000000 !important;
+}
+
+body.theme-frost .prose code {
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #000000 !important;
+}
+
+body.theme-frost .prose a {
+  color: #0284c7 !important;
+  font-weight: 600 !important;
+}
+
+body.theme-frost #repoDetailModal h4,
+body.theme-frost #repoDetailModal h5 {
+  color: #000000 !important;
+  font-weight: 800 !important;
+}
+
+body.theme-frost #repoDetailModal .text-slate-300 {
+  color: #1e293b !important;
+}
+
+body.theme-frost .glass-modal-topic-badge {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+  border: 1px solid #bae6fd !important;
+  font-weight: 600 !important;
+}
+
+/* Modals Tambah Repo & Kategori di Tema Frost */
+body.theme-frost .glass-panel-elevated {
+  background: #ffffff !important;
+  border: 1px solid rgba(15, 23, 42, 0.20) !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25) !important;
+  color: #000000 !important;
+}
+
+body.theme-frost .glass-panel-elevated h2,
+body.theme-frost .glass-panel-elevated label {
+  color: #000000 !important;
+  font-weight: 700 !important;
+}
+
+body.theme-frost .glass-panel-elevated input,
+body.theme-frost .glass-panel-elevated select,
+body.theme-frost .glass-panel-elevated textarea {
+  background: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #000000 !important;
+}
+
+body.theme-frost .glass-panel-elevated select option {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+body.theme-frost .glass-panel-elevated .bg-black\/40 {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+body.theme-frost .glass-panel-elevated .bg-black\/40 span,
+body.theme-frost .glass-panel-elevated .bg-black\/40 p {
+  color: #000000 !important;
+}
+
+/* ================= PREMIUM GLASS SCROLLBAR (Emil Kowalski Craft) ================= */
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+/* WebKit (Chrome, Edge, Safari, Opera, Brave) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background 160ms cubic-bezier(0.23, 1, 0.32, 1),
+              border-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+              box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active);
+  border-color: rgba(56, 189, 248, 0.7);
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.5);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent !important;
+}
+
+/* Modal and container scroll styling */
+.premium-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+  overscroll-behavior: contain;
+}
+
+.premium-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.premium-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 9999px;
+}
+
+.premium-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+

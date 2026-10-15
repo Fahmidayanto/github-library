@@ -1,0 +1,14 @@
+{
+  "name": "project-github-library",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel --filter fe --filter be dev",
+    "dev:fe": "pnpm --filter fe dev",
+    "dev:be": "pnpm --filter be dev",
+    "build": "pnpm --filter be build && pnpm --filter fe build",
+    "build:fe": "pnpm --filter fe build",
+    "build:be": "pnpm --filter be build"
+  },
+  "packageManager": "pnpm@12.11.2"
+}

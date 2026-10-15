@@ -1,0 +1,639 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { 
+  X, 
+  Plus, 
+  Sparkles, 
+  Star, 
+  GitFork, 
+  Loader2, 
+  Check, 
+  FolderGit2,
+  AlertCircle,
+  ChevronDown 
+} from 'lucide-react';
+import { cn, formatCompactNumber, parseGitHubUrl } from '@/lib/utils';
+import { Category } from './Sidebar';
+import { RepoCardData } from './RepoCard';
+import { createRepositoryAction } from '@/app/actions';
+
+
+interface AddRepoModalProps {
+  isOpen: boolean;
+  categories: Category[];
+  defaultCategoryId?: string;
+  onClose: () => void;
+  onRepoAdded: (newRepo: RepoCardData, createdSubCategory?: { id: string; name: string; slug: string; categoryId: string }) => void;
+}
+
+interface RepoPreviewData {
+  owner: string;
+  name: string;
+  fullName: string;
+  description: string;
+  starsCount: number;
+  forksCount: number;
+  primaryLanguage: string;
+  topics: string[];
+  homepage: string;
+  license: string | null;
+  avatarUrl?: string;
+  isFallback?: boolean;
+}
+
+export function AddRepoModal({
+  isOpen,
+  categories,
+  defaultCategoryId,
+  onClose,
+  onRepoAdded,
+}: AddRepoModalProps) {
+  const [url, setUrl] = useState('');
+  const [isFetching, setIsFetching] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [previewData, setPreviewData] = useState<RepoPreviewData | null>(null);
+  const [repoName, setRepoName] = useState('');
+
+  const [selectedCatId, setSelectedCatId] = useState<string>(categories[0]?.id || 'cat-5');
+  const [selectedSubId, setSelectedSubId] = useState<string>('none');
+  const [customSubName, setCustomSubName] = useState<string>('');
+  const [notes, setNotes] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [isCatDropdownOpen, setIsCatDropdownOpen] = useState(false);
+  const [isSubDropdownOpen, setIsSubDropdownOpen] = useState(false);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target?.closest('.custom-category-dropdown')) {
+        setIsCatDropdownOpen(false);
+        setIsSubDropdownOpen(false);
+      }
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, []);
+
+  // Sinkronkan kategori aktif saat modal dibuka
+  useEffect(() => {
+    if (isOpen) {
+      if (defaultCategoryId && categories.some(c => c.id === defaultCategoryId)) {
+        setSelectedCatId(defaultCategoryId);
+      } else if (categories.length > 0) {
+        // Utamakan AI Agent Skills & Tools jika ada
+        const agentCat = categories.find(c => c.id === 'cat-5');
+        setSelectedCatId(agentCat ? agentCat.id : categories[0].id);
+      }
+      setSelectedSubId('none');
+      setCustomSubName('');
+      setRepoName('');
+      setFetchError(null);
+      setIsCatDropdownOpen(false);
+      setIsSubDropdownOpen(false);
+    }
+  }, [isOpen, defaultCategoryId, categories]);
+
+  if (!isOpen) return null;
+
+  const currentCat = categories.find(c => c.id === selectedCatId) || categories[0];
+
+  const handleAutoFetch = async (targetUrl?: string) => {
+    const rawUrl = (targetUrl || url).trim();
+    if (!rawUrl) {
+      setFetchError('Silakan masukkan URL GitHub terlebih dahulu.');
+      return;
+    }
+
+    setFetchError(null);
+    setIsFetching(true);
+
+    try {
+      const parsed = parseGitHubUrl(rawUrl);
+      if (!parsed) {
+        throw new Error('Format URL tidak valid. Gunakan format https://github.com/owner/repository');
+      }
+
+      const { owner, repo } = parsed;
+      let data: any = null;
+
+      // 1. Coba lewat proxy internal Next.js (yang telah dilengkapi 3-tier fallback)
+      try {
+        const proxyRes = await fetch(`/api/github/inspect?url=${encodeURIComponent(rawUrl)}`, {
+          signal: AbortSignal.timeout(8000),
+        });
+        if (proxyRes.ok) {
+          const json = await proxyRes.json();
+          if (json && !json.error) {
+            data = json;
+          } else if (json?.error && proxyRes.status === 404) {
+            throw new Error(json.error);
+          }
+        }
+      } catch (err: any) {
+        if (err.message && err.message.includes('404')) throw err;
+      }
+
+      // 2. Coba fallback ke Express backend jika proxy Next.js belum mengembalikan data
+      if (!data) {
+        try {
+          const beRes = await fetch(`http://localhost:4000/api/github/inspect?url=${encodeURIComponent(rawUrl)}`, {
+            signal: AbortSignal.timeout(8000),
+          });
+          if (beRes.ok) {
+            const json = await beRes.json();
+            if (json && !json.error) {
+              data = json;
+            } else if (json?.error && beRes.status === 404) {
+              throw new Error(json.error);
+            }
+          }
+        } catch (err: any) {
+          if (err.message && err.message.includes('404')) throw err;
+        }
+      }
+
+      // 3. Fallback Heuristik Aman (Menjamin modal tetap bisa digunakan meski GitHub offline/rate limited)
+      if (!data) {
+        data = {
+          owner,
+          name: repo,
+          fullName: `${owner}/${repo}`,
+          description: `Repositori ${owner}/${repo}`,
+          starsCount: 0,
+          forksCount: 0,
+          primaryLanguage: 'Unknown',
+          topics: [],
+          homepage: '',
+          license: null,
+          avatarUrl: `https://github.com/${owner}.png`,
+          isFallback: true,
+        };
+      }
+
+      setPreviewData(data);
+      if (data?.name) {
+        setRepoName(data.name);
+      }
+    } catch (err: any) {
+      setFetchError(err.message || 'Terjadi kesalahan saat memeriksa GitHub URL.');
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!url.trim()) {
+      setFetchError('URL GitHub wajib diisi.');
+      return;
+    }
+
+    setIsSaving(true);
+    setFetchError(null);
+
+    // Fallback data jika auto-fetch belum selesai/gagal
+    let finalPreview: RepoPreviewData | null = previewData;
+    if (!finalPreview) {
+      const parsed = parseGitHubUrl(url);
+      if (parsed) {
+        finalPreview = {
+          owner: parsed.owner,
+          name: parsed.repo,
+          fullName: `${parsed.owner}/${parsed.repo}`,
+          description: `Repositori ${parsed.owner}/${parsed.repo}`,
+          starsCount: 0,
+          forksCount: 0,
+          primaryLanguage: 'Unknown',
+          topics: [],
+          homepage: '',
+          license: null,
+          avatarUrl: `https://github.com/${parsed.owner}.png`,
+        };
+      } else {
+        setFetchError('Format URL GitHub tidak valid. Harap periksa kembali.');
+        setIsSaving(false);
+        return;
+      }
+    }
+
+    if (!finalPreview) {
+      setIsSaving(false);
+      return;
+    }
+
+    let finalSubId: string | undefined = undefined;
+    let finalSubName: string | undefined = undefined;
+
+    if (selectedSubId === 'create_new' && customSubName.trim()) {
+      finalSubName = customSubName.trim();
+    } else if (selectedSubId !== 'none') {
+      const foundSub = currentCat?.subCategories?.find(s => s.id === selectedSubId);
+      if (foundSub) {
+        finalSubId = foundSub.id;
+        finalSubName = foundSub.name;
+      }
+    }
+
+    const finalName = repoName.trim() || finalPreview.name;
+
+    const newRepoItem: RepoCardData = {
+      id: `repo-${Date.now()}`,
+      categoryId: selectedCatId,
+      subCategoryId: finalSubId,
+      categoryName: currentCat?.name || 'AI General',
+      subCategoryName: finalSubName,
+      githubUrl: url.trim(),
+      owner: finalPreview.owner,
+      name: finalName,
+      fullName: finalPreview.fullName,
+      description: finalPreview.description,
+      starsCount: finalPreview.starsCount,
+      forksCount: finalPreview.forksCount,
+      primaryLanguage: finalPreview.primaryLanguage,
+      topics: finalPreview.topics,
+    };
+
+    try {
+      const saveRes = await createRepositoryAction({
+        ...newRepoItem,
+        notes: notes.trim(),
+        license: finalPreview.license,
+        homepage: finalPreview.homepage,
+      });
+
+      const createdSub = saveRes?.createdSubCategory
+        ? { ...saveRes.createdSubCategory, categoryId: selectedCatId }
+        : (selectedSubId === 'create_new' && finalSubName ? {
+            id: saveRes?.repository?.subCategoryId || `sub-${Date.now()}`,
+            name: finalSubName,
+            slug: finalSubName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+            categoryId: selectedCatId,
+          } : undefined);
+
+      if (createdSub) {
+        newRepoItem.subCategoryId = createdSub.id;
+      }
+
+      onRepoAdded(newRepoItem, createdSub);
+      onClose();
+      // Reset form
+      setUrl('');
+      setPreviewData(null);
+      setRepoName('');
+      setSelectedSubId('none');
+      setCustomSubName('');
+      setNotes('');
+    } catch (err: any) {
+      setFetchError(err.message || 'Gagal menyimpan repositori ke database.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div className="glass-panel-elevated w-full max-w-lg rounded-2xl p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+              <Plus className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-100">Tambah Repository Baru</h3>
+              <p className="text-[11px] text-slate-400">Paste link GitHub untuk auto-fetch detail</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-100">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="space-y-4 text-xs">
+          {/* URL Input & Auto-fetch Button */}
+          <div>
+            <label className="block font-medium text-slate-300 mb-1">GitHub URL</label>
+            <div className="flex space-x-2">
+              <input 
+                type="url" 
+                value={url}
+                onChange={e => {
+                  const newUrl = e.target.value;
+                  setUrl(newUrl);
+                  if (fetchError) setFetchError(null);
+                  const parsed = parseGitHubUrl(newUrl);
+                  if (parsed?.repo) {
+                    setRepoName(prev => (!prev || prev === previewData?.name ? parsed.repo : prev));
+                  }
+                }}
+                onBlur={() => {
+                  if (url.trim().includes('github.com') && !previewData && !isFetching) {
+                    handleAutoFetch();
+                  }
+                }}
+                onPaste={e => {
+                  const pasted = e.clipboardData.getData('text');
+                  if (pasted && pasted.includes('github.com')) {
+                    const parsed = parseGitHubUrl(pasted);
+                    if (parsed?.repo) {
+                      setRepoName(parsed.repo);
+                    }
+                    handleAutoFetch(pasted);
+                  }
+                }}
+                onKeyDown={e => { if (e.key === 'Enter') handleAutoFetch(); }}
+                placeholder="https://github.com/owner/repository" 
+                className="flex-1 px-3 py-2 rounded-xl glass-input text-slate-100 focus:outline-none font-mono text-xs"
+              />
+              <button 
+                type="button"
+                onClick={() => handleAutoFetch()}
+                disabled={isFetching}
+                className="px-3 py-2 glass-panel hover:bg-white/10 text-slate-200 rounded-xl font-medium flex items-center space-x-1.5 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                {isFetching ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                    <span>Fetching...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Auto Fetch</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Form Nama Repository (Auto-detect dari GitHub & Bisa diedit langsung) */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="font-medium text-slate-300">Nama Repository</label>
+              <span className="text-[10px] text-indigo-400 font-mono">
+                Auto-sync GitHub • Bisa diedit
+              </span>
+            </div>
+            <div className="relative">
+              <input 
+                type="text" 
+                value={repoName}
+                onChange={e => setRepoName(e.target.value)}
+                placeholder="Contoh: superpowers (otomatis terisi saat URL dimasukkan)" 
+                className="w-full px-3 py-2 rounded-xl glass-input text-slate-100 placeholder-slate-500 focus:outline-none font-medium text-xs border border-white/10 focus:border-indigo-500/50 transition-all"
+              />
+              {repoName && (
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center space-x-1 pointer-events-none">
+                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                    Nama Aktif
+                  </span>
+                </div>
+              )}
+            </div>
+            <p className="text-[10px] text-slate-400 mt-1">
+              Nama ini akan ditampilkan sebagai judul kartu dan nama di menu sidebar sub-group.
+            </p>
+          </div>
+
+          {/* Error notice */}
+          {fetchError && (
+            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 flex items-center space-x-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{fetchError}</span>
+            </div>
+          )}
+
+          {/* Preview Card Section (Dynamically Loaded) */}
+          {previewData && (
+            <div className="p-3.5 bg-black/40 rounded-xl border border-white/10 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="font-semibold text-slate-200 flex items-center space-x-1.5">
+                  <FolderGit2 className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>{previewData.fullName}</span>
+                </div>
+                {previewData.isFallback ? (
+                  <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded flex items-center space-x-1">
+                    <Sparkles className="w-3 h-3" />
+                    <span>Mode Dasar (Offline/Rate-Limit)</span>
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded flex items-center space-x-1">
+                    <Check className="w-3 h-3" />
+                    <span>Metadata Terverifikasi</span>
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-400 line-clamp-2">{previewData.description}</p>
+              <div className="flex items-center space-x-3 text-[10px] font-mono text-slate-400 pt-1">
+                <span className="text-amber-400 flex items-center space-x-1">
+                  <Star className="w-3 h-3 fill-amber-400" />
+                  <span>{formatCompactNumber(previewData.starsCount)}</span>
+                </span>
+                <span className="flex items-center space-x-1">
+                  <GitFork className="w-3 h-3" />
+                  <span>{formatCompactNumber(previewData.forksCount)}</span>
+                </span>
+                <span className="text-indigo-400">{previewData.primaryLanguage}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Category & Sub Category Selection */}
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              {/* Custom Glass Dropdown: Kategori Utama */}
+              <div className="relative custom-category-dropdown">
+                <label className="block font-medium text-slate-300 mb-1">Kategori Utama</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCatDropdownOpen(!isCatDropdownOpen);
+                    setIsSubDropdownOpen(false);
+                  }}
+                  className="w-full px-3 py-2 rounded-xl glass-input text-slate-200 focus:outline-none flex items-center justify-between text-left cursor-pointer border border-white/10 hover:border-white/20 transition-all"
+                >
+                  <span className="truncate">{currentCat?.name || 'Pilih Kategori'}</span>
+                  <ChevronDown
+                    className={cn(
+                      "w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0",
+                      isCatDropdownOpen && "rotate-180 text-indigo-400"
+                    )}
+                  />
+                </button>
+
+                {isCatDropdownOpen && (
+                  <div className="absolute left-0 right-0 top-full mt-1.5 rounded-2xl glass-dropdown-surface p-1.5 shadow-2xl z-50 border border-white/10 dropdown-airfall max-h-56 overflow-y-auto space-y-0.5">
+                    <div className="px-2.5 py-1 text-[10px] font-mono tracking-wider uppercase text-slate-400 border-b border-white/10 mb-1">
+                      Kategori Utama
+                    </div>
+                    {categories.map(cat => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCatId(cat.id);
+                          setSelectedSubId('none');
+                          setCustomSubName('');
+                          setIsCatDropdownOpen(false);
+                        }}
+                        className={cn(
+                          "w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between hover:bg-white/10 transition-all text-slate-200 hover:text-white cursor-pointer",
+                          selectedCatId === cat.id && "bg-white/10 font-semibold text-white"
+                        )}
+                      >
+                        <span className="truncate">{cat.name}</span>
+                        {selectedCatId === cat.id && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-1.5" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Custom Glass Dropdown: Sub Kategori */}
+              <div className="relative custom-category-dropdown">
+                <label className="block font-medium text-slate-300 mb-1">Sub Kategori</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSubDropdownOpen(!isSubDropdownOpen);
+                    setIsCatDropdownOpen(false);
+                  }}
+                  className="w-full px-3 py-2 rounded-xl glass-input text-slate-200 focus:outline-none flex items-center justify-between text-left cursor-pointer border border-white/10 hover:border-white/20 transition-all"
+                >
+                  <span className="truncate">
+                    {selectedSubId === 'create_new'
+                      ? '+ Buat Sub-kategori Baru...'
+                      : selectedSubId === 'none'
+                      ? '-- Tanpa Sub-kategori --'
+                      : (currentCat?.subCategories?.find(s => s.id === selectedSubId)?.name || '-- Tanpa Sub-kategori --')}
+                  </span>
+                  <ChevronDown
+                    className={cn(
+                      "w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0",
+                      isSubDropdownOpen && "rotate-180 text-indigo-400"
+                    )}
+                  />
+                </button>
+
+                {isSubDropdownOpen && (
+                  <div className="absolute left-0 right-0 top-full mt-1.5 rounded-2xl glass-dropdown-surface p-1.5 shadow-2xl z-50 border border-white/10 dropdown-airfall max-h-56 overflow-y-auto space-y-0.5">
+                    <div className="px-2.5 py-1 text-[10px] font-mono tracking-wider uppercase text-slate-400 border-b border-white/10 mb-1">
+                      Sub-Kategori
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedSubId('none');
+                        setCustomSubName('');
+                        setIsSubDropdownOpen(false);
+                      }}
+                      className={cn(
+                        "w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between hover:bg-white/10 transition-all text-slate-200 hover:text-white cursor-pointer",
+                        selectedSubId === 'none' && "bg-white/10 font-semibold text-white"
+                      )}
+                    >
+                      <span className="truncate">-- Tanpa Sub-kategori --</span>
+                      {selectedSubId === 'none' && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-1.5" />}
+                    </button>
+
+                    {(currentCat?.subCategories || []).map(sub => (
+                      <button
+                        key={sub.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedSubId(sub.id);
+                          setCustomSubName('');
+                          setIsSubDropdownOpen(false);
+                        }}
+                        className={cn(
+                          "w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between hover:bg-white/10 transition-all text-slate-200 hover:text-white cursor-pointer",
+                          selectedSubId === sub.id && "bg-white/10 font-semibold text-white"
+                        )}
+                      >
+                        <span className="truncate">{sub.name}</span>
+                        {selectedSubId === sub.id && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-1.5" />}
+                      </button>
+                    ))}
+
+                    <div className="border-t border-white/10 my-1" />
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedSubId('create_new');
+                        setIsSubDropdownOpen(false);
+                      }}
+                      className={cn(
+                        "w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 transition-all cursor-pointer font-semibold",
+                        selectedSubId === 'create_new' && "bg-indigo-500/20 text-white"
+                      )}
+                    >
+                      <span className="truncate">+ Buat Sub-kategori Baru...</span>
+                      {selectedSubId === 'create_new' && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-1.5" />}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {selectedSubId === 'create_new' && (
+              <div className="p-3 bg-indigo-500/10 border border-indigo-500/25 rounded-xl space-y-1.5 animate-in fade-in duration-150">
+                <label className="block font-medium text-indigo-300 text-[11px]">Nama Sub-kategori Baru</label>
+                <input 
+                  type="text" 
+                  value={customSubName}
+                  onChange={e => setCustomSubName(e.target.value)}
+                  placeholder="Contoh: Prompt Optimization, Code Reviewers, Token Analytics" 
+                  className="w-full px-3 py-1.5 rounded-lg glass-input text-slate-200 focus:outline-none font-medium text-xs border border-indigo-400/40"
+                  autoFocus
+                />
+                <p className="text-[10px] text-slate-400">Sub-kategori ini akan otomatis dibuat dan langsung muncul di menu Sidebar.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Custom Notes */}
+          <div>
+            <label className="block font-medium text-slate-300 mb-1">Catatan Pribadi (Opsional)</label>
+            <textarea 
+              rows={2} 
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder="Alasan menyimpan atau usecase repo ini..." 
+              className="w-full px-3 py-2 rounded-xl glass-input text-slate-200 focus:outline-none text-xs"
+            />
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center justify-end space-x-3 border-t border-white/10 pt-4">
+          <button 
+            type="button"
+            onClick={onClose} 
+            className="px-4 py-2 rounded-xl text-xs text-slate-400 hover:text-slate-200 cursor-pointer"
+          >
+            Batal
+          </button>
+          <button 
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving || !url.trim()}
+            className="px-4 py-2 rounded-xl text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/30 border border-indigo-400/30 active:scale-95 transition-all disabled:opacity-50 flex items-center space-x-1.5 cursor-pointer"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Menyimpan...</span>
+              </>
+            ) : (
+              <span>Simpan ke Library</span>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
