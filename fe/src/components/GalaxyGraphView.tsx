@@ -177,9 +177,9 @@ export function GalaxyGraphView({
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x05070b, 0.00035);
 
-    // 2. Camera: expansive view angle 60, position set to spacious galactic overview (0, 1150, 3200)
-    const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 18000);
-    camera.position.set(0, 1150, 3200);
+    // 2. Camera: expansive view angle 60, position set to spacious galactic overview (0, 1800, 4200)
+    const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 22000);
+    camera.position.set(0, 1800, 4200);
 
     // 3. Renderer with vibrant tone mapping
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -193,7 +193,7 @@ export function GalaxyGraphView({
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.maxDistance = 16000;
+    controls.maxDistance = 20000;
     controls.minDistance = 60;
     controls.autoRotate = autoRotate;
     controls.autoRotateSpeed = 0.65;
@@ -838,8 +838,8 @@ export function GalaxyGraphView({
     const { camera, controls } = threeState;
     gsap.to(camera.position, {
       x: 0,
-      y: 1150,
-      z: 3200,
+      y: 1800,
+      z: 4200,
       duration: 1.25,
       ease: "power3.inOut"
     });
@@ -857,7 +857,7 @@ export function GalaxyGraphView({
     const { camera, controls } = threeState;
     gsap.to(camera.position, {
       x: 0,
-      y: 5200,
+      y: 7200,
       z: 1,
       duration: 1.3,
       ease: "power3.inOut"
@@ -924,7 +924,7 @@ export function GalaxyGraphView({
 
     // Memetakan repositori aktif ke dalam Multi-System Galaxy Islands (360-Degree Omni-Directional Blossom & Conformal Zero-Crossing Layout)
     const catCount = propCategories.length;
-    const catRadius = Math.max(1950, 1200 + catCount * 55);
+    const catRadius = Math.max(2400, 1500 + catCount * 110);
     const yElevations = [-60, 60, -50, 70];
     const catColors = ['#c084fc', '#f472b6', '#38bdf8', '#4ade80', '#fb923c', '#e879f9', '#a78bfa', '#34d399'];
 
@@ -1017,13 +1017,19 @@ export function GalaxyGraphView({
         const subRepos = catRepos.filter(r => (r as unknown as { assignedSubId: string }).assignedSubId === sub.id);
         const rCount = subRepos.length;
 
-        // Keep repository rays inside subcategory's exclusive angular sector
-        const maxWiggle = Math.min(0.08, (angleStep / 2) * 0.4);
+        // Formasi Mekar (Blossom Fan): Repositori mekar menyebar dalam sudut busur agar tidak berupa 1 garis lurus
+        const maxFan = Math.min(0.68, Math.max(0.26, angleStep * 0.65));
 
         subRepos.forEach((repo, rIdx) => {
-          // Staggered outward spine along the radial ray
-          const repoDist = 72 + rIdx * 56;
-          const repoAngle = subAngle + (rCount > 1 ? (rIdx % 2 === 0 ? maxWiggle : -maxWiggle) : 0);
+          let repoAngle = subAngle;
+          if (rCount > 1) {
+            // Sebar sudut secara simetris dari -maxFan/2 hingga +maxFan/2
+            const t = (rIdx / (rCount - 1)) - 0.5;
+            repoAngle = subAngle + t * maxFan;
+          }
+
+          // Jarak bertingkat (staggered step) menjamin repositori tidak pernah menumpuk satu sama lain
+          const repoDist = 78 + rIdx * 56;
 
           const rx = sx + Math.cos(repoAngle) * repoDist;
           const rz = sz + Math.sin(repoAngle) * repoDist;
@@ -1062,7 +1068,7 @@ export function GalaxyGraphView({
     const uniqueLangs = Array.from(new Set(propRepositories.map(r => r.primaryLanguage).filter(Boolean))) as string[];
     uniqueLangs.slice(0, 6).forEach((lang, idx) => {
       const angle = (idx / uniqueLangs.length) * Math.PI * 2 + 0.32;
-      const dist = catRadius + 600;
+      const dist = catRadius + 850;
       const x = Math.cos(angle) * dist;
       const z = Math.sin(angle) * dist;
       const y = idx % 2 === 0 ? 140 : -140;
@@ -1091,7 +1097,7 @@ export function GalaxyGraphView({
     const topTopics = Array.from(new Set(allTopics)).slice(0, 8);
     topTopics.forEach((top, idx) => {
       const angle = (idx / topTopics.length) * Math.PI * 2 + 0.18;
-      const dist = catRadius + 850 + (idx % 2) * 60;
+      const dist = catRadius + 1100 + (idx % 2) * 65;
       const x = Math.cos(angle) * dist;
       const z = Math.sin(angle) * dist;
       const y = Math.sin(idx * 1.5) * 85;

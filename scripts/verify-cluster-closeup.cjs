@@ -13,53 +13,59 @@ const ARTIFACT_DIR = 'C:/Users/fahmi/.gemini/antigravity/brain/0acf92f7-a477-43e
   await page.waitForFunction(() => !!window.__threeGalaxy && window.__threeGalaxy.nodeObjects.length > 0);
   await page.waitForTimeout(1000);
 
-  // Click sun button for AI Agent Frameworks to highlight its connections
-  const sunBtns = page.locator('button[title*="Highlight Grup AI Agent Frameworks"]');
-  if (await sunBtns.count() > 0) {
-    await sunBtns.first().click();
-    await page.waitForTimeout(600);
-  }
+  // 1. Focus on AI Agent Skills & Tools (has subs with 4, 6, 8 repos)
+  await page.evaluate(() => {
+    const nodes = window.__threeGalaxy.nodeObjects;
+    const cat = nodes.find(n => n.type === 'category' && n.name.includes('AI Agent Skills'));
+    if (!cat) return;
 
-  // Collapse sidebar to see full canvas
-  await page.keyboard.press('Control+b');
-  await page.waitForTimeout(500);
+    const controls = window.__threeGalaxy.controls;
+    const camera = window.__threeGalaxy.camera;
+    controls.target.set(cat.x, 0, cat.z);
+    camera.position.set(cat.x, 1400, cat.z + 5);
+    controls.update();
+  });
+  await page.waitForTimeout(1000);
 
-  // Focus camera directly on AI Agent Frameworks cluster from top
+  const skillsTopDownPath = path.join(ARTIFACT_DIR, 'fe_galaxy_skills_blossom_topdown.png');
+  await page.screenshot({ path: skillsTopDownPath });
+  console.log('1. Skills topdown saved to:', skillsTopDownPath);
+
+  // 2. Focus on AI Agent Frameworks (the one in user's image)
   await page.evaluate(() => {
     const nodes = window.__threeGalaxy.nodeObjects;
     const cat = nodes.find(n => n.type === 'category' && n.name.includes('AI Agent Frameworks'));
     if (!cat) return;
 
-    // Move controls target to this cluster center
     const controls = window.__threeGalaxy.controls;
     const camera = window.__threeGalaxy.camera;
     controls.target.set(cat.x, 0, cat.z);
-    camera.position.set(cat.x, 1600, cat.z + 5);
+    camera.position.set(cat.x, 1400, cat.z + 5);
     controls.update();
   });
-  await page.waitForTimeout(1200);
+  await page.waitForTimeout(1000);
 
-  const clusterZoomPath = path.join(ARTIFACT_DIR, 'fe_galaxy_cluster_closeup_topdown.png');
-  await page.screenshot({ path: clusterZoomPath });
-  console.log('Closeup topdown saved to:', clusterZoomPath);
+  const frameworksTopDownPath = path.join(ARTIFACT_DIR, 'fe_galaxy_frameworks_blossom_topdown.png');
+  await page.screenshot({ path: frameworksTopDownPath });
+  console.log('2. Frameworks topdown saved to:', frameworksTopDownPath);
 
-  // Also take angled 3D view of the cluster
+  // 3. 3D Angled view of AI Agent Skills
   await page.evaluate(() => {
     const nodes = window.__threeGalaxy.nodeObjects;
-    const cat = nodes.find(n => n.type === 'category' && n.name.includes('AI Agent Frameworks'));
+    const cat = nodes.find(n => n.type === 'category' && n.name.includes('AI Agent Skills'));
     if (!cat) return;
     const controls = window.__threeGalaxy.controls;
     const camera = window.__threeGalaxy.camera;
     controls.target.set(cat.x, 0, cat.z);
-    camera.position.set(cat.x, 850, cat.z + 1100);
+    camera.position.set(cat.x, 700, cat.z + 800);
     controls.update();
   });
-  await page.waitForTimeout(1200);
+  await page.waitForTimeout(1000);
 
-  const cluster3DPath = path.join(ARTIFACT_DIR, 'fe_galaxy_cluster_closeup_3d.png');
-  await page.screenshot({ path: cluster3DPath });
-  console.log('Closeup 3D saved to:', cluster3DPath);
+  const skills3DPath = path.join(ARTIFACT_DIR, 'fe_galaxy_skills_blossom_3d.png');
+  await page.screenshot({ path: skills3DPath });
+  console.log('3. Skills 3D saved to:', skills3DPath);
 
   await browser.close();
-  console.log('Done!');
+  console.log('All screenshots captured successfully!');
 })();
