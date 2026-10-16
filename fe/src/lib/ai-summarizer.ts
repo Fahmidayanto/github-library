@@ -529,6 +529,81 @@ export interface CategorySuggestion {
   subCategoryName: string;
   reason: string;
   confidence?: number;
+  isFallback?: boolean;
+}
+
+export function buildHeuristicCategorySuggestion(
+  repoMeta: {
+    owner: string;
+    name: string;
+    fullName?: string;
+    description?: string | null;
+    primaryLanguage?: string | null;
+    topics?: string[] | null;
+  },
+  existingCategories: Array<{
+    id: string;
+    name: string;
+    subCategories?: Array<{ id: string; name: string }>;
+  }>
+): CategorySuggestion {
+  const text = `${repoMeta.name} ${repoMeta.fullName || ''} ${repoMeta.description || ''} ${(repoMeta.topics || []).join(' ')} ${repoMeta.primaryLanguage || ''}`.toLowerCase();
+
+  // 1. Cek kecocokan kata kunci di sub-kategori
+  for (const cat of existingCategories) {
+    for (const sub of cat.subCategories || []) {
+      const subWords = sub.name.toLowerCase().split(/[\s,&/-]+/);
+      if (subWords.some(w => w.length > 2 && text.includes(w))) {
+        return {
+          scenario: 'existing_all',
+          categoryId: cat.id,
+          categoryName: cat.name,
+          subCategoryId: sub.id,
+          subCategoryName: sub.name,
+          reason: `Dipetakan ke "${cat.name} > ${sub.name}" berdasarkan kecocokan kata kunci repositori (Mode Heuristik).`,
+          confidence: 0.75,
+          isFallback: true,
+        };
+      }
+    }
+  }
+
+  // 2. Cek kecocokan di kategori utama
+  for (const cat of existingCategories) {
+    const catWords = cat.name.toLowerCase().split(/[\s,&/-]+/);
+    if (catWords.some(w => w.length > 3 && text.includes(w))) {
+      const firstSub = cat.subCategories?.[0];
+      return {
+        scenario: 'existing_all',
+        categoryId: cat.id,
+        categoryName: cat.name,
+        subCategoryId: firstSub?.id || null,
+        subCategoryName: firstSub?.name || 'General',
+        reason: `Dipetakan ke kategori "${cat.name}" berdasarkan topik repositori (Mode Heuristik).`,
+        confidence: 0.7,
+        isFallback: true,
+      };
+    }
+  }
+
+  // 3. Fallback ke cat-5 atau kategori pertama
+  const defaultCat = existingCategories.find(c => c.id === 'cat-5') || existingCategories[0] || {
+    id: 'cat-general',
+    name: 'AI General',
+    subCategories: [{ id: 'sub-general', name: 'General' }],
+  };
+  const defaultSub = defaultCat.subCategories?.[0];
+
+  return {
+    scenario: 'existing_all',
+    categoryId: defaultCat.id,
+    categoryName: defaultCat.name,
+    subCategoryId: defaultSub?.id || null,
+    subCategoryName: defaultSub?.name || 'General',
+    reason: 'Kategori standar yang direkomendasikan untuk repositori AI/developer tools (Mode Heuristik).',
+    confidence: 0.6,
+    isFallback: true,
+  };
 }
 
 export async function suggestCategoryForRepo(
@@ -545,7 +620,7 @@ export async function suggestCategoryForRepo(
     name: string;
     subCategories?: Array<{ id: string; name: string }>;
   }>
-): Promise<CategorySuggestion | null> {
+): Promise<CategorySuggestion> {
   const hierarchyText = existingCategories
     .map(c => {
       const subs = (c.subCategories || []).map(s => `"${s.name}" (ID: ${s.id})`).join(', ');
@@ -584,12 +659,14 @@ Keluarkan HANYA objek JSON valid (tanpa markdown backtick atau teks lain).
 
   try {
     const raw = await callAiAgent(prompt);
-    if (!raw) return null;
+    if (!raw) {
+      return buildHeuristicCategorySuggestion(repoMeta, existingCategories);
+    }
     const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
     const parsed = JSON.parse(cleaned);
 
     if (!parsed || !parsed.scenario || !parsed.categoryName || !parsed.subCategoryName) {
-      return null;
+      return buildHeuristicCategorySuggestion(repoMeta, existingCategories);
     }
 
     if (parsed.scenario === 'existing_all' || parsed.scenario === 'existing_group_new_sub') {
@@ -620,7 +697,7 @@ Keluarkan HANYA objek JSON valid (tanpa markdown backtick atau teks lain).
 
     return parsed as CategorySuggestion;
   } catch (err) {
-    console.warn('ai-summarizer: Gagal suggestCategoryForRepo:', err);
-    return null;
+    console.warn('ai-summarizer: Gagal suggestCategoryForRepo, beralih ke heuristik:', err);
+    return buildHeuristicCategorySuggestion(repoMeta, existingCategories);
   }
 }

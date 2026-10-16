@@ -1986,5 +1986,133 @@
       }
     ],
     "cloneCommand": "git clone https://github.com/colbymchenry/codegraph.git"
+  },
+  "graphify-labs/graphify": {
+    "corePurpose": "Graphify mengubah basis kode, dokumentasi, skema SQL, dan PDF menjadi graf pengetahuan yang dapat ditelusuri (queryable knowledge graph) menggunakan parsing AST deterministik berbasis tree-sitter. Arsitekturnya bersifat lokal-first dan tanpa vektor store, di mana setiap koneksi (edge) diberi tag kepercayaan (EXTRACTED atau INFERRED) untuk membedakan fakta eksplisit dari inferensi, memungkinkan developer menelusuri hubungan antar-konsep tanpa membaca file secara manual.",
+    "problemsSolved": [
+      {
+        "title": "Inefisiensi Pencarian Kode (Grep vs Graph)",
+        "description": "Developer sering kali menghabiskan waktu dan token LLM yang besar untuk mencari konteks dengan grep atau membaca file satu per satu. Graphify menyelesaikan ini dengan membangun graf persisten yang memungkinkan query langsung terhadap hubungan antar-entitas, mengurangi kebutuhan untuk memindai ulang kode setiap kali ada pertanyaan."
+      },
+      {
+        "title": "Ketiadaan Transparansi dalam Inferensi LLM",
+        "description": "Sistem RAG vektor tradisional sering kali memberikan jawaban tanpa menjelaskan asal-usul data atau tingkat kepercayaannya. Graphify menandai setiap edge sebagai 'EXTRACTED' (dibaca langsung dari sumber) atau 'INFERRED' (dihitung oleh algoritma), sehingga developer dapat memverifikasi apakah koneksi tersebut eksplisit dalam kode atau hasil resolusi logika."
+      },
+      {
+        "title": "Fragmentasi Konteks Antar-File dan Bahasa",
+        "description": "Memahami alur data atau dependensi antar-file dalam monorepo besar yang menggunakan berbagai bahasa (Python, JS, Go, dll.) sangat sulit. Graphify menggunakan tree-sitter untuk memetakan hubungan lintas file (calls, imports, inherits) dalam ~40 bahasa ke dalam satu struktur graf terpadu, memberikan pandangan 'bird's-eye' yang utuh."
+      }
+    ],
+    "ladderRules": [
+      "Deterministic AST Parsing: Kode diproses secara lokal menggunakan tree-sitter tanpa melibatkan LLM, menjamin konsistensi dan privasi data (nothing leaves your machine).",
+      "Edge Confidence Tagging: Setiap hubungan dalam graf diberi label EXTRACTED atau INFERRED untuk transparansi penuh mengenai asal-usul data.",
+      "Local-First Graph Traversal: Tidak menggunakan vector store atau embeddings; alih-alih itu, sistem menggunakan struktur graf nyata yang dapat ditelusuri (traverse) untuk query, path-finding, dan penjelasan konsep."
+    ],
+    "useCases": [
+      "Ketika developer perlu memahami 'blast radius' atau dampak perubahan pada satu fungsi terhadap seluruh sistem sebelum melakukan refactoring.",
+      "Saat AI coding assistant (Claude Code, Cursor, dll.) perlu konteks proyek yang akurat tanpa membakar token untuk membaca seluruh basis kode.",
+      "Untuk menelusuri jalur (shortest path) antara dua entitas yang tampaknya tidak berhubungan dalam kodebase besar, misalnya dari endpoint API hingga model database."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Menelusuri Jalur Dependensi Antar-Konsep",
+        "prompt": "\"/graphify path 'FastAPI' 'ModelField'\"",
+        "scenarioType": "efficiency",
+        "scenarioBadge": "🕸️ Graph Traversal & Context Mapping",
+        "beforeTitle": "BEFORE (Pendekatan Konvensional: Grep & Read)",
+        "beforeMeta": "Brute-force file scan • Boros token • Tidak ada visualisasi hubungan",
+        "beforeCode": "grep -r \"ModelField\" .\n# Developer harus membaca file satu per satu untuk memahami bagaimana FastAPI menggunakan ModelField.\n# LLM harus membaca ratusan baris kode untuk menemukan koneksi, menghabiskan ribuan token.",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Tidak ada cara cepat untuk melihat hubungan langsung antar-entitas."
+          },
+          {
+            "label": "Beban",
+            "value": "Tinggi: Membutuhkan banyak token LLM untuk membaca dan menganalisis file secara manual."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan graphify)",
+        "afterMeta": "Persistent graph mapping • Hemat 80% token • Jalur jelas",
+        "afterCode": "graphify path \"FastAPI\" \"ModelField\"\n# Output:\n# Shortest path (3 hops):\n# FastAPI --uses--> DefaultPlaceholder <--references-- get_request_handler() --references--> ModelField",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Menampilkan jalur terpendek antar-node dengan label hubungan (uses, references)."
+          },
+          {
+            "label": "Hasil",
+            "value": "Developer langsung melihat 3 hop koneksi tanpa membaca file sumber."
+          }
+        ],
+        "ruleBadge": "Tree-sitter AST • Leiden Community Detection",
+        "metrics": [
+          {
+            "label": "Token Efficiency",
+            "value": "-80%",
+            "color": "emerald"
+          },
+          {
+            "label": "Recall@10 (LOCOMO)",
+            "value": "0.497",
+            "color": "sky"
+          },
+          {
+            "label": "LLM Credits (Build)",
+            "value": "0",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi CLI",
+        "command": "uv tool install graphifyy",
+        "description": "Instal paket resmi 'graphifyy' (dengan dua 'y') menggunakan uv atau pipx. Pastikan Python 3.10+ terpasang."
+      },
+      {
+        "step": 2,
+        "title": "Registrasi Skill Assistant",
+        "command": "graphify install",
+        "description": "Perintah ini mendeteksi AI assistant yang digunakan (Claude Code, Cursor, Codex, dll.) dan mendaftarkan skill /graphify secara otomatis ke profil user atau proyek."
+      },
+      {
+        "step": 3,
+        "title": "Eksekusi Peta Graf",
+        "command": "/graphify .",
+        "description": "Jalankan perintah ini di dalam AI assistant untuk memetakan seluruh direktori saat ini menjadi graf pengetahuan. Hasilnya disimpan di folder graphify-out/."
+      }
+    ],
+    "commands": [
+      {
+        "command": "/graphify .",
+        "function": "Slash command utama untuk membangun graf pengetahuan dari basis kode, dokumentasi, dan file media di direktori saat ini.",
+        "example": "/graphify ."
+      },
+      {
+        "command": "graphify explain <concept>",
+        "function": "Menjelaskan satu konsep/node spesifik, menampilkan sumber, komunitas, derajat koneksi, dan daftar koneksi dengan tag kepercayaan (EXTRACTED/INFERRED).",
+        "example": "graphify explain \"APIRouter\""
+      },
+      {
+        "command": "graphify path <nodeA> <nodeB>",
+        "function": "Menelusuri jalur terpendek (shortest path) antara dua entitas dalam graf, menampilkan hop-by-hop koneksi.",
+        "example": "graphify path \"FastAPI\" \"ModelField\""
+      },
+      {
+        "command": "graphify query <question>",
+        "function": "Mengembalikan subgraf yang relevan untuk pertanyaan dalam bahasa alami, memungkinkan pencarian semantik tanpa vektor store.",
+        "example": "graphify query \"How does authentication work?\""
+      },
+      {
+        "command": "graphify install",
+        "function": "Mendeteksi platform AI assistant yang terpasang dan mendaftarkan skill graphify ke konfigurasi assistant tersebut.",
+        "example": "graphify install --project --platform codex"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/Graphify-Labs/graphify.git"
   }
 }

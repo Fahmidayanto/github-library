@@ -201,6 +201,58 @@ export function AddRepoModal({
     }
   };
 
+function generateClientHeuristicSuggestion(
+  repo: RepoPreviewData,
+  categories: Category[]
+) {
+  const text = `${repo.name} ${repo.description || ''} ${(repo.topics || []).join(' ')} ${repo.primaryLanguage || ''}`.toLowerCase();
+
+  for (const cat of categories) {
+    for (const sub of cat.subCategories || []) {
+      const subWords = sub.name.toLowerCase().split(/[\s,&/-]+/);
+      if (subWords.some(w => w.length > 2 && text.includes(w))) {
+        return {
+          scenario: 'existing_all' as const,
+          categoryId: cat.id,
+          categoryName: cat.name,
+          subCategoryId: sub.id,
+          subCategoryName: sub.name,
+          reason: `Dipetakan ke "${cat.name} > ${sub.name}" berdasarkan topik repositori (Mode Heuristik).`,
+          isFallback: true,
+        };
+      }
+    }
+  }
+
+  for (const cat of categories) {
+    const catWords = cat.name.toLowerCase().split(/[\s,&/-]+/);
+    if (catWords.some(w => w.length > 3 && text.includes(w))) {
+      const firstSub = cat.subCategories?.[0];
+      return {
+        scenario: 'existing_all' as const,
+        categoryId: cat.id,
+        categoryName: cat.name,
+        subCategoryId: firstSub?.id || 'none',
+        subCategoryName: firstSub?.name || 'General',
+        reason: `Dipetakan ke kategori "${cat.name}" berdasarkan kecocokan kata kunci (Mode Heuristik).`,
+        isFallback: true,
+      };
+    }
+  }
+
+  const defaultCat = categories.find(c => c.id === 'cat-5') || categories[0];
+  const defaultSub = defaultCat?.subCategories?.[0];
+  return {
+    scenario: 'existing_all' as const,
+    categoryId: defaultCat?.id || 'cat-5',
+    categoryName: defaultCat?.name || 'AI General',
+    subCategoryId: defaultSub?.id || 'none',
+    subCategoryName: defaultSub?.name || 'General',
+    reason: 'Kategori default yang direkomendasikan untuk repositori AI/developer tools (Mode Heuristik).',
+    isFallback: true,
+  };
+}
+
   const fetchAiCategorySuggestion = async (repoData: RepoPreviewData) => {
     setIsSuggesting(true);
     setAiSuggestion(null);
@@ -220,10 +272,17 @@ export function AddRepoModal({
         const json = await res.json();
         if (json.success && json.suggestion) {
           setAiSuggestion(json.suggestion);
+          return;
         }
       }
+
+      // Fallback lokal jika backend mengembalikan error atau timeout
+      const fallback = generateClientHeuristicSuggestion(repoData, categories);
+      setAiSuggestion(fallback);
     } catch (err) {
-      console.warn('Gagal memuat saran kategori dari AI:', err);
+      console.warn('Gagal memuat saran kategori dari AI, beralih ke fallback heuristik:', err);
+      const fallback = generateClientHeuristicSuggestion(repoData, categories);
+      setAiSuggestion(fallback);
     } finally {
       setIsSuggesting(false);
     }
@@ -585,6 +644,13 @@ export function AddRepoModal({
                     <p className="text-[11px] text-slate-300 italic">
                       "{aiSuggestion.reason}"
                     </p>
+                  )}
+
+                  {aiSuggestion.isFallback && (
+                    <div className="flex items-center space-x-1.5 text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg">
+                      <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
+                      <span>Mode Cepat (Heuristik) • Pasang <code className="text-amber-200 font-mono">GROQ_API_KEY</code> di Vercel untuk reasoning AI penuh</span>
+                    </div>
                   )}
 
                   <div className="flex justify-end pt-1">

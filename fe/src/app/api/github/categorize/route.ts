@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { suggestCategoryForRepo } from '@/lib/ai-summarizer';
 import { getCategoriesTree } from '@/app/actions';
 
+export const maxDuration = 30;
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -19,13 +22,6 @@ export async function POST(request: NextRequest) {
     }
 
     const suggestion = await suggestCategoryForRepo(repo, categories);
-    if (!suggestion) {
-      return NextResponse.json(
-        { success: false, message: 'AI tidak dapat menentukan saran kategori saat ini.' },
-        { status: 500 }
-      );
-    }
-
     return NextResponse.json({
       success: true,
       suggestion,
