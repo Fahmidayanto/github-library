@@ -1,0 +1,390 @@
+{
+  "😎 awesome lists about all kinds of interesting topics [note: pull requests are temporarily disabled until i have a chance to catch up with the existing ones]": {
+    "updatedAt": "2026-10-16T17:09:53.224Z",
+    "id": "😎 Daftar luar biasa tentang berbagai topik menarik [CATATAN: Pull request sementara dinonaktifkan sampai saya sempat meninjau yang sudah ada]"
+  },
+  ":books: freely available programming books": {
+    "updatedAt": "2026-10-16T17:09:53.224Z",
+    "id": ":books: Buku pemrograman yang tersedia secara gratis"
+  },
+  "skills for real engineers. straight from my .agents directory.": {
+    "updatedAt": "2026-10-16T17:09:53.224Z",
+    "id": "Keterampilan untuk Insinyur Nyata. Langsung dari direktori .agents saya."
+  },
+  "curated list of project-based tutorials": {
+    "updatedAt": "2026-10-16T17:09:53.224Z",
+    "id": "Daftar kurasi tutorial berbasis proyek"
+  },
+  "a single claude.md file to improve claude code behavior, derived from andrej karpathy's observations on llm coding pitfalls.": {
+    "updatedAt": "2026-10-16T17:09:53.224Z",
+    "id": "Satu file CLAUDE.md untuk meningkatkan perilaku Claude Code, diturunkan dari observasi Andrej Karpathy tentang jebakan coding LLM."
+  },
+  "python tool for converting files and office documents to markdown.": {
+    "updatedAt": "2026-10-16T17:09:53.224Z",
+    "id": "Alat Python untuk mengonversi file dan dokumen kantor ke Markdown."
+  },
+  "build agentic workflows, rag pipelines, with rich ai model and tool support on one collaborative workspace. deploy on cloud, vpc, or self-hosted, so teams move from prototype to production without rebuilding the stack.": {
+    "updatedAt": "2026-10-16T17:09:53.224Z",
+    "id": "Bangun workflow Agentic, pipeline RAG, dengan dukungan model AI dan tool yang kaya di satu workspace kolaboratif. Deploy di cloud, VPC, atau self-hosted, sehingga tim dapat beralih dari prototipe ke produksi tanpa membangun ulang stack."
+  },
+  "langflow is a powerful tool for building and deploying ai-powered agents and workflows.": {
+    "updatedAt": "2026-10-16T17:09:53.224Z",
+    "id": "Langflow adalah alat yang kuat untuk membangun dan mendeploy agen dan workflow yang didukung AI."
+  },
+  "the most powerful and modular diffusion model gui, api and backend with a graph/nodes interface. the fastest local inference engine in the world.": {
+    "updatedAt": "2026-10-16T17:09:53.224Z",
+    "id": "GUI, API, dan backend model difusi yang paling kuat dan modular dengan antarmuka graph/nodes. Mesin inferensi lokal tercepat di dunia."
+  },
+  "production-grade engineering skills for ai coding agents.": {
+    "updatedAt": "2026-10-16T17:09:53.224Z",
+    "id": "Keterampilan engineering tingkat produksi untuk agen coding AI."
+  },
+  "the open-source app everyone uses to manage agents at work": {
+    "updatedAt": "2026-10-16T17:09:53.224Z",
+    "id": "Aplikasi open-source yang digunakan semua orang untuk mengelola agen di tempat kerja"
+  },
+  "persistent context across sessions for every agent – captures everything your agent does during sessions, compresses it with ai, and injects relevant context back into future sessions. works with claude code, openclaw, codex, gemini, hermes, copilot, opencode + more": {
+    "updatedAt": "2026-10-16T17:09:53.224Z",
+    "id": "Konteks Persisten Antar Sesi untuk Setiap Agen – Mencatat semua yang dilakukan agen Anda selama sesi, mengompresnya dengan AI, dan menyuntikkan konteks yang relevan kembali ke sesi mendatang. Bekerja dengan Claude Code, OpenClaw, Codex, Gemini, Hermes, Copilot, OpenCode + Lainnya"
+  },
+  "a collection of application ideas which can be used to improve your coding skills.": {
+    "updatedAt": "2026-10-16T17:09:53.224Z",
+    "id": "Kumpulan ide aplikasi yang dapat digunakan untuk meningkatkan keterampilan coding Anda."
+  },
+  "the open-source capcut alternative": {
+    "updatedAt": "2026-10-16T17:09:53.224Z",
+    "id": "Alternatif open-source untuk CapCut"
+  },
+  "orca is the ade for working with a fleet of parallel agents. run any coding agent with your own subscription. available on desktop, mobile and remote runtime.": {
+    "updatedAt": "2026-10-16T17:09:53.224Z",
+    "id": "Orca adalah ADE untuk bekerja dengan armada agen paralel. Jalankan agen coding apa pun dengan langganan Anda sendiri. Tersedia di desktop, mobile, dan runtime remote."
+  },
+  "model context protocol servers": {
+    "updatedAt": "2026-10-16T17:09:53.224Z",
+    "id": "Server Model Context Protocol"
+  },
+  "turn any idea, plan, or codebase into a beautiful interactive diagram. an agent skill for claude code, codex, and more.": {
+    "updatedAt": "2026-10-16T17:09:53.224Z",
+    "id": "Ubah ide, rencana, atau codebase apa pun menjadi diagram interaktif yang indah. Keterampilan agen untuk Claude Code, Codex, dan lainnya."
+  },
+  "a simple and universal swarm intelligence engine, predicting anything. 简洁通用的群体智能引擎，预测万物": {
+    "updatedAt": "2026-10-16T17:09:53.224Z",
+    "id": "Mesin Kecerdaman Swarm yang Sederhana dan Universal, Memprediksi Segalanya. 简洁通用的群体智能引擎，预测万物"
+  },
+  "never stop coding. free mit ai gateway: one endpoint, 359 providers (150+ free), 1200+ models kimi, claude, gpt, gemini, glm, deepseek, minimax. works with claude code, codex, cursor, opencode, cline \\u0026 copilot. quota-aware auto-fallback, rtk+caveman compression saves 15-95% tokens, mcp/a2a, desktop/pwa. built by hundreds of contributors": {
+    "updatedAt": "2026-10-16T17:09:53.224Z",
+    "id": "Jangan pernah berhenti coding. Gerbang AI MIT gratis: satu endpoint, 359 penyedia (150+ gratis), 1200+ model Kimi, Claude, GPT, Gemini, GLM, DeepSeek, MiniMax. Bekerja dengan Claude Code, Codex, Cursor, OpenCode, Cline & Copilot. Auto-fallback yang sadar kuota, kompresi RTK+Caveman menghemat 15-95% token, MCP/A2A, Desktop/PWA. Dibangun oleh ratusan kontributor"
+  },
+  "the 30 days of python programming challenge is a step-by-step guide to learn the python programming language in 30 days. this challenge may take more than 100 days. follow your own pace. these videos may help too: https://www.youtube.com/channel/uc7pnruno1rzypb1xla4yktw": {
+    "updatedAt": "2026-10-16T17:09:53.224Z",
+    "id": "Tantangan pemrograman 30 Hari Python adalah panduan langkah demi langkah untuk mempelajari bahasa pemrograman Python dalam 30 hari. Tantangan ini mungkin memakan waktu lebih dari 100 hari. Ikuti tempo Anda sendiri. Video-video ini mungkin juga membantu: https://www.youtube.com/channel/UC7PNRuno1rzYPb1xLa4yktw"
+  },
+  "pre-indexed code knowledge graph, auto syncs on code changes, for claude code, codex, gemini, cursor, opencode, antigravity, kiro, copilot, and hermes agent — fewer tokens, fewer tool calls, 100% local": {
+    "updatedAt": "2026-10-16T17:10:09.493Z",
+    "id": "Grafik pengetahuan kode yang telah di-pre-index, otomatis sinkron saat perubahan kode, untuk Claude Code, Codex, Gemini, Cursor, OpenCode, AntiGravity, Kiro, CoPilot, dan Hermes Agent — lebih sedikit token, lebih sedikit panggilan alat, 100% lokal"
+  },
+  "learn ai engineering! learn it. build it. ship it for others.": {
+    "updatedAt": "2026-10-16T17:10:09.493Z",
+    "id": "Pelajari AI Engineering! Pelajari. Bangun. Kirimkan untuk orang lain."
+  },
+  "voicestudio is the open-source, fully-local elevenlabs alternative — voice cloning, voice design, video dubbing, dictation, transcription \\u0026 audiobook creation in 646 languages.": {
+    "updatedAt": "2026-10-16T17:10:09.493Z",
+    "id": "VoiceStudio adalah alternatif open-source dan sepenuhnya lokal untuk ElevenLabs — kloning suara, desain suara, dubbing video, dikte, transkripsi & pembuatan audiobook dalam 646 bahasa."
+  },
+  "open-source ai penetration testing tool to find and fix your app’s vulnerabilities.": {
+    "updatedAt": "2026-10-16T17:10:09.493Z",
+    "id": "Alat penetration testing AI open-source untuk menemukan dan memperbaiki kerentanan aplikasi Anda."
+  },
+  "the memory layer for ai agents - drop-in memory infrastructure for ai agents and apps. context that persists. built for production.": {
+    "updatedAt": "2026-10-16T17:10:09.493Z",
+    "id": "Memory Layer untuk AI Agents — infrastruktur memori plug-and-play bagi AI agents dan aplikasi. Konteks yang bertahan. Dibangun untuk produksi."
+  },
+  "stop renting your intelligence. own it with anythingllm. everything you need for a powerful local-first agent experience": {
+    "updatedAt": "2026-10-16T17:10:09.493Z",
+    "id": "Berhenti menyewa kecerdasan Anda. Miliki dengan AnythingLLM. Semua yang Anda butuhkan untuk pengalaman agen local-first yang kuat."
+  },
+  "a personal timeline for quick notes. write short memos, find them later by search, tag, or date. open source and self-hosted.": {
+    "updatedAt": "2026-10-16T17:10:09.493Z",
+    "id": "Timeline pribadi untuk catatan cepat. Tulis memo singkat, temukan nanti lewat pencarian, tag, atau tanggal. Open source dan dapat di-host sendiri."
+  },
+  "a skill to stop your coding agent from burying the answer. adhd-friendly output.": {
+    "updatedAt": "2026-10-16T17:10:09.493Z",
+    "id": "Skill untuk menghentikan coding agent Anda menyembunyikan jawaban. Output yang ramah ADHD."
+  },
+  "marketing skills for claude code and ai agents. cro, copywriting, seo, analytics, and growth engineering.": {
+    "updatedAt": "2026-10-16T17:10:09.493Z",
+    "id": "Skill pemasaran untuk Claude Code dan AI agents. CRO, copywriting, SEO, analytics, dan growth engineering."
+  },
+  "hindsight: agent memory that learns": {
+    "updatedAt": "2026-10-16T17:10:09.493Z",
+    "id": "Hindsight: Memori Agen yang Belajar"
+  },
+  "the job search that runs on your machine. ai job application framework built on claude code: evaluate postings, tailor cvs, write cover letters, prep interviews. fork it and own it.": {
+    "updatedAt": "2026-10-16T17:10:09.493Z",
+    "id": "Pencarian kerja yang berjalan di mesin Anda. Kerangka kerja aplikasi pekerjaan AI berbasis Claude Code: evaluasi lowongan, sesuaikan CV, tulis surat lamaran, persiapkan wawancara. Fork dan miliki."
+  },
+  "secure, fast, efficient, battle-tested at alibaba's scale. hybrid architecture code review tool: deterministic pipelines + llm agent, precise line-level comments, built-in multi-language ruleset (npe, thread-safety, xss, sql injection), openai \\u0026 anthropic compatible.": {
+    "updatedAt": "2026-10-16T17:10:09.493Z",
+    "id": "Aman, cepat, efisien, teruji pada skala Alibaba. Alat review kode arsitektur hybrid: pipeline deterministik + LLM Agent, komentar tingkat baris yang presisi, aturan multi-bahasa bawaan (NPE, thread-safety, XSS, SQL injection), kompatibel dengan OpenAI & Anthropic."
+  },
+  "high-performance code intelligence mcp server. indexes codebases into a persistent knowledge graph — average repo in milliseconds. 162 languages, sub-ms queries, 99% fewer tokens. single static binary, zero dependencies.": {
+    "updatedAt": "2026-10-16T17:10:09.493Z",
+    "id": "Server MCP intelijen kode berperforma tinggi. Mengindeks basis kode ke dalam knowledge graph persisten — repositori rata-rata dalam milidetik. 162 bahasa, kueri sub-milidetik, 99% lebih sedikit token. Binary statis tunggal, tanpa dependensi."
+  },
+  "project nomad is an offline-first knowledge and education server. wikipedia, thousands of books, courses, maps, and optional local ai, all running on hardware you own with no internet required.": {
+    "updatedAt": "2026-10-16T17:10:09.493Z",
+    "id": "Project NOMAD adalah server pengetahuan dan edukasi offline-first. Wikipedia, ribuan buku, kursus, peta, dan AI lokal opsional, semua berjalan di perangkat keras milik Anda tanpa memerlukan internet."
+  },
+  "an open source implementation of notebook lm with more flexibility and features": {
+    "updatedAt": "2026-10-16T17:10:09.493Z",
+    "id": "Implementasi Open Source Notebook LM dengan fleksibilitas dan fitur lebih banyak"
+  },
+  "self-evolving context database for ai agents. unify agent memory, knowledge rag and skills.": {
+    "updatedAt": "2026-10-16T17:10:09.493Z",
+    "id": "Database Konteks yang berevolusi sendiri untuk AI Agents. Menyatukan Agent Memory, Knowledge RAG, dan Skills."
+  },
+  "tool for automatic ps5 executables porting to linux and windows": {
+    "updatedAt": "2026-10-16T17:10:09.493Z",
+    "id": "Alat untuk porting otomatis executable PS5 ke Linux dan Windows"
+  },
+  "📑 pageindex: document index for vectorless, reasoning-based rag": {
+    "updatedAt": "2026-10-16T17:10:09.493Z",
+    "id": "📑 PageIndex: Indeks Dokumen untuk RAG berbasis penalaran tanpa vektor"
+  },
+  "hundreds of models & providers. one command to find what runs on your hardware.": {
+    "updatedAt": "2026-10-16T17:10:09.493Z",
+    "id": "Ratusan model & provider. Satu perintah untuk menemukan apa yang dapat dijalankan di perangkat keras Anda."
+  },
+  "📨 the ultimate agentic social media scheduling tool 🤖": {
+    "updatedAt": "2026-10-16T17:10:09.493Z",
+    "id": "📨 Alat penjadwalan media sosial agentic terbaik 🤖"
+  },
+  "\"vibe-trading: your personal trading agent\"": {
+    "updatedAt": "2026-10-16T17:10:11.159Z",
+    "id": "\"Vibe-Trading: Agen Trading Pribadi Anda\""
+  },
+  "turn any technical book pdf into a claude code skill — ready to study, reference, and use while you work.": {
+    "updatedAt": "2026-10-16T17:10:11.159Z",
+    "id": "Ubah PDF buku teknis apa pun menjadi skill Claude Code — siap untuk dipelajari, dirujuk, dan digunakan saat Anda bekerja."
+  },
+  "open-source llm knowledge platform: turn raw documents into a queryable rag, an autonomous reasoning agent, and a self-maintaining wiki.": {
+    "updatedAt": "2026-10-16T17:10:11.159Z",
+    "id": "Platform pengetahuan LLM open-source: ubah dokumen mentah menjadi RAG yang dapat dikueri, agen penalaran otonom, dan Wiki yang memelihara diri sendiri."
+  },
+  "unrestricted open-source alternative to ai video platforms — free ai image & video generation studio with 600+ models (flux, midjourney, kling, sora, veo). no content filters. self-hosted, mit licensed.": {
+    "updatedAt": "2026-10-16T17:10:11.159Z",
+    "id": "Alternatif open-source tanpa batasan untuk platform video AI — studio generasi gambar & video AI gratis dengan 600+ model (Flux, Midjourney, Kling, Sora, Veo). Tanpa filter konten. Self-hosted, berlisensi MIT."
+  },
+  "a coding-agent skill for multi-phase security audits with independently verified, machine-readable findings": {
+    "updatedAt": "2026-10-16T17:10:11.159Z",
+    "id": "Skill coding-agent untuk audit keamanan multi-fase dengan temuan yang diverifikasi secara independen dan dapat dibaca mesin"
+  },
+  "scale computer-use 2.0 with open-source drivers, cross-os fleets, and benchmarks for training, evaluation, and data generation.": {
+    "updatedAt": "2026-10-16T17:10:11.159Z",
+    "id": "Skalakan computer-use 2.0 dengan driver open-source, armada lintas-OS, dan benchmark untuk pelatihan, evaluasi, dan generasi data."
+  },
+  "independent auditing of ai agents. run by human or the agent itself, to answer the most crucial question in the ai agent economy. is the agent doing what is supposed to do? with ifixai you can have this answer in less than 120 seconds.": {
+    "updatedAt": "2026-10-16T17:10:11.159Z",
+    "id": "Audit Independen untuk AI Agents. Dijalankan oleh manusia atau agen itu sendiri, untuk menjawab pertanyaan paling krusial dalam Ekonomi AI Agent. Apakah agen melakukan apa yang seharusnya dilakukan? Dengan iFixAi, Anda dapat memiliki jawaban ini dalam waktu kurang dari 120 detik."
+  },
+  "unlimited ocr works: welcome the era of one-shot long-horizon parsing.": {
+    "updatedAt": "2026-10-16T17:10:11.159Z",
+    "id": "OCR Tanpa Batas Berfungsi: Menyambut Era Parsing Jangka Panjang One-shot."
+  },
+  "a privacy-first app that strips ai watermarks from content you own.": {
+    "updatedAt": "2026-10-16T17:10:11.159Z",
+    "id": "Aplikasi yang mengutamakan privasi yang menghapus watermark AI dari konten yang Anda miliki."
+  },
+  "open source alternative to semrush and ahrefs": {
+    "updatedAt": "2026-10-16T17:10:11.159Z",
+    "id": "Alternatif open-source untuk Semrush dan Ahrefs"
+  },
+  "📊 path to a free self-taught education in data science!": {
+    "updatedAt": "2026-10-16T17:10:11.159Z",
+    "id": "📊 Jalan menuju pendidikan Data Science gratis dan otodidak!"
+  },
+  "security scanner for ai agent skills. detect vulnerabilities, malicious patterns, security risks, prompt injection, data exfiltration, and supply-chain risks in claude code, codex, and mcp skills before you install them.": {
+    "updatedAt": "2026-10-16T17:10:11.159Z",
+    "id": "Pemindai keamanan untuk skill AI agent. Deteksi kerentanan, pola berbahaya, risiko keamanan, prompt injection, eksfiltrasi data, dan risiko rantai pasokan di skill Claude Code, Codex, dan MCP sebelum Anda menginstalnya."
+  },
+  "openstock is an open-source alternative to expensive market platforms. track real-time prices, set personalized alerts, and explore detailed company insights — built openly, for everyone, forever free.": {
+    "updatedAt": "2026-10-16T17:10:11.159Z",
+    "id": "OpenStock adalah alternatif open-source untuk platform pasar yang mahal. Lacak harga real-time, atur peringatan personal, dan jelajahi wawasan perusahaan yang detail — dibangun secara terbuka, untuk semua orang, selamanya gratis."
+  },
+  "you built it. now brag. turn the project you just created into a short, shareable launch video with one command.": {
+    "updatedAt": "2026-10-16T17:10:11.159Z",
+    "id": "Anda sudah membuatnya. Sekarang pamerkan. Ubah proyek yang baru saja Anda buat menjadi video peluncuran singkat yang dapat dibagikan dengan satu perintah."
+  },
+  "a curated list of awesome libraries, packages, strategies, books, blogs, tutorials for systematic trading.": {
+    "updatedAt": "2026-10-16T17:10:11.159Z",
+    "id": "Daftar kurasi pustaka, paket, strategi, buku, blog, dan tutorial yang luar biasa untuk trading sistematis."
+  },
+  "a claude skill that writes the accurate prompts for any ai tool. zero tokens or credits wasted. full context and memory retention": {
+    "updatedAt": "2026-10-16T17:10:11.159Z",
+    "id": "Skill Claude yang menulis prompt yang akurat untuk alat AI apa pun. Nol token atau kredit terbuang. Retensi konteks dan memori penuh"
+  },
+  "every agent's model. one place. codex on deepseek, claude code on kimi, from the menu bar.": {
+    "updatedAt": "2026-10-16T17:10:11.159Z",
+    "id": "Model untuk setiap agen. Satu tempat. Codex di DeepSeek, Claude Code di Kimi, dari menu bar."
+  },
+  "instant, concurrent, secure \\u0026 lightweight sandbox for ai agents.": {
+    "updatedAt": "2026-10-16T17:10:11.159Z",
+    "id": "Sandbox Instan, Konkuren, Aman & Ringan untuk AI Agents."
+  },
+  "\"vimax: agentic video generation (director, screenwriter, producer, and video generator all-in-one)\"": {
+    "updatedAt": "2026-10-16T17:10:11.159Z",
+    "id": "\"ViMax: Generasi Video Agentic (Sutradara, Penulis Skenario, Produser, dan Generator Video All-in-One)\""
+  },
+  "hunyuanvideo: a systematic framework for large video generation model": {
+    "updatedAt": "2026-10-16T17:10:11.159Z",
+    "id": "HunyuanVideo: Kerangka Kerja Sistematis untuk Model Generasi Video Besar"
+  },
+  "removes 20+ patterns of ai slop from any piece of writing.": {
+    "updatedAt": "2026-10-16T17:10:12.790Z",
+    "id": "Menghapus 20+ pola AI slop dari tulisan apa pun."
+  },
+  "yue2: frontier music generation with symbolic planning, zero-shot covers, and agentic music editing.": {
+    "updatedAt": "2026-10-16T17:10:12.790Z",
+    "id": "YuE2: generasi musik frontier dengan perencanaan simbolik, zero-shot covers, dan agentic music editing."
+  },
+  "brigade — your personal intelligence, built enterprise-grade": {
+    "updatedAt": "2026-10-16T17:10:12.790Z",
+    "id": "Brigade — Kecerdasan pribadi Anda, dibangun dengan standar enterprise-grade."
+  },
+  "archived — ml intern is no longer maintained. continue with huggingchat.": {
+    "updatedAt": "2026-10-16T17:10:12.790Z",
+    "id": "Archived — ML Intern tidak lagi dipelihara. Lanjutkan dengan HuggingChat."
+  },
+  "a tts that fits in your cpu (and pocket)": {
+    "updatedAt": "2026-10-16T17:10:12.790Z",
+    "id": "TTS yang muat di CPU Anda (dan saku Anda)."
+  },
+  "source control for agents. use multiple coding agents, track their changes and query them in one place": {
+    "updatedAt": "2026-10-16T17:10:12.790Z",
+    "id": "Source control untuk agents. Gunakan beberapa coding agents, lacak perubahan mereka, dan query mereka di satu tempat."
+  },
+  "jev-like family of decision models built on top of qwen3.5/3.8 you can train and run on your own": {
+    "updatedAt": "2026-10-16T17:10:12.790Z",
+    "id": "Keluarga model keputusan ala Jev yang dibangun di atas Qwen3.5/3.8, yang dapat Anda latih dan jalankan sendiri."
+  },
+  "a 2.78-trillion-parameter kimi k3 running inference on a single cpu in 8.24 gb of ram. portable c99: no blas, no framework, no gpu.": {
+    "updatedAt": "2026-10-16T17:10:12.790Z",
+    "id": "Kimi K3 dengan 2,78 triliun parameter yang menjalankan inference pada satu CPU dengan RAM 8,24 GB. Portable C99: tanpa BLAS, tanpa framework, tanpa GPU."
+  },
+  "open-source, high-performance ai gateway that works as your llm gateway, mcp gateway and agent gateway. one openai-compatible api for 10,000+ models, with failover, load balancing, semantic caching, virtual keys, budgets and mcp code mode. works with any sdk or agent and adds under 200µs of overhead at 5k rps.": {
+    "updatedAt": "2026-10-16T17:10:12.790Z",
+    "id": "AI gateway open-source berkinerja tinggi yang berfungsi sebagai LLM gateway, MCP gateway, dan agent gateway Anda. Satu API kompatibel OpenAI untuk 10.000+ model, dengan failover, load balancing, semantic caching, virtual keys, budgets, dan MCP Code Mode. Bekerja dengan SDK atau agent apa pun dan menambahkan overhead kurang dari 200µs pada 5k RPS."
+  },
+  "compiled list of links from \"ask hn: where can i post my startup to get beta users?\"": {
+    "updatedAt": "2026-10-16T17:10:12.790Z",
+    "id": "Daftar kompilasi tautan dari \"Ask HN: Di mana saya bisa memposting startup saya untuk mendapatkan beta users?\""
+  },
+  "guide for getting a gig as a tech student.": {
+    "updatedAt": "2026-10-16T17:10:12.790Z",
+    "id": "Panduan untuk mendapatkan pekerjaan sebagai mahasiswa teknologi."
+  },
+  "claude-red is a curated library of offensive security skills designed for the claude skills system. each skill is a structured skill.md file that primes claude with expert-level methodology for a specific attack surface — from sqli to shellcode, edr evasion to exploit development.": {
+    "updatedAt": "2026-10-16T17:10:12.790Z",
+    "id": "claude-red adalah pustaka terkurasi keterampilan keamanan ofensif yang dirancang untuk sistem keterampilan Claude. Setiap keterampilan adalah file SKILL.md terstruktur yang menyiapkan Claude dengan metodologi tingkat ahli untuk permukaan serangan tertentu — dari SQLi hingga shellcode, EDR evasion hingga exploit development."
+  },
+  "turn your coding agents into research agents": {
+    "updatedAt": "2026-10-16T17:10:12.790Z",
+    "id": "Ubah coding agents Anda menjadi research agents."
+  },
+  "open source ai clip generator: turns long videos into viral 9:16 shorts with ai moment detection, face tracking, subtitles and dubbing. self-host free with docker (mit), or use the cloud with gpu speed from $12/mo. mcp server and api for ai agents.": {
+    "updatedAt": "2026-10-16T17:10:12.790Z",
+    "id": "Generator klip AI open source: mengubah video panjang menjadi shorts 9:16 viral dengan AI moment detection, face tracking, subtitle, dan dubbing. Self-host gratis dengan Docker (MIT), atau gunakan cloud dengan kecepatan GPU mulai dari $12/bulan. MCP server dan API untuk AI agents."
+  },
+  "your always-on ai coworkers that move between text, calls, and slack.": {
+    "updatedAt": "2026-10-16T17:10:12.790Z",
+    "id": "Rekan kerja AI Anda yang selalu aktif, yang berpindah antara teks, panggilan, dan Slack."
+  },
+  "a personal agent with a browser, terminal, files, and work that keeps going built with copilotkit and ag-ui.": {
+    "updatedAt": "2026-10-16T17:10:12.790Z",
+    "id": "Agent pribadi dengan browser, terminal, file, dan pekerjaan yang terus berjalan, dibangun dengan CopilotKit dan AG-UI."
+  },
+  "claude code toolkit - agents, commands, skills, rules, and hooks for productive ai-assisted development": {
+    "updatedAt": "2026-10-16T17:10:12.790Z",
+    "id": "Claude Code toolkit - agents, commands, skills, rules, dan hooks untuk pengembangan yang produktif dengan bantuan AI."
+  },
+  "learn ai/ml for beginners with a roadmap and free resources.": {
+    "updatedAt": "2026-10-16T17:10:12.790Z",
+    "id": "Pelajari AI/ML untuk pemula dengan roadmap dan sumber daya gratis."
+  },
+  "safety-first disk cleaner and space analyzer for macos and windows, with duplicate cleanup, app uninstall, startup management, system optimization, and maintenance.": {
+    "updatedAt": "2026-10-16T17:10:12.790Z",
+    "id": "Pembersih dan analis ruang disk yang mengutamakan keamanan untuk macOS dan Windows, dengan pembersihan duplikat, uninstall aplikasi, manajemen startup, optimasi sistem, dan pemeliharaan."
+  },
+  "a comprehensive logo-design skill for claude, gemini cli, codex and other ai agents: principles, process, svg craft, testing tools and a 1,400+ logo reference library.": {
+    "updatedAt": "2026-10-16T17:10:12.790Z",
+    "id": "Keterampilan desain logo yang komprehensif untuk Claude, Gemini CLI, Codex, dan AI agents lainnya: prinsip, proses, kerajinan SVG, alat pengujian, dan pustaka referensi logo 1.400+."
+  },
+  "open-source canvas for thoughtful software design": {
+    "updatedAt": "2026-10-16T17:10:13.900Z",
+    "id": "kanvas open-source untuk desain perangkat lunak yang cermat"
+  },
+  "100 data puzzles for pandas, ranging from short and simple to super tricky (60% complete)": {
+    "updatedAt": "2026-10-16T17:10:13.900Z",
+    "id": "100 teka-teki data untuk pandas, mulai dari yang singkat dan sederhana hingga sangat menantang (60% selesai)"
+  },
+  "free \\u0026 fast alternative to wispr flow": {
+    "updatedAt": "2026-10-16T17:10:13.900Z",
+    "id": "Alternatif gratis & cepat untuk Wispr Flow"
+  },
+  "programmatic video rendering framework that is actually fast": {
+    "updatedAt": "2026-10-16T17:10:13.900Z",
+    "id": "framework rendering video programatik yang benar-benar cepat"
+  },
+  "asc is a super fast and lightweight android decompiler designed for agents/mobile researchers.": {
+    "updatedAt": "2026-10-16T17:10:13.900Z",
+    "id": "ASC adalah decompiler Android yang super cepat dan ringan, dirancang untuk Agents/Researcher Mobile."
+  },
+  "🚀 500+ curated resources for data analysis \\u0026 data science: python, sql, statistics, ml, ai, visualization, cheatsheets, roadmaps, interview prep. for beginners and experts.": {
+    "updatedAt": "2026-10-16T17:10:13.900Z",
+    "id": "🚀 500+ sumber daya kurasi untuk Data Analysis & Data Science: Python, SQL, Statistics, ML, AI, Visualization, Cheatsheets, Roadmaps, Interview Prep. Untuk pemula dan ahli."
+  },
+  "a native macos / windows / linux database ide built with swift and appkit. connect to postgresql, mysql, sqlite, and redis from a single app with a fast, keyboard-driven interface.": {
+    "updatedAt": "2026-10-16T17:10:13.900Z",
+    "id": "IDE database native untuk macOS / Windows / Linux yang dibangun dengan Swift dan AppKit. Hubungkan ke PostgreSQL, MySQL, SQLite, dan Redis dari satu aplikasi dengan antarmuka cepat yang digerakkan oleh keyboard."
+  },
+  "graft is an open-source transactional storage engine optimized for lazy, partial, and strongly consistent replication—perfect for edge, offline-first, and distributed applications.": {
+    "updatedAt": "2026-10-16T17:10:13.900Z",
+    "id": "Graft adalah mesin penyimpanan transaksional open-source yang dioptimalkan untuk replikasi yang malas, parsial, dan konsisten kuat—sempurna untuk aplikasi edge, offline-first, dan terdistribusi."
+  },
+  "ouroboros — self-creating ai agent. born feb 16, 2026.": {
+    "updatedAt": "2026-10-16T17:10:13.900Z",
+    "id": "Ouroboros — agen AI yang menciptakan dirinya sendiri. Lahir 16 Februari 2026."
+  },
+  "the open-source alternative to paper.design. a multiplayer design canvas where humans and ai agents design together, live. mcp built in.": {
+    "updatedAt": "2026-10-16T17:10:13.900Z",
+    "id": "Alternatif open-source untuk Paper.design. Kanvas desain multiplayer di mana manusia dan agen AI mendesain bersama, secara langsung. MCP terintegrasi."
+  },
+  "an ai skill that turns books into animated, narrated, interactive web experiences": {
+    "updatedAt": "2026-10-16T17:10:13.900Z",
+    "id": "Keterampilan AI yang mengubah buku menjadi pengalaman web yang dianimasikan, dinarasikan, dan interaktif"
+  },
+  "self-hosted social media scheduler. write once, publish to any connected platform. runs on your own cloudflare account.": {
+    "updatedAt": "2026-10-16T17:10:13.900Z",
+    "id": "Penjadwal media sosial self-hosted. Tulis sekali, terbitkan ke platform terhubung mana pun. Berjalan di akun Cloudflare Anda sendiri."
+  },
+  "📊 30 days of sql is a daily challenge guiding you from sql basics to advanced skills! dive into 📚 examples, 🔧 exercises, and 🎯 projects to master databases. perfect for beginners or pros! 🚀": {
+    "updatedAt": "2026-10-16T17:10:13.900Z",
+    "id": "📊 30 Days of SQL adalah tantangan harian yang membimbing Anda dari dasar-dasar SQL hingga keterampilan lanjutan! Jelajahi 📚 contoh, 🔧 latihan, dan 🎯 proyek untuk menguasai database. Sempurna untuk pemula atau profesional! 🚀"
+  },
+  "30 days pyspark learning": {
+    "updatedAt": "2026-10-16T17:10:13.900Z",
+    "id": "30 Hari Belajar Pyspark"
+  },
+  "modular visual prompt workflow builder for multi-modal generative video models.": {
+    "updatedAt": "2026-10-16T17:10:35.941Z",
+    "id": "Pembangun alur kerja visual prompt modular untuk model video generatif multi-modal."
+  },
+  "state-of-the-art vector similarity search and distributed embeddings engine.": {
+    "updatedAt": "2026-10-16T17:10:35.941Z",
+    "id": "Mesin pencarian kemiripan vektor state-of-the-art dan embeddings terdistribusi."
+  },
+  "autonomous multi-modal agents orchestrating real-time video rendering pipelines.": {
+    "updatedAt": "2026-10-16T18:10:25.780Z",
+    "id": "Agen multi-modal otonom yang mengorkestrasi pipeline rendering video real-time."
+  }
+}

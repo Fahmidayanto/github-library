@@ -345,7 +345,12 @@ export function GalaxyGraphView({
           }
 
           if (titleEl) titleEl.innerText = hit.name;
-          if (descEl) descEl.innerText = hit.desc || '';
+          if (descEl) {
+            const dynamicDesc = hit.type === 'repository' 
+              ? translateRepoDescription(hit.repoFullName, hit.desc, language) 
+              : hit.desc;
+            descEl.innerText = dynamicDesc || '';
+          }
 
           const entityLabels: Record<string, string> = {
             category: t.galaxy.tooltipGroup,
@@ -3213,7 +3218,11 @@ export function GalaxyGraphView({
               </div>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">{modalNode.desc}</p>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              {modalNode.type === 'repository'
+                ? (translateRepoDescription(modalNode.repoFullName, modalNode.desc, language) || modalNode.desc)
+                : modalNode.desc}
+            </p>
 
             <div className="pt-3 border-t border-white/10 flex justify-end space-x-2">
               <button

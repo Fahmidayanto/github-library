@@ -415,19 +415,112 @@ export const REPO_DESCRIPTION_MAP: Record<string, { en: string; id: string }> = 
   },
 };
 
+// Dynamic client translations cache & batching system via /api/translate
+const clientTranslationCache: Record<string, string> = {};
+const pendingTranslateQueue = new Map<string, { fullName?: string | null; originalDesc: string }>();
+let batchDebounceTimer: NodeJS.Timeout | null = null;
+const dynamicUpdateListeners = new Set<() => void>();
+
+export function registerTranslationUpdateListener(listener: () => void): () => void {
+  dynamicUpdateListeners.add(listener);
+  return () => {
+    dynamicUpdateListeners.delete(listener);
+  };
+}
+
+function notifyDynamicUpdate(): void {
+  dynamicUpdateListeners.forEach(fn => {
+    try { fn(); } catch (e) { console.error('[i18n] Listener error:', e); }
+  });
+}
+
+function triggerBatchTranslate(): void {
+  if (batchDebounceTimer) return;
+  batchDebounceTimer = setTimeout(async () => {
+    batchDebounceTimer = null;
+    if (pendingTranslateQueue.size === 0) return;
+
+    const queueEntries = Array.from(pendingTranslateQueue.entries());
+    pendingTranslateQueue.clear();
+
+    const textsToTranslate = queueEntries.map(([_, v]) => v.originalDesc);
+
+    try {
+      const res = await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texts: textsToTranslate, targetLang: 'id' }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.translations)) {
+          queueEntries.forEach(([_, item], idx) => {
+            const trans = data.translations[idx];
+            if (trans && typeof trans === 'string' && trans.trim()) {
+              const k1 = (item.fullName || '').toLowerCase().trim();
+              const k2 = item.originalDesc.toLowerCase().trim();
+              if (k1) clientTranslationCache[k1] = trans.trim();
+              clientTranslationCache[k2] = trans.trim();
+            }
+          });
+
+          // Simpan ke localStorage agar sesi berikutnya langsung instan
+          try {
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('gitlibrary_dynamic_trans_v1', JSON.stringify(clientTranslationCache));
+            }
+          } catch (e) {
+            console.warn('[i18n] Failed to persist client translations:', e);
+          }
+
+          notifyDynamicUpdate();
+        }
+      }
+    } catch (err) {
+      console.warn('[i18n] Failed to fetch dynamic translations:', err);
+    }
+  }, 100);
+}
+
 export function translateRepoDescription(
   fullName?: string | null,
   originalDesc?: string | null,
   lang: Language = 'id'
 ): string {
   if (!originalDesc && !fullName) return '';
-  if (!fullName) return originalDesc || '';
-  const key = fullName.toLowerCase().trim();
-  const entry = REPO_DESCRIPTION_MAP[key];
-  if (entry) {
-    if (lang === 'id') return entry.id;
-    return entry.en || originalDesc || '';
+  if (lang === 'en') {
+    if (fullName) {
+      const entry = REPO_DESCRIPTION_MAP[fullName.toLowerCase().trim()];
+      if (entry && entry.en) return entry.en;
+    }
+    return originalDesc || '';
   }
+
+  // 1. Cek kamus statis kurasi
+  const nameKey = (fullName || '').toLowerCase().trim();
+  if (nameKey && REPO_DESCRIPTION_MAP[nameKey]) {
+    return REPO_DESCRIPTION_MAP[nameKey].id;
+  }
+
+  // 2. Cek cache dinamis client
+  const descKey = (originalDesc || '').toLowerCase().trim();
+  if (nameKey && clientTranslationCache[nameKey]) {
+    return clientTranslationCache[nameKey];
+  }
+  if (descKey && clientTranslationCache[descKey]) {
+    return clientTranslationCache[descKey];
+  }
+
+  // 3. Daftarkan ke batch LLM translation jika belum ada
+  if (originalDesc && originalDesc.trim() && typeof window !== 'undefined') {
+    const queueKey = nameKey || descKey;
+    if (!pendingTranslateQueue.has(queueKey)) {
+      pendingTranslateQueue.set(queueKey, { fullName, originalDesc });
+      triggerBatchTranslate();
+    }
+  }
+
   return originalDesc || '';
 }
 
@@ -812,6 +905,7 @@ const LanguageContext = createContext<LanguageContextType>({
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>('id');
+  const [, setDynVersion] = useState(0);
 
   useEffect(() => {
     try {
@@ -819,9 +913,22 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       if (saved === 'id' || saved === 'en') {
         setLanguageState(saved);
       }
+      const savedTrans = localStorage.getItem('gitlibrary_dynamic_trans_v1');
+      if (savedTrans) {
+        const parsed = JSON.parse(savedTrans);
+        Object.assign(clientTranslationCache, parsed);
+      }
     } catch (e) {
-      console.warn('Failed to load language from localStorage:', e);
+      console.warn('Failed to load language/translations from localStorage:', e);
     }
+
+    const unsubscribe = registerTranslationUpdateListener(() => {
+      setDynVersion(v => v + 1);
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const setLanguage = (lang: Language) => {

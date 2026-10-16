@@ -81,3 +81,19 @@ export type NewSubCategory = typeof subCategories.$inferInsert;
 export type Repository = typeof repositories.$inferSelect;
 export type NewRepository = typeof repositories.$inferInsert;
 
+// Tabel Cache Translasi Bahasa (Production)
+export const translationsCache = pgTable('translations_cache', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  cacheKey: text('cache_key').notNull().unique(),
+  sourceText: text('source_text').notNull(),
+  targetLang: text('target_lang').notNull().default('id'),
+  translatedText: text('translated_text').notNull(),
+  provider: text('provider').default('groq-qwen3.8-27b'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type TranslationCacheItem = typeof translationsCache.$inferSelect;
+export type NewTranslationCacheItem = typeof translationsCache.$inferInsert;
+
+

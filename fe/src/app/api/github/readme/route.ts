@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { translateTexts } from '@/lib/translator';
 
 function getCacheFilePath(owner: string, repo: string): string {
   const rootDir = path.resolve(process.cwd(), '../data/translated-readmes');
@@ -14,6 +15,13 @@ function getCacheFilePath(owner: string, repo: string): string {
 
 async function translateText(text: string): Promise<string> {
   if (!text || !text.trim()) return text;
+  try {
+    const [llmResult] = await translateTexts([text], 'id');
+    if (llmResult && llmResult.trim()) return llmResult;
+  } catch {
+    // fallback ke GTX
+  }
+
   try {
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=id&dt=t&q=${encodeURIComponent(text)}`;
     const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
@@ -29,6 +37,17 @@ async function translateText(text: string): Promise<string> {
 }
 
 async function translateBatchWithRetry(batch: string[], retries = 2): Promise<string[]> {
+  // 1. Prioritaskan LLM Translator (Groq Qwen/Llama + Gemini + Cache)
+  try {
+    const llmResults = await translateTexts(batch, 'id');
+    if (llmResults && llmResults.length === batch.length) {
+      return llmResults;
+    }
+  } catch (err) {
+    console.warn('[readme] LLM translation failed, falling back to GTX scraping:', err);
+  }
+
+  // 2. Fallback: GTX scraping
   const SEP = '\n⟦SEP⟧\n';
   const joined = batch.join(SEP);
   const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=id&dt=t&q=${encodeURIComponent(joined)}`;
