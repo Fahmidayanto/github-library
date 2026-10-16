@@ -69,3 +69,4 @@ const { chromium } = require('C:/Users/fahmi/AppData/Local/npm-cache/_npx/e41f20
   console.log(JSON.stringify(info, null, 2));
   await browser.close();
 })();
+

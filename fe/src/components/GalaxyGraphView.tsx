@@ -48,6 +48,7 @@ interface GalaxyNode {
   z: number;
   angle?: number;
   branchAngle?: number;
+  subAngle?: number;
   targetPosition: THREE.Vector3;
   connections: string[];
   catId?: string;
@@ -176,9 +177,9 @@ export function GalaxyGraphView({
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x05070b, 0.00035);
 
-    // 2. Camera: expansive view angle 60, position set to spacious galactic overview (0, 480, 1250)
-    const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 8000);
-    camera.position.set(0, 480, 1250);
+    // 2. Camera: expansive view angle 60, position set to spacious galactic overview (0, 1150, 3200)
+    const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 18000);
+    camera.position.set(0, 1150, 3200);
 
     // 3. Renderer with vibrant tone mapping
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -192,7 +193,7 @@ export function GalaxyGraphView({
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.maxDistance = 6000;
+    controls.maxDistance = 16000;
     controls.minDistance = 60;
     controls.autoRotate = autoRotate;
     controls.autoRotateSpeed = 0.65;
@@ -837,8 +838,8 @@ export function GalaxyGraphView({
     const { camera, controls } = threeState;
     gsap.to(camera.position, {
       x: 0,
-      y: 480,
-      z: 1250,
+      y: 1150,
+      z: 3200,
       duration: 1.25,
       ease: "power3.inOut"
     });
@@ -856,7 +857,7 @@ export function GalaxyGraphView({
     const { camera, controls } = threeState;
     gsap.to(camera.position, {
       x: 0,
-      y: 2800,
+      y: 5200,
       z: 1,
       duration: 1.3,
       ease: "power3.inOut"
@@ -921,9 +922,9 @@ export function GalaxyGraphView({
       return;
     }
 
-    // Memetakan repositori aktif ke dalam Multi-System Galaxy Islands (Planar X-Z Non-Overlapping Layout)
+    // Memetakan repositori aktif ke dalam Multi-System Galaxy Islands (360-Degree Omni-Directional Blossom & Conformal Zero-Crossing Layout)
     const catCount = propCategories.length;
-    const catRadius = Math.max(780, 520 + catCount * 50);
+    const catRadius = Math.max(1950, 1200 + catCount * 55);
     const yElevations = [-60, 60, -50, 70];
     const catColors = ['#c084fc', '#f472b6', '#38bdf8', '#4ade80', '#fb923c', '#e879f9', '#a78bfa', '#34d399'];
 
@@ -940,7 +941,7 @@ export function GalaxyGraphView({
         desc: `Grup kategori utama ${cat.name}.`,
         color: catColors[idx % catColors.length],
         baseSize: 32,
-        collisionRadius: 60,
+        collisionRadius: 55,
         x, y, z,
         angle,
         targetPosition: new THREE.Vector3(x, y, z),
@@ -948,27 +949,49 @@ export function GalaxyGraphView({
       });
     });
 
-    // SubCategories - Terdistribusi rapi dalam sektor aman kategori dengan 2-tier jarak radial
-    propCategories.forEach(cat => {
-      const subs = cat.subCategories || [{ id: `sub-${cat.id}`, name: `${cat.name} General`, slug: 'general' }];
-      const subCount = subs.length;
+    // SubCategories & Repositories - Full 360-Degree Blossom Layout around Category Sun (Zero Crossings & Zero Overlaps)
+    propCategories.forEach((cat, catIdx) => {
       const parent = state.nodeObjects.find(n => n.id === cat.id);
       if (!parent) return;
 
-      const sectorSpan = (2 * Math.PI / catCount) * 0.72; // Sektor aman agar tidak menabrak cluster kategori lain
-      const angleStep = subCount > 1 ? sectorSpan / (subCount - 1) : 0;
+      const subs = cat.subCategories || [{ id: `sub-${cat.id}`, name: `${cat.name} General`, slug: 'general' }];
+      const subCount = subs.length;
 
-      subs.forEach((sub, subIndex) => {
-        const offsetAngle = subCount > 1 ? (subIndex - (subCount - 1) / 2) * angleStep : 0;
-        const branchAngle = (parent.angle || 0) + offsetAngle;
-        const tier = subIndex % 2;
-        const dist = 190 + tier * 105;
+      // Filter and normalize repos belonging to this category
+      const catRepos = propRepositories.filter(r => {
+        if (r.subCategoryId && subs.some(s => s.id === r.subCategoryId)) return true;
+        if (r.categoryId === cat.id) return true;
+        return false;
+      });
 
-        const x = parent.x + Math.cos(branchAngle) * dist;
-        const z = parent.z + Math.sin(branchAngle) * dist;
-        const y = parent.y + (tier === 0 ? 35 : -35);
+      let unattachedIndex = 0;
+      catRepos.forEach(r => {
+        if (!r.subCategoryId || !subs.some(s => s.id === r.subCategoryId)) {
+          (r as unknown as { assignedSubId: string }).assignedSubId = subs[unattachedIndex % subs.length].id;
+          unattachedIndex++;
+        } else {
+          (r as unknown as { assignedSubId: string }).assignedSubId = r.subCategoryId;
+        }
+      });
 
-        state.nodeObjects.push({
+      // 360-degree bloom: subcategories distributed evenly around the full 2*PI circle around Category Sun
+      const catPhaseOffset = (catIdx * 0.43) % (Math.PI * 2);
+      const angleStep = (Math.PI * 2) / subCount;
+
+      subs.forEach((sub, subIdx) => {
+        const subAngle = catPhaseOffset + subIdx * angleStep;
+
+        // Tiering distance from Category Sun
+        const subLane = subCount > 8 ? (subIdx % 3) : (subCount > 4 ? (subIdx % 2) : 0);
+        const subDist = subCount <= 4 
+          ? 200 
+          : (subCount <= 8 ? (220 + subLane * 110) : (220 + subLane * 125));
+
+        const sx = parent.x + Math.cos(subAngle) * subDist;
+        const sz = parent.z + Math.sin(subAngle) * subDist;
+        const sy = parent.y + (subLane === 0 ? 35 : (subLane === 1 ? -35 : 15));
+
+        const subNode: GalaxyNode = {
           id: sub.id,
           name: sub.name,
           type: 'subCategory',
@@ -976,73 +999,70 @@ export function GalaxyGraphView({
           desc: `Sub-grup spesialisasi di bawah grup ${parent.name}.`,
           color: '#38bdf8',
           baseSize: 22,
-          collisionRadius: 40,
-          x, y, z,
-          branchAngle,
-          targetPosition: new THREE.Vector3(x, y, z),
+          collisionRadius: 36,
+          x: sx,
+          y: sy,
+          z: sz,
+          subAngle,
+          targetPosition: new THREE.Vector3(sx, sy, sz),
           connections: [parent.id]
-        });
+        };
+        state.nodeObjects.push(subNode);
 
+        // Edge from Category Sun to SubCategory Planet
         state.edgeObjects.push({ source: parent.id, target: sub.id, color: 0xa855f7 });
         parent.connections.push(sub.id);
+
+        // Repositories for this SubCategory
+        const subRepos = catRepos.filter(r => (r as unknown as { assignedSubId: string }).assignedSubId === sub.id);
+        const rCount = subRepos.length;
+
+        // Keep repository rays inside subcategory's exclusive angular sector
+        const maxWiggle = Math.min(0.08, (angleStep / 2) * 0.4);
+
+        subRepos.forEach((repo, rIdx) => {
+          // Staggered outward spine along the radial ray
+          const repoDist = 72 + rIdx * 56;
+          const repoAngle = subAngle + (rCount > 1 ? (rIdx % 2 === 0 ? maxWiggle : -maxWiggle) : 0);
+
+          const rx = sx + Math.cos(repoAngle) * repoDist;
+          const rz = sz + Math.sin(repoAngle) * repoDist;
+          const ry = sy + (rIdx % 2 === 0 ? -22 : 22);
+
+          const starSize = Math.max(13, Math.min(25, 12 + ((repo.starsCount || 0) / 10000) * 1.2));
+
+          const node: GalaxyNode = {
+            id: repo.id,
+            name: repo.name || repo.fullName,
+            repoFullName: repo.fullName,
+            type: 'repository',
+            subCatId: sub.id,
+            langId: repo.primaryLanguage ? `lang-${repo.primaryLanguage.toLowerCase()}` : undefined,
+            stars: repo.starsCount || 0,
+            topics: repo.topics || [],
+            desc: repo.description || 'Repositori di ekosistem GitHub Library.',
+            color: '#10b981',
+            baseSize: starSize,
+            collisionRadius: 26,
+            x: rx,
+            y: ry,
+            z: rz,
+            targetPosition: new THREE.Vector3(rx, ry, rz),
+            connections: [sub.id]
+          };
+
+          state.nodeObjects.push(node);
+          state.edgeObjects.push({ source: sub.id, target: repo.id, color: 0x38bdf8 });
+          subNode.connections.push(repo.id);
+        });
       });
-    });
-
-    // Repositories - Multi-tier orbital shells konsentris menghadap keluar (outward fan)
-    propRepositories.forEach(repo => {
-      let parentSub = state.nodeObjects.find(n => n.type === 'subCategory' && (n.id === repo.subCategoryId || (repo.categoryId && n.id === repo.categoryId)));
-      if (!parentSub) parentSub = state.nodeObjects.find(n => n.type === 'subCategory');
-      if (!parentSub) return;
-
-      const siblings = propRepositories.filter(r => r.subCategoryId === parentSub?.id);
-      const repoIndex = siblings.indexOf(repo);
-      const repoCount = Math.max(siblings.length, 1);
-
-      // Multi-tier orbital shells: 4 repositori per lapis orbit konsentris
-      const tier = Math.floor(repoIndex / 4);
-      const indexInTier = repoIndex % 4;
-      const countInTier = Math.min(4, repoCount - tier * 4);
-
-      const shellRadius = 78 + tier * 58;
-      const fanSpan = Math.PI * 0.72; // Busur fan outward menjauhi pusat
-      const offset = countInTier > 1 ? (indexInTier - (countInTier - 1) / 2) * (fanSpan / (countInTier - 1)) : 0;
-      const stagger = (tier % 2 === 1) ? (fanSpan / 8) : 0;
-      const repoAngle = (parentSub.branchAngle || 0) + offset + stagger;
-
-      const x = parentSub.x + Math.cos(repoAngle) * shellRadius;
-      const z = parentSub.z + Math.sin(repoAngle) * shellRadius;
-      const y = parentSub.y + (repoIndex % 2 === 0 ? -24 : 24);
-
-      const starSize = Math.max(13, Math.min(25, 12 + ((repo.starsCount || 0) / 10000) * 1.2));
-
-      const node: GalaxyNode = {
-        id: repo.id,
-        name: repo.name || repo.fullName,
-        repoFullName: repo.fullName,
-        type: 'repository',
-        subCatId: parentSub.id,
-        langId: repo.primaryLanguage ? `lang-${repo.primaryLanguage.toLowerCase()}` : undefined,
-        stars: repo.starsCount || 0,
-        topics: repo.topics || [],
-        desc: repo.description || 'Repositori di ekosistem GitHub Library.',
-        color: '#10b981',
-        baseSize: starSize,
-        collisionRadius: 28,
-        x, y, z,
-        targetPosition: new THREE.Vector3(x, y, z),
-        connections: [parentSub.id]
-      };
-
-      state.nodeObjects.push(node);
-      state.edgeObjects.push({ source: parentSub.id, target: repo.id, color: 0x38bdf8 });
-      parentSub.connections.push(repo.id);
     });
 
     // Languages - Outer Transit Belt
     const uniqueLangs = Array.from(new Set(propRepositories.map(r => r.primaryLanguage).filter(Boolean))) as string[];
     uniqueLangs.slice(0, 6).forEach((lang, idx) => {
       const angle = (idx / uniqueLangs.length) * Math.PI * 2 + 0.32;
-      const dist = catRadius + 380;
+      const dist = catRadius + 600;
       const x = Math.cos(angle) * dist;
       const z = Math.sin(angle) * dist;
       const y = idx % 2 === 0 ? 140 : -140;
@@ -1071,7 +1091,7 @@ export function GalaxyGraphView({
     const topTopics = Array.from(new Set(allTopics)).slice(0, 8);
     topTopics.forEach((top, idx) => {
       const angle = (idx / topTopics.length) * Math.PI * 2 + 0.18;
-      const dist = catRadius + 520 + (idx % 2) * 55;
+      const dist = catRadius + 850 + (idx % 2) * 60;
       const x = Math.cos(angle) * dist;
       const z = Math.sin(angle) * dist;
       const y = Math.sin(idx * 1.5) * 85;
@@ -1095,71 +1115,16 @@ export function GalaxyGraphView({
       });
     });
 
-    // 6. Jalankan Iterative 2D Planar Physics Relaxation Solver untuk jaminan zero overlap pada proyeksi X-Z (tampak atas)
-    resolveNodeCollisions(state.nodeObjects, 120);
+    // Update target positions for smooth rendering
+    state.nodeObjects.forEach(n => {
+      n.targetPosition.set(n.x, n.y, n.z);
+    });
 
     // Update Stats
     setStats({
       nodes: state.nodeObjects.length,
       edges: state.edgeObjects.length,
       clusters: state.nodeObjects.filter(n => n.type === 'category').length
-    });
-  }
-
-  // Iterative 2D Planar Physics Relaxation Solver (Guarantees zero overlap in top-down X-Z projection)
-  function resolveNodeCollisions(nodes: GalaxyNode[], iterations = 120) {
-    const paddingXZ = 20;
-    for (let iter = 0; iter < iterations; iter++) {
-      let maxOverlapXZ = 0;
-      const step = Math.min(1.0, 0.4 + 0.6 * (1 - iter / iterations));
-
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const a = nodes[i];
-          const b = nodes[j];
-
-          let dx = b.x - a.x;
-          let dz = b.z - a.z;
-          let distXZ = Math.sqrt(dx * dx + dz * dz);
-
-          const extraCatBuffer = (a.type === 'category' || b.type === 'category') ? 35 : 0;
-          const rA = a.collisionRadius || 30;
-          const rB = b.collisionRadius || 30;
-          const minDistXZ = rA + rB + paddingXZ + extraCatBuffer;
-
-          if (distXZ < minDistXZ) {
-            if (distXZ < 0.001) {
-              dx = (Math.random() - 0.5) * 4 || 1;
-              dz = (Math.random() - 0.5) * 4 || 1;
-              distXZ = Math.sqrt(dx * dx + dz * dz);
-            }
-
-            const overlap = minDistXZ - distXZ;
-            if (overlap > maxOverlapXZ) maxOverlapXZ = overlap;
-
-            const nx = dx / distXZ;
-            const nz = dz / distXZ;
-
-            const weightA = a.type === 'category' ? 0.01 : (a.type === 'subCategory' ? 0.22 : 0.77);
-            const weightB = b.type === 'category' ? 0.01 : (b.type === 'subCategory' ? 0.22 : 0.77);
-            const totalWeight = weightA + weightB;
-
-            const shiftA = overlap * (weightB / totalWeight) * step;
-            const shiftB = overlap * (weightA / totalWeight) * step;
-
-            a.x -= nx * shiftA;
-            a.z -= nz * shiftA;
-
-            b.x += nx * shiftB;
-            b.z += nz * shiftB;
-          }
-        }
-      }
-      if (maxOverlapXZ < 0.05) break;
-    }
-
-    nodes.forEach(n => {
-      n.targetPosition.set(n.x, n.y, n.z);
     });
   }
 

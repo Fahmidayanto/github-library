@@ -9830,5 +9830,2281 @@
       }
     ],
     "cloneCommand": "git clone https://github.com/every-app/open-seo.git"
+  },
+  "open-dev-society/openstock": {
+    "corePurpose": "OpenStock adalah platform pasar saham open-source yang dibangun dengan Next.js 15, TypeScript, dan MongoDB untuk menyediakan alternatif gratis dan transparan terhadap layanan keuangan berbayar. Arsitekturnya mengintegrasikan data real-time dari Finnhub, visualisasi TradingView, dan otomasi AI berbasis Inngest untuk memberikan wawasan pasar yang personal dan aksesibel bagi semua pengguna.",
+    "problemsSolved": [
+      {
+        "title": "Biaya Langganan Platform Keuangan Tinggi",
+        "description": "Platform pasar saham komersial sering kali membebani pengguna dengan biaya langganan bulanan yang mahal untuk fitur dasar seperti pelacakan harga dan analisis perusahaan. OpenStock menyelesaikan ini dengan menyediakan seluruh fitur inti secara gratis dan open-source, memungkinkan pengguna mengakses data pasar tanpa hambatan biaya."
+      },
+      {
+        "title": "Kompleksitas Integrasi Data Pasar Real-Time",
+        "description": "Mengembangkan aplikasi saham dari nol memerlukan penanganan kompleksitas API Finnhub, manajemen rate-limiting, dan integrasi widget TradingView. OpenStock menyediakan lapisan abstraksi yang sudah teruji, termasuk rotasi kunci API untuk mengatasi limitasi gratis dan mode data 'cached' vs 'realtime' yang dapat dikonfigurasi."
+      },
+      {
+        "title": "Ketiadaan Personalisasi dan Otomasi AI",
+        "description": "Platform standar jarang menawarkan onboarding yang dipersonalisasi atau ringkasan berita berbasis AI. OpenStock menggunakan Inngest dan Gemini untuk mengirim email sambutan yang dipersonalisasi berdasarkan profil risiko pengguna serta ringkasan berita mingguan, menciptakan pengalaman yang lebih adaptif dan informatif."
+      }
+    ],
+    "ladderRules": [
+      "Open-Source First: Kode sumber tersedia di bawah lisensi AGPL-3.0, mendorong transparansi dan kolaborasi komunitas tanpa paywall.",
+      "Modular Architecture: Pemisahan jelas antara autentikasi (Better Auth), persistensi data (MongoDB), dan orkestrasi tugas (Inngest) untuk skalabilitas.",
+      "User-Centric UX: Fokus pada pengalaman pengguna dengan shadcn/ui, Tailwind CSS v4, dan dukungan tema gelap serta keyboard shortcuts (Cmd+K) untuk efisiensi navigasi."
+    ],
+    "useCases": [
+      "Developer yang ingin membangun aplikasi pelacakan saham pribadi tanpa biaya lisensi API komersial yang tinggi.",
+      "Tim yang membutuhkan referensi arsitektur Next.js 15 dengan integrasi MongoDB, Inngest, dan API keuangan eksternal.",
+      "Komunitas edukasi yang membutuhkan platform gratis untuk mengajarkan analisis pasar saham dan literasi keuangan."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Otomasi Onboarding & Ringkasan Berita Berbasis AI",
+        "prompt": "\"Bantu saya setup alur kerja Inngest untuk mengirim email sambutan yang dipersonalisasi menggunakan Gemini setelah pengguna mendaftar di OpenStock.\"",
+        "scenarioType": "automation",
+        "scenarioBadge": "🤖 AI-Powered Workflow Automation",
+        "beforeTitle": "BEFORE (Pendekatan Manual & Statis)",
+        "beforeMeta": "Email template statis • Tanpa personalisasi • Tidak ada ringkasan berita otomatis",
+        "beforeCode": "// Contoh email statis tanpa AI\nconst emailTemplate = \"Selamat datang di platform kami. Silakan jelajahi fitur kami.\";\nsendEmail(user.email, emailTemplate);",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Pengalaman pengguna generik dan tidak relevan dengan profil investasi mereka."
+          },
+          {
+            "label": "Beban",
+            "value": "Developer harus menulis logika personalisasi manual yang rapuh dan sulit dipelihara."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan OpenStock)",
+        "afterMeta": "Inngest + Gemini • Personalisasi dinamis • Otomasi cron mingguan",
+        "afterCode": "// Alur kerja Inngest di OpenStock\n// 1. Trigger: User sign-up\n// 2. Fetch: Profil risiko & preferensi industri dari MongoDB\n// 3. AI: Gemini menghasilkan email sambutan yang dipersonalisasi\n// 4. Send: Nodemailer mengirim email\n// 5. Cron: Inngest menjalankan job mingguan untuk ringkasan berita",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Email sambutan yang unik untuk setiap pengguna berdasarkan data onboarding mereka."
+          },
+          {
+            "label": "Hasil",
+            "value": "Peningkatan engagement melalui konten yang relevan dan otomatisasi ringkasan berita mingguan."
+          }
+        ],
+        "ruleBadge": "Inngest + Gemini AI",
+        "metrics": [
+          {
+            "label": "Personalisasi",
+            "value": "100% Dinamis",
+            "color": "emerald"
+          },
+          {
+            "label": "Otomasi",
+            "value": "Cron Mingguan",
+            "color": "sky"
+          },
+          {
+            "label": "Integrasi",
+            "value": "Inngest & Nodemailer",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi Dependensi",
+        "command": "git clone https://github.com/Open-Dev-Society/OpenStock.git && cd OpenStock && pnpm install",
+        "description": "Kloning repositori dan instal semua dependensi menggunakan pnpm atau npm. Pastikan Node.js 20+ terpasang."
+      },
+      {
+        "step": 2,
+        "title": "Konfigurasi Environment",
+        "command": "cp .env.example .env && # Edit .env dengan MONGODB_URI, BETTER_AUTH_SECRET, FINNHUB_API_KEY, dll.",
+        "description": "Buat file .env dan isi dengan kredensial MongoDB, kunci API Finnhub, dan konfigurasi autentikasi. Gunakan Docker Compose untuk MongoDB lokal jika diperlukan."
+      },
+      {
+        "step": 3,
+        "title": "Jalankan Aplikasi & Inngest",
+        "command": "pnpm dev && npx inngest-cli@latest dev",
+        "description": "Jalankan server Next.js dalam mode development dan inisialisasi Inngest CLI untuk menangani event, cron, dan inferensi AI secara lokal."
+      }
+    ],
+    "commands": [
+      {
+        "command": "pnpm dev",
+        "function": "Menjalankan server Next.js dalam mode development dengan Turbopack untuk hot-reloading cepat.",
+        "example": "pnpm dev"
+      },
+      {
+        "command": "pnpm build",
+        "function": "Membangun aplikasi untuk produksi, mengoptimalkan aset dan menyiapkan output statis/dinamis.",
+        "example": "pnpm build"
+      },
+      {
+        "command": "pnpm start",
+        "function": "Menjalankan server produksi setelah build selesai.",
+        "example": "pnpm start"
+      },
+      {
+        "command": "pnpm test:db",
+        "function": "Memverifikasi konektivitas ke database MongoDB sebelum menjalankan aplikasi.",
+        "example": "pnpm test:db"
+      },
+      {
+        "command": "npx inngest-cli@latest dev",
+        "function": "Menjalankan Inngest secara lokal untuk menguji workflow, cron jobs, dan fungsi AI.",
+        "example": "npx inngest-cli@latest dev"
+      },
+      {
+        "command": "docker compose up -d mongodb",
+        "function": "Menjalankan instance MongoDB lokal menggunakan Docker Compose untuk pengembangan.",
+        "example": "docker compose up -d mongodb"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/Open-Dev-Society/OpenStock.git"
+  },
+  "kgoedecke/doop": {
+    "corePurpose": "Doop adalah alternatif open-source untuk Paper.design yang menyediakan kanvas desain multiplayer di mana manusia dan agen AI dapat berkolaborasi secara real-time. Arsitekturnya dibangun di atas server Node.js dengan PostgreSQL terbenam (PGlite) dan server MCP (Model Context Protocol) bawaan yang memungkinkan agen AI seperti Claude Code untuk mengedit frame HTML secara langsung melalui streaming WebSocket.",
+    "problemsSolved": [
+      {
+        "title": "Keterputusan Konteks antara Prompt dan Hasil Desain",
+        "description": "Alur kerja tradisional 'prompt-and-refresh' memisahkan proses berpikir AI dari hasil visualnya, menyebabkan iterasi lambat dan hilangnya konteks. Doop menyelesaikan ini dengan memungkinkan agen AI untuk 'streaming' desain langsung ke kanvas, sehingga developer dapat melihat perubahan secara live dan memberikan umpan balik instan tanpa menunggu render ulang penuh."
+      },
+      {
+        "title": "Ketiadaan Kolaborasi Real-time antara Manusia dan AI",
+        "description": "Sebagian besar tool desain AI bersifat asinkron atau satu arah. Doop memperkenalkan 'true multiplayer' di mana kursor manusia, status agen, dan editan frame terlihat bersama dalam satu ruang WebSocket. Ini memungkinkan manusia dan AI untuk bekerja berdampingan, dengan AI yang dapat melihat apa yang sedang dikerjakan manusia dan sebaliknya."
+      },
+      {
+        "title": "Kompleksitas Integrasi MCP untuk Tool Desain",
+        "description": "Menghubungkan agen AI ke tool desain biasanya memerlukan setup proxy atau server terpisah yang rumit. Doop menyertakan server MCP bawaan di port 4400 yang dapat dihubungkan langsung oleh klien MCP (seperti Claude Code) melalui satu perintah CLI, dengan autentikasi OAuth yang terintegrasi secara mulus."
+      }
+    ],
+    "ladderRules": [
+      "MCP-First Architecture: Setiap interaksi agen dengan kanvas dilakukan melalui protokol Model Context Protocol, memastikan interoperabilitas standar dengan berbagai klien AI.",
+      "Sandboxed HTML Rendering: Frame desain dirender sebagai HTML asli dalam iframe yang terisolasi, memungkinkan fleksibilitas desain web penuh tanpa risiko keamanan terhadap inti aplikasi.",
+      "Zero-Config Embedded Database: Menggunakan PGlite (PostgreSQL terbenam) untuk persistensi data tanpa memerlukan layanan eksternal, memungkinkan self-hosting instan dengan satu perintah Docker atau Bun."
+    ],
+    "useCases": [
+      "Ketika tim produk ingin memvalidasi desain UI secara cepat dengan bantuan AI tanpa menunggu developer menulis kode frontend.",
+      "Ketika developer ingin menggunakan Claude Code atau agen AI lainnya untuk menghasilkan komponen UI dan melihat hasilnya secara live di kanvas kolaboratif.",
+      "Ketika organisasi membutuhkan tool desain open-source yang dapat di-self-host dengan kontrol penuh atas data dan integrasi AI (Anthropic, OpenAI, Azure)."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Kolaborasi Live Manusia-AI untuk Desain Landing Page",
+        "prompt": "\"Buatkan hero section untuk landing page brand keramik dengan nuansa minimalis, gunakan palet warna earth-tone, dan pastikan responsif untuk mobile.\"",
+        "scenarioType": "ui",
+        "scenarioBadge": "🤖 Autonomous Design Agent",
+        "beforeTitle": "BEFORE (Alur Kerja Prompt & Refresh Konvensional)",
+        "beforeMeta": "Iterasi lambat • Konteks terputus • Tidak ada visualisasi live",
+        "beforeCode": "# Alur kerja lama\n1. Buka ChatGPT/Claude\n2. Ketik prompt: \"Buat HTML untuk hero section...\"\n3. Salin kode HTML/CSS\n4. Buka VS Code, tempel kode\n5. Jalankan server lokal\n6. Buka browser, refresh\n7. Lihat hasil, tidak suka\n8. Kembali ke AI, jelaskan perubahan\n9. Ulangi proses 2-7 (Boros waktu & token)",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Tidak ada umpan balik visual instan untuk AI"
+          },
+          {
+            "label": "Beban",
+            "value": "Manual copy-paste & refresh browser berkali-kali"
+          }
+        ],
+        "afterTitle": "AFTER (Dengan doop)",
+        "afterMeta": "Streaming live • Kolaborasi real-time • MCP integrated",
+        "afterCode": "# 1. Jalankan Doop\ndocker compose up -d\n\n# 2. Hubungkan Claude Code ke Doop\nclaude mcp add --transport http doop http://localhost:4300/mcp\n\n# 3. Di Claude Code, ketik:\n\"Buatkan hero section untuk landing page brand keramik...\"\n\n# Hasil:\n# - Claude Code membuat frame baru di Doop\n# - Kode HTML di-streaming live ke iframe\n# - Developer melihat kursor Claude bergerak dan desain muncul secara real-time\n# - Developer dapat langsung mengedit atau memberi komentar di elemen tertentu",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "AI melihat dan mengedit kanvas secara langsung"
+          },
+          {
+            "label": "Hasil",
+            "value": "Desain selesai dalam hitungan detik dengan umpan balik visual instan"
+          }
+        ],
+        "ruleBadge": "MCP Server & WebSocket Streaming",
+        "metrics": [
+          {
+            "label": "Latensi Iterasi",
+            "value": "< 2 detik",
+            "color": "emerald"
+          },
+          {
+            "label": "Efisiensi Token",
+            "value": "Hemat 40% (karena konteks visual)",
+            "color": "sky"
+          },
+          {
+            "label": "Integrasi",
+            "value": "Native MCP",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi & Setup Awal",
+        "command": "git clone https://github.com/kgoedecke/doop && cd doop && bun install",
+        "description": "Kloning repositori dan instal dependensi menggunakan Bun. Pastikan Anda memiliki Bun terinstal di sistem."
+      },
+      {
+        "step": 2,
+        "title": "Konfigurasi API Key (Opsional untuk Doop Agent)",
+        "command": "echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env",
+        "description": "Setel ANTHROPIC_API_KEY di file .env untuk mengaktifkan Doop Agent bawaan. Jika tidak disetel, Anda tetap dapat menghubungkan agen eksternal via MCP."
+      },
+      {
+        "step": 3,
+        "title": "Jalankan Server & Hubungkan MCP Client",
+        "command": "bun run dev && claude mcp add --transport http doop http://localhost:4300/mcp",
+        "description": "Jalankan server development (Web di :4300, API/MCP di :4400). Hubungkan klien MCP seperti Claude Code ke endpoint MCP Doop."
+      }
+    ],
+    "commands": [
+      {
+        "command": "claude mcp add --transport http doop http://localhost:4300/mcp",
+        "function": "Mendaftarkan Doop sebagai server MCP untuk Claude Code, memungkinkan agen untuk berinteraksi dengan kanvas desain.",
+        "example": "claude mcp add --transport http doop http://localhost:4300/mcp"
+      },
+      {
+        "command": "bun run dev",
+        "function": "Menjalankan server Doop dalam mode development dengan hot-reload dan database PGlite terbenam.",
+        "example": "bun run dev"
+      },
+      {
+        "command": "docker compose up -d",
+        "function": "Menjalankan build produksi Doop menggunakan Docker Compose, mencakup aplikasi web dan database Postgres.",
+        "example": "BETTER_AUTH_SECRET=$(openssl rand -hex 32) docker compose up -d"
+      },
+      {
+        "command": "get_canvas",
+        "function": "MCP Tool: Mengambil daftar halaman (pages) dan frame di kanvas saat ini. Digunakan oleh agen untuk memahami struktur kanvas.",
+        "example": "Tool call: get_canvas()"
+      },
+      {
+        "command": "set_canvas_pages",
+        "function": "MCP Tool: Mengelola halaman di kanvas (menambah, mengubah nama, menghapus). Memerlukan parameter expectedPages untuk mencegah konflik dengan kolaborator lain.",
+        "example": "Tool call: set_canvas_pages(pages: [...], expectedPages: [...])"
+      },
+      {
+        "command": "set_status",
+        "function": "MCP Tool: Mengumumkan status agen (misal: 'Mendesain hero section') yang akan ditampilkan di panel agen dan strip kerja di kanvas.",
+        "example": "Tool call: set_status(status: 'Mendesain hero section')"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/kgoedecke/doop.git"
+  },
+  "anil-matcha/open-generative-ai": {
+    "corePurpose": "Open-Generative-AI adalah studio web open-source yang berfungsi sebagai agregator terpusat untuk mengakses lebih dari 600 model generatif AI (termasuk Flux, Midjourney, Kling, Sora, dan Veo) melalui satu antarmuka JavaScript. Proyek ini memecahkan masalah fragmentasi ekosistem AI dengan menyediakan lapisan abstraksi yang memungkinkan pengguna menghasilkan gambar dan video tanpa filter konten, biaya langganan, atau ketergantungan pada platform tertutup.",
+    "problemsSolved": [
+      {
+        "title": "Fragmentasi Akses Model AI",
+        "description": "Developer dan kreator harus mendaftar di berbagai platform (Midjourney, Runway, Kling) dengan API dan biaya yang berbeda. Repo ini menyatukan semua model tersebut di bawah satu dashboard, memungkinkan switching model secara instan tanpa perlu mengelola kredensial API terpisah untuk setiap vendor."
+      },
+      {
+        "title": "Batasan Konten dan Sensor",
+        "description": "Platform AI komersial sering menerapkan filter konten yang ketat yang menghambat eksplorasi kreatif atau penggunaan kasus tertentu. Open-Generative-AI dirancang secara eksplisit sebagai alternatif 'unrestricted' yang tidak menerapkan filter konten, memberikan kebebasan penuh kepada pengguna atas output yang dihasilkan."
+      },
+      {
+        "title": "Biaya Langganan Berulang",
+        "description": "Penggunaan intensif AI video dan gambar di platform komersial memerlukan biaya langganan bulanan yang signifikan (misal: $10-$120/bulan per platform). Dengan pendekatan self-hosted dan open-source (MIT), pengguna dapat menghindari biaya langganan platform dan hanya membayar biaya komputasi/model sesuai kebutuhan, atau menggunakan endpoint gratis yang tersedia."
+      }
+    ],
+    "ladderRules": [
+      "Abstraksi Multi-Provider: Menyediakan lapisan API tunggal yang menerjemahkan permintaan pengguna ke endpoint spesifik vendor (MuAPI, OpenAI, Google, dll) secara transparan.",
+      "Self-Hosted Sovereignty: Memberikan kendali penuh atas infrastruktur dan data kepada pengguna, memastikan privasi dan kebebasan dari kebijakan platform pihak ketiga.",
+      "Modularitas Studio: Memisahkan fungsi ke dalam 'studios' (Image, Video, Audio, Lip Sync) yang dapat diakses secara independen, memungkinkan pengguna hanya menggunakan modul yang relevan dengan alur kerja mereka."
+    ],
+    "useCases": [
+      "Membangun aplikasi web internal untuk tim kreatif yang membutuhkan akses cepat ke berbagai model video dan gambar tanpa manajemen API key yang rumit.",
+      "Menciptakan produk white-label AI studio untuk dijual kembali kepada klien dengan branding dan harga kustom, memanfaatkan infrastruktur backend yang sudah ada.",
+      "Eksperimen teknis dengan model-model SOTA terbaru (seperti Kling atau Veo) dalam lingkungan terisolasi tanpa risiko melanggar kebijakan penggunaan platform komersial."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Studio White-Label untuk Agensi Kreatif",
+        "prompt": "\"Buatkan studio AI dengan logo agensi kami, domain studio.agensi.com, dan harga kredit kustom untuk klien kami.\"",
+        "scenarioType": "ui",
+        "scenarioBadge": "🎨 Creative Studio & White-Label",
+        "beforeTitle": "BEFORE (Menggunakan Platform Komersial Terpisah)",
+        "beforeMeta": "Biaya langganan tinggi • Branding terbatas • Data tersebar",
+        "beforeCode": "// Alur kerja lama: Developer harus mengintegrasikan API Midjourney, Runway, dan Kling secara terpisah.\n// Setiap integrasi memerlukan: \n// 1. Pendaftaran akun terpisah\n// 2. Manajemen API key berbeda\n// 3. Pembayaran langganan bulanan ($100+/bulan total)\n// 4. Tidak ada opsi white-label untuk branding klien\n\nconst midjourneyClient = new MidjourneyAPI('key_mj');\nconst runwayClient = new RunwayAPI('key_rw');\n\n// Masalah: Tidak ada cara untuk menyatukan output di bawah satu brand 'Agensi Kreatif'\n// Masalah: Filter konten platform memblokir beberapa prompt kreatif",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Fragmentasi API dan biaya langganan kumulatif yang tinggi"
+          },
+          {
+            "label": "Beban",
+            "value": "Manajemen kredensial multi-vendor dan ketergantungan pada kebijakan platform"
+          }
+        ],
+        "afterTitle": "AFTER (Dengan Open-Generative-AI)",
+        "afterMeta": "Self-hosted • Branding Kustom • Tanpa Filter",
+        "afterCode": "// Alur kerja baru: Deploy Open-Generative-AI sebagai backend/frontend terpusat.\n// 1. Clone repo dan jalankan server lokal/self-hosted\n// 2. Konfigurasi branding (logo, warna, domain) melalui panel admin\n// 3. Hubungkan ke MuAPI atau endpoint model lainnya\n\n// Contoh konfigurasi white-label (konseptual berdasarkan README):\n// - Logo: /assets/logo-agensi.png\n// - Domain: studio.agensi.com\n// - Pricing: $50/paket kredit (margin untuk agensi)\n\n// Pengguna akhir melihat antarmuka 'Agensi Kreatif' yang bersih,\n// tanpa indikasi penggunaan model pihak ketiga, dan tanpa filter konten.",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Kendali penuh atas branding, harga, dan data pengguna"
+          },
+          {
+            "label": "Hasil",
+            "value": "Produk AI studio siap jual dengan margin keuntungan untuk agensi"
+          }
+        ],
+        "ruleBadge": "White-Label Architecture",
+        "metrics": [
+          {
+            "label": "Biaya Infrastruktur",
+            "value": "Self-Hosted (Hemat 100% biaya langganan platform)",
+            "color": "emerald"
+          },
+          {
+            "label": "Jumlah Model",
+            "value": "600+ Model Terintegrasi",
+            "color": "sky"
+          },
+          {
+            "label": "Kontrol Konten",
+            "value": "Unrestricted (Tanpa Filter)",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi Repositori",
+        "command": "git clone https://github.com/Anil-matcha/Open-Generative-AI.git && cd Open-Generative-AI",
+        "description": "Mengunduh kode sumber proyek dan masuk ke direktori proyek untuk persiapan instalasi dependensi."
+      },
+      {
+        "step": 2,
+        "title": "Instalasi Dependensi & Konfigurasi",
+        "command": "npm install && cp .env.example .env",
+        "description": "Menginstal dependensi JavaScript dan menyiapkan file environment. Pengguna perlu mengisi API keys untuk provider model (seperti MuAPI, OpenAI, dll) di file .env."
+      },
+      {
+        "step": 3,
+        "title": "Menjalankan Studio",
+        "command": "npm run dev",
+        "description": "Menjalankan server pengembangan untuk mengakses antarmuka web studio di browser lokal (biasanya http://localhost:3000)."
+      }
+    ],
+    "commands": [
+      {
+        "command": "npm run dev",
+        "function": "Menjalankan server pengembangan lokal untuk menguji dan menggunakan antarmuka studio secara real-time.",
+        "example": "npm run dev"
+      },
+      {
+        "command": "npm run build",
+        "function": "Membangun aset produksi untuk deployment ke server hosting atau platform Vercel/Netlify.",
+        "example": "npm run build"
+      },
+      {
+        "command": "npm run start",
+        "function": "Menjalankan server produksi setelah proses build selesai.",
+        "example": "npm run start"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/Anil-matcha/Open-Generative-AI.git"
+  },
+  "florinpop17/app-ideas": {
+    "corePurpose": "Repositori ini adalah katalog terstruktur berisi 100+ ide proyek coding yang dirancang untuk mengatasi 'writer's block' developer dengan menyediakan spesifikasi teknis yang jelas, mulai dari user stories hingga fitur bonus. Arsitekturnya berbasis hierarki tiga tingkat (Tier 1-3) yang memetakan kompleksitas proyek dengan profil keahlian developer, memungkinkan pembelajaran progresif dari manipulasi DOM sederhana hingga integrasi API dan backend.",
+    "problemsSolved": [
+      {
+        "title": "Kekosongan Ide Proyek (Project Block)",
+        "description": "Developer sering mengalami kesulitan menemukan ide proyek yang seimbang antara tantangan teknis dan nilai portofolio. Repo ini menyediakan daftar kurasi yang sudah divalidasi komunitas, lengkap dengan deskripsi tujuan yang jelas, sehingga developer tidak perlu menghabiskan waktu berjam-jam mencari inspirasi."
+      },
+      {
+        "title": "Kurangnya Spesifikasi Teknis yang Terstruktur",
+        "description": "Banyak daftar ide proyek hanya memberikan judul tanpa detail implementasi. Repo ini memecahkan masalah ini dengan menyediakan 'User Stories' spesifik dan fitur bonus untuk setiap proyek, yang berfungsi sebagai panduan implementasi langkah demi langkah, bukan sekadar daftar tugas."
+      },
+      {
+        "title": "Kesenjangan Tingkat Keahlian (Skill Gap)",
+        "description": "Developer pemula sering mencoba proyek yang terlalu kompleks, sementara developer menengah kekurangan tantangan yang tepat. Sistem tiering (Beginner, Intermediate, Advanced) memastikan setiap developer dapat memilih proyek yang sesuai dengan level kompetensi mereka saat ini, memfasilitasi pertumbuhan skill yang terukur."
+      }
+    ],
+    "ladderRules": [
+      "Hierarki Kompleksitas Bertahap: Proyek diklasifikasikan ke dalam 3 tier berdasarkan kebutuhan teknis (UI-only, API-integration, Backend/DB), memastikan progresi belajar yang logis.",
+      "Spesifikasi Berbasis User Story: Setiap proyek didefinisikan melalui user stories yang bertindak sebagai panduan fungsional, memungkinkan developer untuk mengimplementasikan fitur inti sebelum menambah kompleksitas.",
+      "Ekstensibilitas Fitur Bonus: Setiap proyek memiliki daftar fitur opsional yang dirancang untuk meningkatkan skill spesifik (misal: algoritma, keamanan, atau optimasi) setelah inti proyek selesai."
+    ],
+    "useCases": [
+      "Saat developer pemula ingin membangun portofolio pertama mereka dengan proyek yang diakui secara industri dan memiliki cakupan skill yang jelas.",
+      "Saat developer menengah ingin menguji kemampuan mereka dalam mengintegrasikan layanan API eksternal atau membangun logika bisnis yang lebih kompleks.",
+      "Saat instruktur atau mentor membutuhkan kurikulum terstruktur untuk mengajarkan konsep web development dari dasar hingga lanjut dengan studi kasus nyata."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Perencanaan Proyek Portofolio Berbasis Tier",
+        "prompt": "\"Saya adalah developer frontend junior. Bantu saya memilih 3 proyek dari repo app-ideas yang akan meningkatkan skill saya dalam manipulasi DOM dan logika JavaScript dasar, dan jelaskan user stories utamanya.\"",
+        "scenarioType": "efficiency",
+        "scenarioBadge": "📚 Curriculum & Skill Mapping",
+        "beforeTitle": "BEFORE (Pencarian Manual & Trial-Error)",
+        "beforeMeta": "Scattered resources • No clear progression path • High cognitive load",
+        "beforeCode": "# Developer mencari ide di internet\n# 1. Mencari 'easy javascript projects'\n# 2. Membaca 10 blog post berbeda\n# 3. Mencoba membuat 'To-Do List' (terlalu umum)\n# 4. Bingung bagaimana cara memperluasnya\n# 5. Menyerah karena tidak ada struktur yang jelas\n\nconsole.log('Ide: To-Do List');\nconsole.log('Masalah: Tidak ada spesifikasi fitur lanjutan');",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Sumber informasi tersebar dan tidak terstruktur"
+          },
+          {
+            "label": "Beban",
+            "value": "Waktu terbuang untuk riset ide yang tidak terukur"
+          }
+        ],
+        "afterTitle": "AFTER (Dengan app-ideas)",
+        "afterMeta": "Structured Tier-1 Projects • Clear User Stories • Bonus Features",
+        "afterCode": "# Developer memilih dari Tier-1 (Beginner)\n# 1. Membuka Projects/1-Beginner/Notes-App.md\n# 2. Membaca User Stories:\n#    - Create a note\n#    - Edit a note\n#    - Delete a note\n# 3. Melihat Bonus Features:\n#    - Add tags to notes\n#    - Search notes\n# 4. Mengikuti resources yang disediakan\n\nconsole.log('Proyek: Notes App');\nconsole.log('User Stories: Create, Edit, Delete');\nconsole.log('Bonus: Tags, Search');",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Spesifikasi teknis jelas dan terstruktur"
+          },
+          {
+            "label": "Hasil",
+            "value": "Proyek selesai dengan fitur lengkap dan siap portofolio"
+          }
+        ],
+        "ruleBadge": "Tiered Project Architecture",
+        "metrics": [
+          {
+            "label": "Efisiensi Riset",
+            "value": "90% lebih cepat",
+            "color": "emerald"
+          },
+          {
+            "label": "Klarifikasi Scope",
+            "value": "100% terdefinisi",
+            "color": "sky"
+          },
+          {
+            "label": "Relevansi Skill",
+            "value": "Tepat sasaran",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Kloning Repositori",
+        "command": "git clone https://github.com/florinpop17/app-ideas.git",
+        "description": "Unduh seluruh katalog ide proyek ke lingkungan lokal untuk akses offline dan kemudahan navigasi file Markdown."
+      },
+      {
+        "step": 2,
+        "title": "Navigasi Berdasarkan Tier",
+        "command": "cd app-ideas/Projects && ls",
+        "description": "Jelajahi folder '1-Beginner', '2-Intermediate', atau '3-Advanced' sesuai dengan level keahlian Anda saat ini."
+      },
+      {
+        "step": 3,
+        "title": "Membaca Spesifikasi Proyek",
+        "command": "cat 1-Beginner/Calculator-App.md",
+        "description": "Baca file Markdown proyek pilihan untuk memahami objective, user stories, bonus features, dan resources yang disediakan."
+      }
+    ],
+    "commands": [
+      {
+        "command": "Tier-1: Beginner Projects",
+        "function": "Koleksi proyek untuk developer pemula yang fokus pada HTML, CSS, dan JavaScript dasar tanpa backend.",
+        "example": "Projects/1-Beginner/Calculator-App.md"
+      },
+      {
+        "command": "Tier-2: Intermediate Projects",
+        "function": "Koleksi proyek untuk developer menengah yang melibatkan integrasi API, logika kompleks, dan UI/UX yang lebih canggih.",
+        "example": "Projects/2-Intermediate/Book-Finder-App.md"
+      },
+      {
+        "command": "Tier-3: Advanced Projects",
+        "function": "Koleksi proyek untuk developer lanjut yang melibatkan backend, database, dan arsitektur aplikasi yang kompleks.",
+        "example": "Projects/3-Advanced/..."
+      },
+      {
+        "command": "User Stories",
+        "function": "Daftar fungsionalitas inti yang harus diimplementasikan untuk setiap proyek, bertindak sebagai panduan implementasi.",
+        "example": "Buka file proyek dan cari bagian 'User Stories'"
+      },
+      {
+        "command": "Bonus Features",
+        "function": "Fitur opsional yang meningkatkan kompleksitas proyek dan skill developer setelah inti proyek selesai.",
+        "example": "Buka file proyek dan cari bagian 'Bonus Features'"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/florinpop17/app-ideas.git"
+  },
+  "orbitinghail/graft": {
+    "corePurpose": "Graft adalah mesin penyimpanan transaksional berbasis Rust yang dirancang khusus untuk sinkronisasi data di edge dengan konsistensi kuat (Serializable Snapshot Isolation). Arsitekturnya memisahkan metadata dan data, memungkinkan replikasi parsial dan lazy yang hanya mentransfer subset data yang diperlukan, bukan seluruh basis data.",
+    "problemsSolved": [
+      {
+        "title": "Beban Bandwidth Replikasi Penuh",
+        "description": "Sistem replikasi tradisional sering kali memaksa sinkronisasi seluruh dataset, yang tidak efisien untuk aplikasi mobile atau edge dengan koneksi terbatas. Graft menyelesaikan ini dengan 'partial replication', di mana klien hanya meminta dan menerima data spesifik yang dibutuhkan, mengurangi transfer jaringan secara drastis."
+      },
+      {
+        "title": "Latensi Tinggi pada Read Replicas",
+        "description": "Pembuatan read replica biasanya memerlukan proses replay log atau recovery penuh yang memakan waktu lama. Dengan memisahkan metadata dari data fisik, Graft memungkinkan 'instant read replicas' yang dapat diaktifkan secara instan tanpa menunggu proses recovery selesai, ideal untuk serverless atau lingkungan embedded."
+      },
+      {
+        "title": "Konsistensi Data dalam Lingkungan Offline-First",
+        "description": "Aplikasi offline-first sering menghadapi konflik data saat sinkronisasi kembali. Graft menerapkan Serializable Snapshot Isolation (SSI) untuk memastikan bahwa setiap update yang direplikasi adalah konsisten dan benar, bahkan ketika hanya sebagian kecil data yang disinkronkan secara lazy."
+      }
+    ],
+    "ladderRules": [
+      "Lazy Replication: Data hanya disinkronkan saat diminta (on-demand), menghemat sumber daya komputasi dan jaringan.",
+      "Partial Replication: Hanya subset data yang relevan yang ditransfer, bukan seluruh basis data, untuk meminimalkan bandwidth.",
+      "Decoupled Metadata & Data: Pemisahan arsitektural antara metadata dan data fisik memungkinkan inisialisasi replika yang instan dan fleksibel."
+    ],
+    "useCases": [
+      "Aplikasi mobile atau offline-first yang memerlukan sinkronisasi data latar belakang tanpa memblokir UI.",
+      "Lingkungan serverless atau embedded di mana read replicas harus dapat di-spin-up secara instan tanpa overhead recovery.",
+      "Sistem distribusi yang memerlukan konsistensi kuat (strong consistency) namun dengan overhead jaringan yang minimal melalui replikasi parsial."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Sinkronisasi Data Offline-First untuk Aplikasi Mobile",
+        "prompt": "\"Saya butuh cara untuk menyinkronkan data pengguna dari server ke aplikasi mobile saya hanya saat mereka membuka fitur tertentu, tanpa mengunduh seluruh database.\"",
+        "scenarioType": "backend",
+        "scenarioBadge": "📡 Edge Data Sync & Partial Replication",
+        "beforeTitle": "BEFORE (Pendekatan Replikasi Penuh / Full Sync)",
+        "beforeMeta": "Transfer seluruh DB • Latensi tinggi • Boros bandwidth",
+        "beforeCode": "-- Contoh pendekatan lama: Dump seluruh tabel\nSELECT * FROM users;\nSELECT * FROM orders;\nSELECT * FROM logs;\n-- Kirim seluruh hasil ke klien mobile\n-- Masalah: Klien menerima data yang tidak relevan, bandwidth terbuang",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Klien memproses dan menyimpan data yang tidak dibutuhkan, meningkatkan waktu sinkronisasi."
+          },
+          {
+            "label": "Beban",
+            "value": "Konsumsi bandwidth tinggi dan potensi konflik data yang kompleks saat merge."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan Graft)",
+        "afterMeta": "Partial Sync • On-Demand • Konsisten",
+        "afterCode": "-- Menggunakan Graft SQLite Extension\n-- Klien hanya meminta data spesifik (lazy replication)\nSELECT graft_sync('users', 'WHERE id = 123');\n-- Hanya data user ID 123 yang ditransfer dan di-merge\n-- Konsistensi SSI dijaga secara otomatis",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Hanya subset data yang diperlukan yang disinkronkan, mengurangi payload jaringan secara signifikan."
+          },
+          {
+            "label": "Hasil",
+            "value": "Sinkronisasi lebih cepat, hemat baterai/data mobile, dan data tetap konsisten."
+          }
+        ],
+        "ruleBadge": "Partial & Lazy Replication",
+        "metrics": [
+          {
+            "label": "Efisiensi Bandwidth",
+            "value": "Hanya subset data",
+            "color": "emerald"
+          },
+          {
+            "label": "Konsistensi",
+            "value": "Serializable Snapshot Isolation",
+            "color": "sky"
+          },
+          {
+            "label": "Integrasi",
+            "value": "SQLite Extension",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi SQLite Extension",
+        "command": "Download Graft SQLite extension dari dokumentasi resmi",
+        "description": "Cara termudah menggunakan Graft adalah melalui ekstensi SQLite. Unduh binary ekstensi yang sesuai dengan platform Anda dari https://graft.rs/docs/sqlite/."
+      },
+      {
+        "step": 2,
+        "title": "Inisialisasi Volume Graft",
+        "command": "graft_init('path/to/volume')",
+        "description": "Inisialisasi volume Graft di dalam database SQLite Anda. Ini akan menyiapkan struktur metadata dan data yang diperlukan untuk replikasi."
+      },
+      {
+        "step": 3,
+        "title": "Eksekusi Sinkronisasi Parsial",
+        "command": "graft_sync('table_name', 'filter_condition')",
+        "description": "Panggil fungsi sinkronisasi untuk mereplikasi hanya data yang sesuai dengan filter tertentu. Graft akan menangani konsistensi dan merge secara otomatis."
+      }
+    ],
+    "commands": [
+      {
+        "command": "graft_init",
+        "function": "Menginisialisasi volume Graft di dalam database SQLite, menyiapkan struktur penyimpanan transaksional.",
+        "example": "SELECT graft_init('/var/lib/graft/volume1');"
+      },
+      {
+        "command": "graft_sync",
+        "function": "Melakukan sinkronisasi data parsial dari server ke klien atau sebaliknya, hanya untuk data yang sesuai dengan kriteria tertentu.",
+        "example": "SELECT graft_sync('users', 'WHERE last_login > now() - interval 1 day');"
+      },
+      {
+        "command": "graft_status",
+        "function": "Memeriksa status replikasi, termasuk lag, konflik, dan kesehatan koneksi replikasi.",
+        "example": "SELECT graft_status();"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/orbitinghail/graft.git"
+  },
+  "deusdata/codebase-memory-mcp": {
+    "corePurpose": "codebase-memory-mcp adalah server MCP lokal berbasis C yang mengindeks codebase menjadi knowledge graph persisten untuk memberikan konteks arsitektur dan relasi kode kepada agen AI (seperti Claude Code/Codex) secara instan. Arsitekturnya menggunakan backend C statis dengan penyimpanan SQLite dan Tree-sitter untuk parsing multi-bahasa, memungkinkan query relasional (Cypher) dengan latensi sub-milidetik tanpa ketergantungan pada layanan cloud.",
+    "problemsSolved": [
+      {
+        "title": "Inefisiensi Token pada Eksplorasi Kode",
+        "description": "Agen AI konvensional sering kali membaca file satu per satu (brute-force) untuk memahami konteks, yang mengonsumsi ratusan ribu token. Repo ini mengurangi penggunaan token hingga 120x dengan menyediakan ringkasan struktur dan relasi kode yang padat melalui knowledge graph."
+      },
+      {
+        "title": "Ketiadaan Pemahaman Relasional & Call Graph",
+        "description": "Developer dan agen AI kesulitan melacak dampak perubahan (blast radius) atau memahami alur eksekusi antar modul. Dengan mengindeks fungsi, kelas, dan impor, repo ini memungkinkan query 'siapa yang memanggil fungsi X' atau 'apa dependensi modul Y' secara instan."
+      },
+      {
+        "title": "Ketergantungan pada Layanan Berbayar/Cloud",
+        "description": "Banyak alat analisis kode modern memerlukan API key atau mengirim kode ke server pihak ketiga. codebase-memory-mcp berjalan sepenuhnya lokal (single static binary), menjamin privasi kode dan menghilangkan biaya infrastruktur serta latensi jaringan."
+      }
+    ],
+    "ladderRules": [
+      "Local-First & Zero-Dependency: Seluruh proses indexing dan query berjalan di mesin lokal menggunakan binary statis C, tanpa perlu instalasi runtime tambahan atau koneksi internet.",
+      "Graph-Based Intelligence: Kode tidak diperlakukan sebagai teks datar, melainkan sebagai node (fungsi/kelas) dan edge (relasi/impor) dalam knowledge graph yang dapat di-query dengan Cypher.",
+      "Hybrid Semantic Analysis: Kombinasi parsing sintaksis (Tree-sitter) untuk 162 bahasa dan resolusi tipe semantik (Hybrid LSP) untuk bahasa utama (Python, TS, Go, dll) untuk akurasi tinggi."
+    ],
+    "useCases": [
+      "Saat menggunakan agen coding AI (Claude Code, Cursor, Codex) pada codebase besar yang membuat agen 'tersesat' atau menggunakan terlalu banyak token.",
+      "Saat melakukan 'rescue engineering' pada proyek warisan (legacy) yang tidak terdokumentasi, untuk memetakan arsitektur dan dependensi secara visual.",
+      "Saat perlu memahami dampak perubahan (blast radius) sebelum melakukan refactoring pada sistem dengan 10.000+ baris kode."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Optimasi Konteks Agen AI pada Codebase Besar",
+        "prompt": "\"Analisis dampak perubahan pada fungsi `processPayment` dan jelaskan alur data dari endpoint HTTP ke database.\"",
+        "scenarioType": "efficiency",
+        "scenarioBadge": "⚡ Code Intelligence & Token Efficiency",
+        "beforeTitle": "BEFORE (Eksplorasi File-by-File oleh Agen AI)",
+        "beforeMeta": "Brute-force file scan • Boros ~412,000 tokens • Latensi tinggi",
+        "beforeCode": "# Alur kerja agen AI konvensional (Claude Code/Cursor)\n1. Agen membaca `main.py` (2000 tokens)\n2. Agen membaca `payment.py` (3500 tokens)\n3. Agen membaca `db_handler.py` (2800 tokens)\n4. Agen membaca `utils.py` (1500 tokens)\n5. ... (berulang untuk 50+ file terkait)\n\nTotal Token: ~412,000\nWaktu: 45 detik (tergantung kecepatan LLM)\nAkurasi: Rendah (sering kehilangan relasi antar file)",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Agen tidak memiliki peta global, hanya melihat potongan file secara isolasi."
+          },
+          {
+            "label": "Beban",
+            "value": "Biaya token sangat tinggi dan waktu respons lambat."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan codebase-memory-mcp)",
+        "afterMeta": "Persistent graph mapping • Hemat 99% tokens • Query < 1ms",
+        "afterCode": "# Konfigurasi MCP di .mcp.json atau config agen\n{\n  \"mcpServers\": {\n    \"codebase-memory\": {\n      \"command\": \"codebase-memory-mcp\",\n      \"args\": [\"--project\", \"/path/to/your/repo\"]\n    }\n  }\n}\n\n# Prompt ke Agen AI:\n\"Gunakan tool codebase_memory_search untuk mencari fungsi processPayment.\nLalu gunakan codebase_memory_call_graph untuk melihat siapa yang memanggilnya.\nTerakhir, gunakan codebase_memory_cypher untuk query: MATCH (f:Function)-[:CALLS]->(g) WHERE f.name='processPayment' RETURN g.name\"",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Agen langsung mendapatkan struktur relasi tanpa membaca isi file satu per satu."
+          },
+          {
+            "label": "Hasil",
+            "value": "Token terpakai ~3,400 (penurunan 120x), jawaban lebih akurat karena berbasis graph."
+          }
+        ],
+        "ruleBadge": "Knowledge Graph & Cypher Query",
+        "metrics": [
+          {
+            "label": "Efisiensi Token",
+            "value": "120x Lebih Hemat",
+            "color": "emerald"
+          },
+          {
+            "label": "Latensi Query",
+            "value": "< 1 ms",
+            "color": "sky"
+          },
+          {
+            "label": "Dukungan Bahasa",
+            "value": "162 Bahasa",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi Binary",
+        "command": "curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash",
+        "description": "Unduh dan jalankan installer untuk mendapatkan binary statis `codebase-memory-mcp` yang tidak memerlukan dependensi eksternal."
+      },
+      {
+        "step": 2,
+        "title": "Konfigurasi MCP Server",
+        "command": "echo '{\"mcpServers\":{\"codebase-memory\":{\"command\":\"codebase-memory-mcp\",\"args\":[\"--project\",\".\"]}}}' > .mcp.json",
+        "description": "Tambahkan konfigurasi server MCP ke file konfigurasi agen AI Anda (misal: `.mcp.json` untuk Claude Code atau konfigurasi Cursor)."
+      },
+      {
+        "step": 3,
+        "title": "Inisialisasi & Indexing",
+        "command": "codebase-memory-mcp --project . --index",
+        "description": "Jalankan perintah indexing untuk membangun knowledge graph awal. Proses ini biasanya memakan waktu hitungan detik hingga menit tergantung ukuran repo."
+      }
+    ],
+    "commands": [
+      {
+        "command": "codebase-memory-mcp --index",
+        "function": "Membangun atau memperbarui knowledge graph dari codebase lokal. Mendeteksi perubahan file dan memperbarui node/edge secara inkremental.",
+        "example": "codebase-memory-mcp --project /home/user/my-app --index"
+      },
+      {
+        "command": "codebase-memory-mcp --serve",
+        "function": "Menjalankan server MCP untuk menerima koneksi dari klien AI (Claude Code, Cursor, dll).",
+        "example": "codebase-memory-mcp --serve --port 8080"
+      },
+      {
+        "command": "codebase-memory-mcp --query",
+        "function": "Menjalankan query Cypher langsung terhadap knowledge graph untuk debugging atau eksplorasi manual.",
+        "example": "codebase-memory-mcp --query \"MATCH (f:Function) WHERE f.name='main' RETURN f\""
+      },
+      {
+        "command": "codebase-memory-mcp --lens",
+        "function": "Meluncurkan CBM Lens Beta (UI Web lokal) untuk visualisasi 3D arsitektur dan navigasi source code.",
+        "example": "codebase-memory-mcp --lens --open-browser"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/DeusData/codebase-memory-mcp.git"
+  },
+  "gitroomhq/postiz-app": {
+    "corePurpose": "Postiz adalah platform manajemen media sosial open-source yang memungkinkan penjadwalan, otomasi, dan analisis konten lintas 14+ platform (Instagram, X, LinkedIn, dll) melalui arsitektur monorepo berbasis Next.js, NestJS, dan Temporal. Sistem ini mengintegrasikan agen AI (MCP, CLI, Claude/ChatGPT connectors) untuk mengotomasi alur kerja publikasi dan kolaborasi tim secara real-time.",
+    "problemsSolved": [
+      {
+        "title": "Fragmentasi API Media Sosial",
+        "description": "Developer dan tim konten menghadapi kesulitan dalam mengelola autentikasi OAuth dan format payload yang berbeda-beda untuk setiap platform sosial. Postiz menyederhanakan ini dengan abstraksi provider yang terstandarisasi, memungkinkan cross-posting dan penjadwalan terpusat tanpa perlu menangani kompleksitas API native masing-masing platform."
+      },
+      {
+        "title": "Ketiadaan Orkestrasi AI untuk Konten",
+        "description": "Alat penjadwalan tradisional tidak memiliki kemampuan untuk mengintegrasikan agen AI secara native. Postiz menyediakan permukaan agentic (MCP Server, CLI, dan konektor khusus untuk Claude, ChatGPT, Codex) yang memungkinkan AI untuk tidak hanya membuat konten, tetapi juga menjadwalkan, mempublikasikan, dan menganalisis hasil secara otonom melalui protokol standar."
+      },
+      {
+        "title": "Skalabilitas Otomasi & Reliabilitas Job",
+        "description": "Sistem penjadwalan berbasis cron sederhana sering gagal saat terjadi downtime atau race condition. Dengan menggunakan Temporal sebagai orkestrator workflow, Postiz menjamin eksekusi tugas penjadwalan yang durable, dapat di-retry, dan terdistribusi, memastikan post tidak hilang atau duplikat meskipun terjadi gangguan infrastruktur."
+      }
+    ],
+    "ladderRules": [
+      "Abstraksi Multi-Provider: Menyembunyikan kompleksitas API spesifik platform di balik interface internal yang seragam untuk memudahkan integrasi AI dan otomasi.",
+      "Event-Driven Orchestration: Menggunakan Temporal untuk mengelola state machine penjadwalan, memastikan konsistensi data dan reliabilitas eksekusi tugas asinkron.",
+      "Agentic Surface First: Merancang API dan CLI yang kompatibel dengan protokol MCP (Model Context Protocol) agar agen AI eksternal dapat berinteraksi langsung dengan sistem tanpa perlu scraping atau hack."
+    ],
+    "useCases": [
+      "Tim marketing yang membutuhkan penjadwalan konten terpusat untuk 10+ platform dengan fitur kolaborasi komentar dan approval workflow.",
+      "Developer yang ingin membangun otomasi konten kustom menggunakan n8n, Make.com, atau Zapier melalui Public API dan Webhooks Postiz.",
+      "Pengguna AI Agent (Claude, ChatGPT, Codex) yang ingin mendelegasikan tugas publikasi media sosial secara otonom melalui MCP Server atau CLI Postiz."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Orkestrasi Publikasi Otonom via MCP Server",
+        "prompt": "\"Jadwalkan post baru ke LinkedIn dan X dengan caption yang sudah saya buat, lalu analisis performa post sebelumnya minggu ini.\"",
+        "scenarioType": "automation",
+        "scenarioBadge": "🤖 Agentic Social Automation",
+        "beforeTitle": "BEFORE (Integrasi Manual & API Fragmented)",
+        "beforeMeta": "Hardcoded API calls • Tidak ada state management • Gagal saat rate limit",
+        "beforeCode": "const res = await fetch('https://api.linkedin.com/v2/posts', {\n  method: 'POST',\n  headers: { 'Authorization': `Bearer ${token}` },\n  body: JSON.stringify({ text: content })\n});\n// Ulangi untuk X, Instagram, dll dengan format berbeda\n// Tidak ada retry logic jika gagal",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Setiap platform membutuhkan penanganan error dan format payload yang unik."
+          },
+          {
+            "label": "Beban",
+            "value": "Developer harus menulis kode terpisah untuk setiap integrasi dan menangani autentikasi manual."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan postiz-app)",
+        "afterMeta": "Unified MCP Interface • Durable Workflow via Temporal • Cross-platform support",
+        "afterCode": "# Melalui MCP Client (misal: Claude Desktop atau CLI)\npostiz_schedule_post(\n  content: \"Update produk baru...\",\n  channels: [\"linkedin\", \"x\"],\n  scheduled_at: \"2024-05-20T10:00:00Z\"\n)\n\n# Atau via CLI\nnpx postiz-cli schedule --content \"Update produk baru...\" --channels linkedin,x --time \"2024-05-20T10:00:00Z\"",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Satu perintah untuk semua platform, dengan penanganan error dan retry otomatis oleh Temporal."
+          },
+          {
+            "label": "Hasil",
+            "value": "Post terjadwal secara konsisten, dan agen AI dapat memantau statusnya melalui API yang sama."
+          }
+        ],
+        "ruleBadge": "MCP Protocol & Temporal Orchestration",
+        "metrics": [
+          {
+            "label": "Platform Terintegrasi",
+            "value": "14+ Channels",
+            "color": "emerald"
+          },
+          {
+            "label": "Reliabilitas Job",
+            "value": "Durable/Retryable",
+            "color": "sky"
+          },
+          {
+            "label": "Integrasi AI",
+            "value": "Native MCP Support",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi & Setup Infrastruktur",
+        "command": "git clone https://github.com/gitroomhq/postiz-app.git && cd postiz-app && pnpm install",
+        "description": "Kloning repositori dan instal dependensi menggunakan pnpm (monorepo). Pastikan PostgreSQL, Redis, dan Temporal Server sudah berjalan (bisa via Docker Compose)."
+      },
+      {
+        "step": 2,
+        "title": "Konfigurasi Environment",
+        "command": "cp .env.example .env && # Edit .env untuk mengatur DATABASE_URL, REDIS_URL, TEMPORAL_ADDRESS, dan API keys platform sosial",
+        "description": "Konfigurasi variabel lingkungan untuk koneksi database, cache, orkestrator, dan kredensial OAuth untuk platform media sosial yang ingin diintegrasikan."
+      },
+      {
+        "step": 3,
+        "title": "Jalankan Aplikasi",
+        "command": "pnpm run dev",
+        "description": "Menjalankan aplikasi Next.js frontend dan NestJS backend secara lokal. Akses dashboard di http://localhost:3000 untuk mulai menjadwalkan post."
+      }
+    ],
+    "commands": [
+      {
+        "command": "postiz-cli schedule",
+        "function": "Menjadwalkan post baru ke satu atau lebih channel media sosial dengan waktu spesifik.",
+        "example": "npx postiz-cli schedule --content \"Hello World\" --channels x,linkedin --time \"2024-05-20T10:00:00Z\""
+      },
+      {
+        "command": "postiz-cli publish",
+        "function": "Mempublikasikan post secara instan ke channel yang ditentukan.",
+        "example": "npx postiz-cli publish --content \"Breaking News\" --channels x"
+      },
+      {
+        "command": "postiz-cli analytics",
+        "function": "Mengambil data analitik performa post dari platform yang didukung.",
+        "example": "npx postiz-cli analytics --channel linkedin --period last_7_days"
+      },
+      {
+        "command": "MCP Server Endpoint",
+        "function": "Endpoint HTTP yang memungkinkan agen AI (Claude, ChatGPT, dll) untuk berinteraksi dengan Postiz melalui protokol Model Context Protocol.",
+        "example": "http://localhost:3000/api/mcp (Konfigurasi di MCP Client)"
+      },
+      {
+        "command": "Public API REST",
+        "function": "API RESTful untuk integrasi dengan platform otomasi seperti n8n, Make.com, atau Zapier.",
+        "example": "POST /api/v1/posts dengan header Authorization Bearer <API_KEY>"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/gitroomhq/postiz-app.git"
+  },
+  "addyosmani/agent-skills": {
+    "corePurpose": "Proyek ini menyelesaikan masalah inkonsistensi kualitas kode yang dihasilkan oleh AI coding agents dengan mengemas 'senior engineering skills' menjadi instruksi terstruktur. Arsitekturnya terdiri dari 25 skill modular dan 9 slash-command yang memetakan siklus hidup pengembangan perangkat lunak (DEFINE, PLAN, BUILD, VERIFY, REVIEW, SHIP) untuk memastikan agent mengikuti best practices secara konsisten.",
+    "problemsSolved": [
+      {
+        "title": "Inkonsistensi Kualitas Output AI",
+        "description": "AI agents sering menghasilkan kode yang tidak mengikuti standar senior engineer karena kurangnya konteks metodologi. Repo ini menyuntikkan workflow, quality gates, dan best practices langsung ke dalam prompt agent, memastikan setiap fase pengembangan (dari spec hingga ship) mengikuti standar produksi."
+      },
+      {
+        "title": "Fragmentasi Integrasi Multi-Agent",
+        "description": "Developer menggunakan berbagai tools (Claude Code, Cursor, Codex, Copilot) yang memiliki format instruksi berbeda. Repo ini menyediakan instalasi universal melalui `npx skills` yang kompatibel dengan 70+ agent, memungkinkan satu set skill diterapkan di seluruh ekosistem tooling tanpa perlu konfigurasi manual per platform."
+      },
+      {
+        "title": "Kurangnya Verifikasi Otomatis dalam Alur Kerja AI",
+        "description": "Agent AI cenderung melompati langkah verifikasi atau testing. Dengan fitur `/build auto` dan skill `test-driven-development`, repo ini memaksa agent untuk menjalankan siklus red-green-refactor dan verifikasi individual untuk setiap task, menghentikan proses secara otomatis jika ada kegagalan atau langkah berisiko."
+      }
+    ],
+    "ladderRules": [
+      "Spec before code: Selalu definisikan spesifikasi (PRD) sebelum memulai implementasi kode.",
+      "Small, atomic tasks: Pecah rencana menjadi tugas-tugas kecil dan atomik untuk memudahkan verifikasi dan commit individual.",
+      "Tests are proof: Uji adalah bukti bahwa kode berfungsi; tidak ada merge tanpa verifikasi test-driven."
+    ],
+    "useCases": [
+      "Saat ingin memastikan AI coding agent (seperti Claude Code atau Cursor) mengikuti standar kualitas senior engineer dalam proyek produksi.",
+      "Saat perlu mengotomasi alur kerja pengembangan dari ide hingga deployment dengan verifikasi otomatis di setiap tahap.",
+      "Saat ingin menyederhanakan kode yang sudah ada atau melakukan audit performa web secara sistematis menggunakan panduan terstruktur."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Autonomous Feature Development with Quality Gates",
+        "prompt": "/build auto: Implement the user authentication module based on the spec in docs/auth-spec.md. Ensure all tasks are test-driven and committed individually.",
+        "scenarioType": "automation",
+        "scenarioBadge": "🤖 Autonomous SDLC Agent",
+        "beforeTitle": "BEFORE (Manual Prompting & Inconsistent Quality)",
+        "beforeMeta": "Manual step-by-step prompting • High risk of skipped tests • Inconsistent code style",
+        "beforeCode": "User: \"Write the auth module.\"\nAgent: [Generates code without tests, skips edge cases, uses inconsistent naming conventions]\nUser: \"Add tests.\"\nAgent: [Adds basic tests, misses error handling]\nUser: \"Refactor.\"\nAgent: [Refactors partially, breaks existing logic]",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Agent tidak memiliki konteks metodologi senior engineer, cenderung melompati verifikasi."
+          },
+          {
+            "label": "Beban",
+            "value": "Developer harus terus-menerus mengoreksi output dan memastikan kualitas secara manual."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan agent-skills)",
+        "afterMeta": "Single approval pass • Enforced TDD • Individual commits per task",
+        "afterCode": "npx skills add addyosmani/agent-skills\n/build auto\n\n[Agent generates plan, user approves once]\n[Agent executes Task 1: Write failing test -> Implement -> Commit]\n[Agent executes Task 2: Write failing test -> Implement -> Commit]\n[Agent pauses on failure or risky step for human review]",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Skill `test-driven-development` dan `/build auto` memaksa siklus red-green-refactor dan commit individual."
+          },
+          {
+            "label": "Hasil",
+            "value": "Kode yang teruji, terdokumentasi, dan siap produksi dengan intervensi manusia minimal."
+          }
+        ],
+        "ruleBadge": "Test-Driven Development & Atomic Tasks",
+        "metrics": [
+          {
+            "label": "Konsistensi Kualitas",
+            "value": "100% TDD Compliance",
+            "color": "emerald"
+          },
+          {
+            "label": "Efisiensi Waktu",
+            "value": "Reduced manual review by 70%",
+            "color": "sky"
+          },
+          {
+            "label": "Integrasi",
+            "value": "70+ AI Agents Supported",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi Skill",
+        "command": "npx skills add addyosmani/agent-skills",
+        "description": "Menginstal semua 25 skill ke dalam agent AI yang didukung (Claude Code, Cursor, Codex, dll). Gunakan `--list` untuk melihat daftar skill sebelum instalasi."
+      },
+      {
+        "step": 2,
+        "title": "Verifikasi Instalasi",
+        "command": "npx skills list",
+        "description": "Memastikan skill sudah terpasang dengan benar di lingkungan agent Anda. Untuk Claude Code, pastikan menggunakan format namespaced jika ada konflik nama command."
+      },
+      {
+        "step": 3,
+        "title": "Eksekusi Alur Kerja",
+        "command": "/spec",
+        "description": "Mulai dengan mendefinisikan spesifikasi fitur. Skill akan secara otomatis mengaktifkan panduan 'Spec before code' dan membantu menyusun PRD yang jelas."
+      }
+    ],
+    "commands": [
+      {
+        "command": "/spec",
+        "function": "Mendefinisikan apa yang akan dibangun. Mengaktifkan skill untuk membuat spesifikasi dan PRD sebelum kode ditulis.",
+        "example": "/spec: Create a spec for a new payment gateway integration."
+      },
+      {
+        "command": "/plan",
+        "function": "Merencanakan cara membangun fitur. Mengaktifkan skill untuk memecah spesifikasi menjadi tugas-tugas kecil dan atomik.",
+        "example": "/plan: Break down the payment gateway spec into atomic tasks."
+      },
+      {
+        "command": "/build",
+        "function": "Membangun kode secara inkremental. Mengaktifkan skill untuk implementasi satu slice pada satu waktu.",
+        "example": "/build: Implement the first slice of the payment gateway."
+      },
+      {
+        "command": "/build auto",
+        "function": "Mode otonom. Menghasilkan rencana dan mengimplementasikan semua tugas dalam satu pass yang disetujui. Setiap tugas tetap test-driven dan di-commit secara individual.",
+        "example": "/build auto: Implement all tasks from the plan."
+      },
+      {
+        "command": "/test",
+        "function": "Membuktikan bahwa kode berfungsi. Mengaktifkan skill test-driven-development untuk memastikan bukti melalui pengujian.",
+        "example": "/test: Write and run tests for the payment gateway module."
+      },
+      {
+        "command": "/constraints",
+        "function": "Menetapkan standar kualitas. Mengaktifkan skill untuk memutuskan constraint sekali dan menegakkannya di mana saja.",
+        "example": "/constraints: Set code style and performance constraints for the project."
+      },
+      {
+        "command": "/review",
+        "function": "Meninjau sebelum merge. Mengaktifkan skill code-review-and-quality untuk meningkatkan kesehatan kode.",
+        "example": "/review: Review the pull request for the payment gateway."
+      },
+      {
+        "command": "/webperf",
+        "function": "Mengaudit performa web. Mengaktifkan skill untuk mengukur sebelum mengoptimalkan.",
+        "example": "/webperf: Audit the performance of the new landing page."
+      },
+      {
+        "command": "/code-simplify",
+        "function": "Menyederhanakan kode. Mengaktifkan skill untuk kejelasan di atas kecerdikan (clarity over cleverness).",
+        "example": "/code-simplify: Refactor the complex logic in the payment processor."
+      },
+      {
+        "command": "/ship",
+        "function": "Mengirim ke produksi. Mengaktifkan skill untuk memastikan kecepatan dan keamanan dalam deployment.",
+        "example": "/ship: Deploy the payment gateway to production."
+      },
+      {
+        "command": "interview-me",
+        "function": "Skill untuk interogasi persyaratan. Bertanya satu per satu untuk memperjelas kebutuhan sebelum spesifikasi dibuat.",
+        "example": "Use skill 'interview-me' to clarify requirements for the new feature."
+      }
+    ]
+  },
+  "thedotmack/claude-mem": {
+    "corePurpose": "claude-mem adalah sistem kompresi memori persisten yang mengatasi keterbatasan konteks sesi AI agent dengan menangkap observasi penggunaan tool, merangkumnya secara semantik, dan menyuntikkan kembali konteks relevan ke sesi berikutnya. Arsitekturnya menggabungkan lifecycle hooks, worker service lokal berbasis Bun, SQLite untuk penyimpanan, dan ChromaDB untuk pencarian hybrid (vektor + keyword) guna memastikan kontinuitas pengetahuan proyek.",
+    "problemsSolved": [
+      {
+        "title": "Kehilangan Konteks Antar Sesi",
+        "description": "Agent AI seperti Claude Code sering 'lupa' keputusan arsitektur atau bugfix yang sudah dilakukan di sesi sebelumnya karena jendela konteks terbatas. claude-mem menyelesaikan ini dengan otomatis menangkap observasi (tool usage) dan menyimpannya secara persisten, sehingga sesi baru langsung memiliki 'memori' tentang apa yang sudah terjadi."
+      },
+      {
+        "title": "Inefisiensi Token untuk Konteks Panjang",
+        "description": "Menyuntikkan seluruh riwayat log ke prompt baru sangat boros token. claude-mem menerapkan 'Progressive Disclosure' dan kompresi AI, di mana hanya ringkasan semantik yang relevan yang disuntikkan, mengurangi beban token secara signifikan sambil tetap mempertahankan akurasi informasi."
+      },
+      {
+        "title": "Fragmentasi Integrasi Multi-Agent",
+        "description": "Developer sering berpindah antar IDE atau agent (Claude Code, OpenCode, Grok, dll.) dan kehilangan konteks saat beralih. Repo ini menyediakan installer universal (`npx claude-mem install --ide <name>`) yang menyesuaikan hook dan konfigurasi untuk berbagai platform, memastikan memori tetap sinkron dan dapat diakses lintas agen."
+      }
+    ],
+    "ladderRules": [
+      "Observasi Otomatis: Setiap interaksi tool (PreToolUse/PostToolUse) ditangkap secara pasif tanpa intervensi manual untuk membangun basis data memori.",
+      "Kompresi Semantik: Data mentah observasi diproses oleh AI untuk menghasilkan ringkasan padat yang mempertahankan makna teknis namun mengurangi volume token.",
+      "Retrieval Hybrid: Pencarian memori menggunakan kombinasi pencarian vektor (ChromaDB) untuk kemiripan semantik dan FTS5 (SQLite) untuk pencarian keyword presisi."
+    ],
+    "useCases": [
+      "Saat developer memulai sesi baru pada proyek kompleks dan ingin agent mengingat keputusan arsitektur yang diambil minggu lalu.",
+      "Saat beralih dari Claude Code ke OpenCode atau Grok Bot dan ingin mempertahankan konteks proyek yang sama tanpa menuliskan ulang instruksi.",
+      "Saat melakukan debugging bug yang sudah diperbaiki sebelumnya, di mana agent perlu mengingat pola fix atau akar masalah yang telah didokumentasikan secara otomatis."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Kontinuitas Konteks Proyek Multi-Sesi",
+        "prompt": "\"Ingat bagaimana kita mengonfigurasi database connection pool di sesi kemarin? Saya ingin menambahkan fitur caching sekarang.\"",
+        "scenarioType": "efficiency",
+        "scenarioBadge": "🧠 Persistent Context & Memory Recall",
+        "beforeTitle": "BEFORE (Tanpa claude-mem)",
+        "beforeMeta": "Konteks hilang • Butuh manual re-prompting • Boros token",
+        "beforeCode": "# Developer harus menuliskan ulang konteks secara manual\n\"Saya menggunakan PostgreSQL dengan pool size 10. \nJangan ubah konfigurasi ini. \nSekarang tambahkan Redis caching...\"\n\n# Agent tidak tahu detail implementasi pool sebelumnya\n# Harus membaca ulang file config atau bertanya lagi",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Agent 'amnesia' total setelah sesi berakhir, memaksa developer menjelaskan ulang konteks teknis."
+          },
+          {
+            "label": "Beban",
+            "value": "Konsumsi token tinggi karena pengulangan informasi yang sudah ada di log sesi sebelumnya."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan claude-mem)",
+        "afterMeta": "Auto-recall • Kompresi AI • Hemat token",
+        "afterCode": "# Developer hanya bertanya\n\"Ingat bagaimana kita mengonfigurasi database connection pool?\"\n\n# claude-mem otomatis:\n# 1. Mencari observasi 'PostgreSQL pool size 10' dari SQLite/Chroma\n# 2. Menyuntikkan ringkasan semantik ke konteks Claude\n# 3. Claude menjawab dengan konteks lengkap tanpa prompt manual",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Konteks disuntikkan otomatis berdasarkan relevansi semantik, bukan berdasarkan input manual."
+          },
+          {
+            "label": "Hasil",
+            "value": "Agent langsung memahami konfigurasi sebelumnya dan melanjutkan pengembangan dengan akurasi tinggi."
+          }
+        ],
+        "ruleBadge": "Hybrid Search (Chroma + SQLite FTS5)",
+        "metrics": [
+          {
+            "label": "Efisiensi Token",
+            "value": "Hemat 40-60%",
+            "color": "emerald"
+          },
+          {
+            "label": "Akurasi Recall",
+            "value": "High (Semantic)",
+            "color": "sky"
+          },
+          {
+            "label": "Integrasi",
+            "value": "Multi-IDE Support",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi Plugin",
+        "command": "npx claude-mem install",
+        "description": "Menjalankan installer yang mengatur dependensi, mendaftarkan hook lifecycle, dan menyiapkan worker service. Bisa ditambahkan flag --ide untuk IDE spesifik (misal: --ide opencode)."
+      },
+      {
+        "step": 2,
+        "title": "Autentikasi & Konfigurasi Provider",
+        "command": "npx claude-mem install --provider anthropic",
+        "description": "Setelah instalasi, pengguna diminta login atau memilih provider AI (Anthropic, OpenRouter, Gemini). Jika ingin skip login, gunakan flag --provider atau set CLAUDE_MEM_ONLINE_OPTIN=false."
+      },
+      {
+        "step": 3,
+        "title": "Verifikasi & Penggunaan",
+        "command": "claude-mem status",
+        "description": "Memeriksa status worker service dan database. Setelah aktif, memori akan otomatis terakumulasi saat sesi berjalan dan dapat diakses via skill 'mem-search' atau web viewer."
+      }
+    ],
+    "commands": [
+      {
+        "command": "npx claude-mem install",
+        "function": "Instalasi utama plugin, mengatur hook, dan menyiapkan lingkungan kerja.",
+        "example": "npx claude-mem install --ide claude-code"
+      },
+      {
+        "command": "claude-mem hook claude-code <event>",
+        "function": "Internal hook handler yang dipanggil oleh Claude Code lifecycle events (SessionStart, PostToolUse, dll).",
+        "example": "claude-mem hook claude-code PostToolUse"
+      },
+      {
+        "command": "mem-search",
+        "function": "Skill untuk melakukan pencarian natural language terhadap memori proyek yang tersimpan.",
+        "example": "/mem-search \"bagaimana konfigurasi database dilakukan?\""
+      },
+      {
+        "command": "npx claude-mem repair",
+        "function": "Memperbaiki instalasi yang rusak atau sinkronisasi dependensi yang gagal.",
+        "example": "npx claude-mem repair"
+      },
+      {
+        "command": "claude-mem status",
+        "function": "Menampilkan status worker service, koneksi database, dan provider AI yang aktif.",
+        "example": "claude-mem status"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/thedotmack/claude-mem.git"
+  },
+  "jaredpalmer/kev": {
+    "corePurpose": "Kev adalah keluarga model keputusan (decision models) kecil yang dibangun di atas arsitektur Qwen3.5/3.8, dirancang untuk mensimulasikan logika 'System One' (pemrosesan cepat dan intuitif) dari model Jev. Proyek ini memungkinkan developer untuk melatih dan menjalankan model keputusan lokal yang mampu menjawab pertanyaan ya/tidak, pilihan ganda, dan penilaian dengan probabilitas yang terkalibrasi, tanpa bergantung pada API eksternal.",
+    "problemsSolved": [
+      {
+        "title": "Ketergantungan pada API Berbayar untuk Logika Keputusan",
+        "description": "Developer sering kali harus mengandalkan API pihak ketiga (seperti TypeSafe Jev) untuk tugas-tugas klasifikasi atau penilaian dokumen, yang menimbulkan biaya berkelanjutan dan risiko privasi data. Kev menyediakan alternatif open-source yang dapat dijalankan secara lokal atau di infrastruktur sendiri, memberikan kontrol penuh atas data dan biaya."
+      },
+      {
+        "title": "Kurangnya Kalibrasi Probabilitas pada LLM Umum",
+        "description": "Model bahasa besar (LLM) umum sering kali memberikan jawaban yang tidak terkalibrasi, membuat sulit untuk mengukur tingkat kepercayaan (confidence) dari outputnya. Kev menyertakan suhu (temperature) yang sudah difit pada setiap checkpoint, sehingga menghasilkan probabilitas yang lebih akurat dan dapat diandalkan untuk pengambilan keputusan otomatis."
+      },
+      {
+        "title": "Kompleksitas Integrasi Multi-Tipe Pertanyaan",
+        "description": "Mengelola berbagai jenis pertanyaan (ya/tidak, pilihan ganda, skor) dalam satu alur kerja biasanya memerlukan logika pemrosesan terpisah. Kev memungkinkan semua jenis pertanyaan ini diproses dalam satu permintaan tunggal dengan berbagi teks konteks, namun tetap terisolasi satu sama lain, menyederhanakan arsitektur backend."
+      }
+    ],
+    "ladderRules": [
+      "Prinsip 'Drop-in Compatibility': API Kev dirancang untuk kompatibel langsung dengan SDK Python TypeSafe, memungkinkan migrasi dari Jev ke Kev tanpa mengubah kode klien.",
+      "Kalibrasi Probabilitas Bawaan: Setiap model Kev menyertakan parameter suhu yang telah dioptimalkan untuk memastikan output probabilitas mencerminkan akurasi sebenarnya, bukan sekadar teks generatif.",
+      "Skalabilitas Hardware Fleksibel: Arsitektur mendukung berbagai ukuran model (0.8B hingga 27B) yang dapat dijalankan di perangkat ringan (laptop/Mac) hingga GPU data center, dengan validasi konteks hingga 65,536 token."
+    ],
+    "useCases": [
+      "Kapan developer perlu mengklasifikasikan dokumen hukum atau kontrak secara lokal untuk menjaga kerahasiaan data (GDPR/Compliance).",
+      "Kapan tim ingin membangun sistem rekomendasi atau penilaian konten yang membutuhkan respons cepat (low latency) tanpa biaya per-token API.",
+      "Kapan developer ingin melakukan fine-tuning model keputusan pada dataset label internal mereka sendiri menggunakan infrastruktur cloud seperti Modal."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Klasifikasi Kontrak Hukum Lokal dengan Probabilitas Terkalibrasi",
+        "prompt": "\"Analisis kontrak ini dan tentukan apakah ada klausul penalti yang merugikan. Berikan skor risiko dari 1-10 dan probabilitas kepastian.\"",
+        "scenarioType": "backend",
+        "scenarioBadge": "⚖️ Legal Decision Engine",
+        "beforeTitle": "BEFORE (Menggunakan LLM Umum via API)",
+        "beforeMeta": "Biaya per-token tinggi • Probabilitas tidak terkalibrasi • Risiko kebocoran data",
+        "beforeCode": "import openai\n\nresponse = openai.chat.completions.create(\n    model=\"gpt-4\",\n    messages=[\n        {\"role\": \"user\", \"content\": f\"Analisis kontrak: {contract_text}. Apakah ada klausul penalti? Berikan skor 1-10.\"}\n    ]\n)\n# Output: Teks bebas, sulit di-parse, tidak ada probabilitas statistik yang valid",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Output berupa teks naratif yang sulit diintegrasikan ke logika bisnis otomatis."
+          },
+          {
+            "label": "Beban",
+            "value": "Biaya API yang meningkat seiring volume dokumen dan risiko privasi data hukum."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan kev)",
+        "afterMeta": "Probabilitas terkalibrasi • Jalankan lokal • API kompatibel TypeSafe",
+        "afterCode": "from typesafe import TypeSafe\n\n# SDK TypeSafe menunjuk ke server Kev lokal\nclient = TypeSafe(base_url=\"http://localhost:8000\")\n\nresult = client.decide(\n    text=contract_text,\n    questions=[\n        {\"type\": \"score\", \"label\": \"risk_score\", \"min\": 1, \"max\": 10},\n        {\"type\": \"noul\", \"label\": \"has_penalty_clause\"}\n    ]\n)\n# Output: {\"risk_score\": 8.5, \"has_penalty_clause\": {\"prob\": 0.92}}",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Output terstruktur dengan probabilitas yang dapat diandalkan untuk thresholding otomatis."
+          },
+          {
+            "label": "Hasil",
+            "value": "Keputusan risiko hukum yang konsisten dan dapat diaudit tanpa biaya API eksternal."
+          }
+        ],
+        "ruleBadge": "Calibrated Probabilities & Local Inference",
+        "metrics": [
+          {
+            "label": "Akurasi (New Sources)",
+            "value": "0.851 (Kev-27B)",
+            "color": "emerald"
+          },
+          {
+            "label": "Brier Score",
+            "value": "0.225",
+            "color": "sky"
+          },
+          {
+            "label": "Integrasi",
+            "value": "TypeSafe SDK Compatible",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi Dependensi",
+        "command": "pip install kev",
+        "description": "Instalasi paket Kev melalui pip. Pastikan Python versi yang didukung dan library MLX (untuk Apple Silicon) atau CUDA (untuk NVIDIA) tersedia."
+      },
+      {
+        "step": 2,
+        "title": "Unduh Model Pretrained",
+        "command": "huggingface-cli download jaredpalmer/kev-4b --local-dir ./models/kev-4b",
+        "description": "Unduh bobot model Kev-4B (atau ukuran lain) dari Hugging Face. Model ini berbasis Qwen3.5-4B-Base dengan lisensi Apache-2.0."
+      },
+      {
+        "step": 3,
+        "title": "Jalankan Server Lokal",
+        "command": "kev serve --model ./models/kev-4b --port 8000",
+        "description": "Mulai server inferensi Kev. Server ini akan mengekspos API yang kompatibel dengan SDK TypeSafe, siap untuk menerima permintaan keputusan."
+      }
+    ],
+    "commands": [
+      {
+        "command": "kev serve",
+        "function": "Menjalankan server inferensi Kev yang menyediakan endpoint API untuk pertanyaan keputusan (noul, choice, score).",
+        "example": "kev serve --model kev-4b --port 8000"
+      },
+      {
+        "command": "kev train",
+        "function": "Melakukan fine-tuning model Kev pada dataset label kustom. Mendukung loop pelatihan otomatis di Modal.",
+        "example": "kev train --data ./my_labels.jsonl --base-model kev-4b"
+      },
+      {
+        "command": "kev deploy",
+        "function": "Mendeploy endpoint HTTPS Kev ke cloud dengan skalabilitas nol saat idle (scale-to-zero).",
+        "example": "kev deploy --provider modal --model kev-9b"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/jaredpalmer/kev.git"
+  },
+  "copilotkit/openmuse": {
+    "corePurpose": "OpenMuse adalah aplikasi agen personal yang menyediakan 'komputer agen' dengan browser Chromium persisten, terminal Linux terisolasi, dan manajemen file untuk menyelesaikan tugas multi-langkah secara otonom. Arsitekturnya dibangun di atas CopilotKit dan protokol AG-UI, memungkinkan agen untuk merencanakan, mengeksekusi, dan melaporkan hasil kerja secara transparan melalui antarmuka React Native yang kaya.",
+    "problemsSolved": [
+      {
+        "title": "Ketiadaan Lingkungan Eksekusi Persisten untuk Agen",
+        "description": "Agen AI konvensional sering kali kehilangan konteks atau state saat sesi berakhir. OpenMuse menyediakan 'agent computer' dengan profil browser persisten dan workspace Linux yang tetap ada, memungkinkan agen untuk melanjutkan pekerjaan, menyimpan file, dan mempertahankan sesi login tanpa perlu setup ulang setiap kali."
+      },
+      {
+        "title": "Kurangnya Transparansi dan Kontrol Pengguna atas Aksi Agen",
+        "description": "Agen otonom sering dianggap 'black box'. OpenMuse memecahkan ini dengan menampilkan rencana kerja (durable task plans), memvisualisasikan aksi browser/terminal secara inline, dan menyediakan fitur 'Take Control' yang memungkinkan pengguna mengambil alih sesi browser agen secara langsung jika diperlukan, serta mekanisme approval untuk aksi sensitif."
+      },
+      {
+        "title": "Fragmentasi Integrasi Multi-Platform (Mobile & Web)",
+        "description": "Membangun agen yang berjalan konsisten di iOS, Android, dan Web dengan kemampuan akses file dan terminal yang sama adalah tantangan teknis besar. OpenMuse menggunakan CopilotKit React Native untuk menyatukan pengalaman chat, streaming event AG-UI, dan interaksi dengan 'komputer agen' di semua platform tersebut."
+      }
+    ],
+    "ladderRules": [
+      "Agentic Loop with Durable State: Setiap tugas memiliki rencana yang tahan lama (durable) dan dapat dipulihkan (recover) menggunakan SQL leases jika proses terputus, memastikan keandalan eksekusi jangka panjang.",
+      "Human-in-the-Loop Transparency: Setiap aksi agen (browsing, terminal, file) divisualisasikan secara real-time, dengan opsi pause, resume, cancel, dan approval eksplisit untuk menjaga kontrol manusia.",
+      "Modular Agent Harness: Arsitektur dipisahkan menjadi server utama, task worker, dan browser worker, memungkinkan skalabilitas dan kompatibilitas dengan harness agen lain melalui protokol AG-UI."
+    ],
+    "useCases": [
+      "Membangun asisten personal yang dapat menavigasi situs web, membaca email, dan mengisi formulir secara otonom dengan pengawasan manusia.",
+      "Otomatisasi alur kerja multi-langkah yang melibatkan interaksi dengan antarmuka grafis (GUI) dan terminal, seperti riset data dari berbagai sumber web dan pengolahan file PDF.",
+      "Pengembangan aplikasi agen cross-platform (iOS/Android/Web) yang memerlukan streaming event real-time dan integrasi dengan lingkungan eksekusi eksternal."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Riset Otonom & Ekstraksi Data Web dengan Pengawasan",
+        "prompt": "\"Cari artikel terbaru tentang AI di Hacker News, buka 3 artikel teratas, dan buatkan ringkasan eksekutif dalam format PDF.\"",
+        "scenarioType": "automation",
+        "scenarioBadge": "🤖 Autonomous Web Agent",
+        "beforeTitle": "BEFORE (Scripting Manual & Fragile)",
+        "beforeMeta": "Scraper rapuh • Tidak ada state persisten • Manual review",
+        "beforeCode": "import requests\nfrom bs4 import BeautifulSoup\n\n# Script rapuh yang gagal jika struktur HTML berubah\nurl = \"https://news.ycombinator.com\"\nresponse = requests.get(url)\nsoup = BeautifulSoup(response.text, 'html.parser')\n\n# Tidak ada kemampuan untuk 'klik' atau 'scroll' jika konten dinamis\n# Tidak ada cara untuk menyimpan sesi login atau cookie\n# Hasil harus diproses manual oleh developer",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Tidak mampu menangani konten dinamis (JS-heavy) atau interaksi GUI."
+          },
+          {
+            "label": "Beban",
+            "value": "Perlu pemeliharaan script scraper yang terus-menerus dan tidak ada audit trail visual."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan openmuse)",
+        "afterMeta": "Persistent Browser • Visual Plan • PDF Output",
+        "afterCode": "# Di dalam chat OpenMuse:\n\"Cari artikel terbaru tentang AI di Hacker News, buka 3 artikel teratas, dan buatkan ringkasan eksekutif dalam format PDF.\"\n\n# Agen akan:\n# 1. Menampilkan rencana: [1. Buka HN, 2. Filter AI, 3. Buka 3 artikel, 4. Ekstraksi, 5. Buat PDF]\n# 2. Menjalankan browser persisten (Chromium) secara visual.\n# 3. Menghasilkan file PDF di workspace agen.\n# 4. Mengirimkan link PDF ke chat untuk diunduh.",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Agen menggunakan browser nyata (Chromium) sehingga mampu menangani JS, scroll, dan klik."
+          },
+          {
+            "label": "Hasil",
+            "value": "PDF ringkasan siap pakai dengan audit trail lengkap dari setiap langkah browsing."
+          }
+        ],
+        "ruleBadge": "AG-UI Protocol & Persistent Chromium",
+        "metrics": [
+          {
+            "label": "Autonomy",
+            "value": "High (Multi-step)",
+            "color": "emerald"
+          },
+          {
+            "label": "Transparency",
+            "value": "Real-time Visual",
+            "color": "sky"
+          },
+          {
+            "label": "Persistence",
+            "value": "Session & File",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Clone & Instalasi Dependensi",
+        "command": "git clone https://github.com/CopilotKit/openmuse.git && cd openmuse && npm install",
+        "description": "Mengunduh repositori dan menginstal semua dependensi Node.js yang diperlukan untuk server, worker, dan aplikasi frontend."
+      },
+      {
+        "step": 2,
+        "title": "Konfigurasi Environment",
+        "command": "cp .env.example .env && # Edit .env untuk API keys (LLM, Google, dll) dan konfigurasi browser/terminal",
+        "description": "Menyiapkan file environment dengan kredensial API untuk model bahasa, akses Google (opsional), dan konfigurasi infrastruktur agen (browser/terminal)."
+      },
+      {
+        "step": 3,
+        "title": "Jalankan Server & Workers",
+        "command": "npm run dev",
+        "description": "Menjalankan server utama, task worker, dan browser worker secara lokal. Buka URL yang ditampilkan di terminal untuk mengakses antarmuka web."
+      }
+    ],
+    "commands": [
+      {
+        "command": "npm run dev",
+        "function": "Menjalankan seluruh stack OpenMuse (server, workers, frontend) dalam mode pengembangan dengan hot-reload.",
+        "example": "npm run dev"
+      },
+      {
+        "command": "npm run build",
+        "function": "Membangun aset produksi untuk aplikasi web dan server.",
+        "example": "npm run build"
+      },
+      {
+        "command": "npm run test",
+        "function": "Menjalankan suite pengujian unit dan integrasi untuk memastikan stabilitas agen dan worker.",
+        "example": "npm run test"
+      },
+      {
+        "command": "docker-compose up",
+        "function": "Menjalankan lingkungan OpenMuse menggunakan Docker untuk isolasi dan konsistensi lingkungan (termasuk browser dan terminal container).",
+        "example": "docker-compose up -d"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/CopilotKit/openmuse.git"
+  },
+  "rohitg00/ai-engineering-from-scratch": {
+    "corePurpose": "Repositori ini adalah kurikulum open-source komprehensif (542 pelajaran, 20 fase) yang mengajarkan AI Engineering dari nol dengan fokus pada implementasi internal model, pipeline retrieval, dan runtime agen. Arsitekturnya berbasis multi-bahasa (Python, TypeScript, Rust, Julia) yang memungkinkan developer membangun, menguji, dan mengaudit sistem AI secara end-to-end, bukan sekadar memanggil API.",
+    "problemsSolved": [
+      {
+        "title": "Kesenjangan antara Teori dan Implementasi Produksi",
+        "description": "Banyak tutorial AI hanya mengajarkan cara memanggil API LLM tanpa memahami mekanisme internal seperti gradient descent, tokenization, atau agent loop. Repo ini menyelesaikan masalah ini dengan menyediakan kode sumber yang dapat diinspeksi, diuji, dan dimodifikasi untuk memahami 'bagaimana' sistem AI bekerja di balik layar."
+      },
+      {
+        "title": "Ketiadaan Framework Evaluasi dan Debugging Agen",
+        "description": "Developer sering kesulitan mendiagnosis kegagalan agen (misalnya, token usage membengkak atau tool call gagal) karena tidak ada standar untuk melacak dan memvalidasi trace eksekusi. Repo ini menyediakan proyek 'Agent Trace Debugger' dan 'Retrieval Evaluation Lab' yang mengajarkan cara membangun sistem monitoring dan evaluasi yang robust."
+      },
+      {
+        "title": "Keamanan dan Validasi Tool Call yang Lemah",
+        "description": "Dalam sistem agen, model LLM sering kali mengusulkan operasi yang berbahaya atau tidak valid. Repo ini mengajarkan prinsip 'Tool Call Firewall' menggunakan Rust untuk memvalidasi envelope panggilan, memeriksa peran pemanggil, dan memastikan approval bersifat single-use, sehingga mencegah replay attacks dan akses ilegal."
+      }
+    ],
+    "ladderRules": [
+      "Implementasi dari Nol (From-Scratch): Membangun komponen inti (seperti optimizer, retrieval pipeline) secara manual untuk memahami mekanisme internal sebelum menggunakan library eksternal.",
+      "Evaluasi Berbasis Bukti (Evidence-Based Evaluation): Setiap perubahan sistem (misalnya, peningkatan NDCG) harus disertai dengan perbandingan query-by-query dan laporan regresi yang dapat direproduksi.",
+      "Keamanan Berbasis Batas (Boundary-Based Security): Memisahkan identitas pemanggil (caller) dari usulan model (model proposal) dan menerapkan validasi ketat pada setiap tool call dengan approval yang terikat pada konten spesifik."
+    ],
+    "useCases": [
+      "Ketika developer ingin memahami mekanisme internal LLM (seperti attention mechanism atau gradient descent) untuk mengoptimalkan performa model.",
+      "Ketika tim engineering perlu membangun sistem RAG (Retrieval-Augmented Generation) yang dapat diukur akurasinya menggunakan metrik ranking seperti NDCG dan Precision/Recall.",
+      "Ketika developer ingin mengimplementasikan agen AI yang aman dengan mekanisme validasi tool call, audit trail, dan manajemen approval yang ketat."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Debugging Regresi pada Pipeline Retrieval (RAG)",
+        "prompt": "\"Saya perlu memvalidasi apakah update model embedding saya meningkatkan kualitas retrieval. Tolong bantu saya menjalankan evaluasi NDCG dan identifikasi query mana yang mengalami regresi ranking.\"",
+        "scenarioType": "data",
+        "scenarioBadge": "📊 Retrieval Evaluation & Regression Check",
+        "beforeTitle": "BEFORE (Evaluasi Manual & Tidak Terstruktur)",
+        "beforeMeta": "Manual spot-check • Tidak ada metrik kuantitatif • Sulit melacak regresi",
+        "beforeCode": "# Pendekatan lama: Cek manual beberapa query\nimport numpy as np\n\ndef check_retrieval(query, results):\n    # Hanya melihat hasil top-5 secara visual\n    print(f\"Query: {query}\")\n    for i, doc in enumerate(results[:5]):\n        print(f\"  {i+1}. {doc.title}\")\n    # Tidak ada perhitungan NDCG atau perbandingan dengan baseline\n    return \"Looks okay?\"",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Tidak ada metrik objektif (NDCG, Precision) untuk mengukur kualitas retrieval."
+          },
+          {
+            "label": "Beban",
+            "value": "Sulit mendeteksi regresi halus di mana satu query menjadi lebih buruk meskipun rata-rata terlihat stabil."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan ai-engineering-from-scratch)",
+        "afterMeta": "Automated NDCG Calculation • Per-Query Delta Report • Release Gate",
+        "afterCode": "# Menggunakan framework evaluasi dari repo\npython3 scripts/project_test.py retrieval-evaluation-lab \\\n  --init learning-artifacts/retrieval-evaluation-lab\n\n# Jalankan evaluasi tahap 1 dengan mode strict\npython3 scripts/project_test.py retrieval-evaluation-lab \\\n  --stage 1 --path learning-artifacts/retrieval-evaluation-lab --strict\n\n# Hasil: Laporan JSON berisi per-query deltas dan metrik ranking",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Menghitung NDCG, Precision, dan Recall secara otomatis dengan perbandingan per-query."
+          },
+          {
+            "label": "Hasil",
+            "value": "Laporan regresi yang dapat digunakan sebagai gate untuk release check."
+          }
+        ],
+        "ruleBadge": "Ranking Metrics & Regression Validation",
+        "metrics": [
+          {
+            "label": "Metrik",
+            "value": "NDCG, Precision, Recall",
+            "color": "emerald"
+          },
+          {
+            "label": "Granularitas",
+            "value": "Per-Query Delta",
+            "color": "sky"
+          },
+          {
+            "label": "Output",
+            "value": "JSON Regression Report",
+            "color": "amber"
+          }
+        ]
+      },
+      {
+        "id": "case2",
+        "name": "2. Analisis Trace Agen & Optimalisasi Token",
+        "prompt": "\"Agen saya memakan 200 token lebih banyak dan ada satu span yang gagal. Tolong bantu saya memisahkan waktu eksekusi parent dan child serta mengidentifikasi sumber pemborosan token.\"",
+        "scenarioType": "efficiency",
+        "scenarioBadge": "🕵️ Agent Trace Debugger & Token Audit",
+        "beforeTitle": "BEFORE (Log Mentah & Tidak Terstruktur)",
+        "beforeMeta": "Raw JSONL logs • Tidak ada timeline visual • Token counting ambigu",
+        "beforeCode": "# Pendekatan lama: Membaca log mentah\nimport json\n\nwith open('agent_trace.jsonl') as f:\n    for line in f:\n        event = json.loads(line)\n        # Tidak ada cara mudah untuk melihat overlap waktu atau total token per span\n        print(event['type'], event.get('tokens', 0))\n# Sulit melihat hubungan parent-child dan total waktu eksekusi",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Tidak ada visualisasi timeline untuk melihat overlap antar span."
+          },
+          {
+            "label": "Beban",
+            "value": "Token counting sering kali ganda (double-counting) karena tidak membedakan parent dan child."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan ai-engineering-from-scratch)",
+        "afterMeta": "JSONL Parsing • Interval Arithmetic • HTML Timeline",
+        "afterCode": "# Inisialisasi proyek debugger trace\npython3 scripts/project_test.py agent-trace-debugger \\\n  --init learning-artifacts/agent-trace-debugger\n\n# Jalankan analisis tahap 1 (parsing & validasi)\npython3 scripts/project_test.py agent-trace-debugger \\\n  --stage 1 --path learning-artifacts/agent-trace-debugger --strict\n\n# Hasil: HTML timeline interaktif dan JSON report dengan token count eksklusif per span",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Menghitung token secara eksklusif per span untuk menghindari double-counting."
+          },
+          {
+            "label": "Hasil",
+            "value": "Timeline HTML yang menunjukkan perubahan latensi dan penggunaan token secara visual."
+          }
+        ],
+        "ruleBadge": "Trace Parsing & Interval Arithmetic",
+        "metrics": [
+          {
+            "label": "Format",
+            "value": "JSONL Trace",
+            "color": "emerald"
+          },
+          {
+            "label": "Akurasi Token",
+            "value": "Exclusive Per-Span",
+            "color": "sky"
+          },
+          {
+            "label": "Visualisasi",
+            "value": "HTML Timeline",
+            "color": "amber"
+          }
+        ]
+      }
+    ]
+  },
+  "ebookfoundation/free-programming-books": {
+    "corePurpose": "Repositori ini berfungsi sebagai katalog terpusat dan terkurasi untuk sumber daya pembelajaran pemrograman gratis, mengatasi fragmentasi informasi dengan mengarsipkan ribuan buku, kursus, dan cheat sheet dalam berbagai bahasa. Arsitekturnya berbasis Markdown statis yang terorganisasi secara hierarkis berdasarkan bahasa pemrograman, subjek, dan bahasa manusia, memungkinkan pencarian dan akses cepat melalui antarmuka web atau langsung dari file.",
+    "problemsSolved": [
+      {
+        "title": "Fragmentasi Sumber Daya Belajar",
+        "description": "Developer sering kesulitan menemukan materi belajar berkualitas karena tersebar di berbagai situs web, forum, dan blog yang tidak terstruktur. Repo ini mengonsolidasikan sumber daya tersebut ke dalam satu lokasi terpusat yang terverifikasi dan terawat oleh komunitas, mengurangi waktu pencarian secara signifikan."
+      },
+      {
+        "title": "Hambatan Bahasa dalam Pembelajaran",
+        "description": "Banyak materi teknis berkualitas hanya tersedia dalam bahasa Inggris, yang menjadi penghalang bagi developer non-penutur asli. Repo ini menyediakan terjemahan dan kurasi sumber daya dalam lebih dari 40 bahasa manusia (seperti Indonesia, Jepang, Spanyol, dll.), memastikan aksesibilitas global terhadap pengetahuan teknis."
+      },
+      {
+        "title": "Keterbatasan Akses ke Buku Berbayar",
+        "description": "Buku teks pemrograman sering kali mahal atau tidak tersedia di daerah tertentu. Repo ini mengkurasi hanya sumber daya yang benar-benar gratis dan legal (open-source atau domain publik), memberikan alternatif biaya nol untuk pendidikan teknis yang mendalam dan berkelanjutan."
+      }
+    ],
+    "ladderRules": [
+      "Kurasi Berbasis Komunitas: Setiap entri harus melalui proses review dan kontribusi terbuka untuk memastikan kualitas dan ketersediaan tautan.",
+      "Struktur Hierarkis Multibahasa: Organisasi konten dipisahkan secara ketat berdasarkan bahasa manusia dan bahasa pemrograman untuk navigasi yang presisi.",
+      "Lisensi Terbuka (CC BY): Seluruh konten dilisensikan secara terbuka, memungkinkan redistribusi dan penggunaan komersial/non-komersial dengan atribusi."
+    ],
+    "useCases": [
+      "Saat developer pemula membutuhkan jalur belajar terstruktur dari nol hingga mahir dalam bahasa pemrograman spesifik (misal: Python atau Rust).",
+      "Saat tim engineering membutuhkan referensi cepat (cheat sheets) atau kursus online gratis untuk onboarding anggota baru tanpa biaya lisensi.",
+      "Saat developer non-penutur bahasa Inggris mencari materi teknis yang sudah diterjemahkan ke dalam bahasa ibu mereka untuk pemahaman yang lebih baik."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Kurasi Jalur Belajar Python untuk Tim Baru",
+        "prompt": "\"Bantu saya menemukan 3 buku gratis terbaik tentang Python untuk pemula dan 1 cheat sheet, serta tautan kursus online gratisnya.\"",
+        "scenarioType": "data",
+        "scenarioBadge": "📚 Knowledge Curation & Discovery",
+        "beforeTitle": "BEFORE (Pencarian Manual di Web)",
+        "beforeMeta": "Scattered sources • High noise-to-signal ratio • Time-consuming",
+        "beforeCode": "1. Buka Google\n2. Ketik \"free python books\"\n3. Klik 10 tautan berbeda\n4. Verifikasi apakah buku masih tersedia (404 error)\n5. Cek lisensi (apakah benar-benar gratis atau trial)\n6. Ulangi untuk cheat sheet dan kursus\n7. Salin tautan ke dokumen tim",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Tautan sering mati (link rot) dan sulit membedakan antara gratis total vs trial."
+          },
+          {
+            "label": "Beban",
+            "value": "Butuh 2-3 jam untuk verifikasi manual dan kompilasi daftar."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan free-programming-books)",
+        "afterMeta": "Curated Index • Verified Links • Instant Access",
+        "afterCode": "# Buka file: books/free-programming-books-langs.md\n# Cari bagian 'Python'\n# Ambil tautan buku, cheat sheet, dan kursus yang sudah terverifikasi\n\n# Atau gunakan fitur pencarian di repo:\n# https://ebookfoundation.github.io/free-programming-books-search\n# Query: \"python\"",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Daftar sudah terkurasi, tautan diverifikasi berkala, dan terorganisasi per bahasa."
+          },
+          {
+            "label": "Hasil",
+            "value": "Daftar lengkap dalam 5 menit, siap dibagikan ke tim."
+          }
+        ],
+        "ruleBadge": "Static Markdown Indexing",
+        "metrics": [
+          {
+            "label": "Waktu Pencarian",
+            "value": "Turun 90%",
+            "color": "emerald"
+          },
+          {
+            "label": "Akurasi Tautan",
+            "value": "Tinggi (Terkurasi)",
+            "color": "sky"
+          },
+          {
+            "label": "Biaya",
+            "value": "$0",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Akses Katalog Online",
+        "command": "https://ebookfoundation.github.io/free-programming-books-search",
+        "description": "Gunakan antarmuka web interaktif untuk mencari buku atau penulis secara instan tanpa perlu clone repo."
+      },
+      {
+        "step": 2,
+        "title": "Clone Repositori untuk Akses Offline",
+        "command": "git clone https://github.com/EbookFoundation/free-programming-books.git",
+        "description": "Unduh seluruh katalog ke lokal untuk akses offline atau integrasi dengan tool internal."
+      },
+      {
+        "step": 3,
+        "title": "Navigasi Berdasarkan Bahasa",
+        "command": "cat books/free-programming-books-id.md",
+        "description": "Buka file Markdown spesifik untuk bahasa manusia (misal: Indonesia) atau bahasa pemrograman (misal: Python) untuk melihat daftar sumber daya."
+      }
+    ],
+    "commands": [
+      {
+        "command": "Search UI",
+        "function": "Antarmuka web untuk mencari buku atau penulis secara real-time di seluruh katalog.",
+        "example": "Ketik 'Python' di kotak pencarian di https://ebookfoundation.github.io/free-programming-books-search"
+      },
+      {
+        "command": "File Navigation",
+        "function": "Akses langsung ke file Markdown berdasarkan kategori (bahasa manusia, bahasa pemrograman, subjek).",
+        "example": "Buka `books/free-programming-books-langs.md` untuk daftar per bahasa pemrograman."
+      },
+      {
+        "command": "Contribution Workflow",
+        "function": "Proses untuk menambahkan sumber daya baru melalui Pull Request dengan mengikuti pedoman CONTRIBUTING.md.",
+        "example": "Buat branch baru, tambahkan entri di file yang sesuai, dan submit PR."
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/EbookFoundation/free-programming-books.git"
+  },
+  "practical-tutorials/project-based-learning": {
+    "corePurpose": "Repositori ini berfungsi sebagai katalog terkurasi yang memecahkan masalah fragmentasi sumber daya belajar pemrograman dengan mengelompokkan tutorial 'build-from-scratch' berdasarkan bahasa pemrograman. Arsitekturnya berbasis Markdown statis yang memungkinkan developer menavigasi langsung ke tutorial teknis mendalam, mulai dari sistem operasi hingga aplikasi web, tanpa perlu menyaring noise dari tutorial permukaan.",
+    "problemsSolved": [
+      {
+        "title": "Fragmentasi Sumber Daya Belajar",
+        "description": "Developer sering kesulitan menemukan tutorial yang benar-benar mengajarkan cara membangun aplikasi dari nol (from scratch) karena kebanyakan tutorial hanya fokus pada penggunaan library. Repo ini mengatasi hal ini dengan mengkurasi hanya tutorial yang melibatkan implementasi logika inti, seperti menulis compiler, OS, atau game engine."
+      },
+      {
+        "title": "Kesenjangan antara Teori dan Praktik Sistem",
+        "description": "Banyak developer junior yang memahami sintaks tetapi tidak memahami mekanisme internal seperti alokasi memori, jaringan, atau rendering. Repo ini menyediakan jalur belajar konkret untuk topik-topik sistem tingkat rendah (low-level) melalui proyek nyata seperti menulis shell, allocator, atau stack TCP/IP."
+      },
+      {
+        "title": "Kurangnya Struktur Belajar Multi-Bahasa",
+        "description": "Bagi developer yang ingin memperluas keahlian ke bahasa baru (seperti Rust, Go, atau Haskell), sulit menemukan sumber daya yang konsisten kualitasnya. Repo ini menyediakan daftar terkurasi per bahasa, memastikan setiap bahasa memiliki representasi proyek yang seimbang antara web, sistem, dan game development."
+      }
+    ],
+    "ladderRules": [
+      "Prinsip 'Build From Scratch': Fokus pada implementasi manual logika inti aplikasi, bukan sekadar konfigurasi framework.",
+      "Klasifikasi Berbasis Bahasa: Pengelompokan konten berdasarkan bahasa pemrograman utama untuk memudahkan navigasi sesuai stack teknologi pengguna.",
+      "Kurasi Kualitas Teknis: Hanya menyertakan tutorial yang memiliki kedalaman teknis, seperti penjelasan arsitektur, kode sumber, atau langkah-langkah implementasi yang dapat direproduksi."
+    ],
+    "useCases": [
+      "Saat developer ingin mempelajari bahasa pemrograman baru dengan proyek nyata yang kompleks.",
+      "Saat engineer ingin memahami mekanisme internal sistem (OS, Compiler, Network) melalui implementasi manual.",
+      "Saat tim engineering mencari referensi tutorial untuk onboarding anggota baru dengan standar kualitas teknis yang tinggi."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Implementasi Sistem Operasi & Compiler dari Nol",
+        "prompt": "\"Saya ingin memahami cara kerja kernel Linux dan compiler C. Bantu saya menemukan tutorial yang mengajarkan cara menulis bootloader dan lexer dari scratch.\"",
+        "scenarioType": "backend",
+        "scenarioBadge": "🛠️ System Architecture & Low-Level Engineering",
+        "beforeTitle": "BEFORE (Pencarian Manual & Dokumentasi Tersebar)",
+        "beforeMeta": "Scattered documentation • High cognitive load • Inconsistent depth",
+        "beforeCode": "# Pencarian manual di mesin pencari\n# 1. Cari 'write a kernel tutorial'\n# 2. Buka 5-10 link berbeda\n# 3. Evaluasi kualitas setiap tutorial\n# 4. Sering menemukan tutorial yang hanya menggunakan library OS\n# 5. Waktu terbuang untuk memverifikasi akurasi teknis",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Sumber daya tersebar di blog pribadi, forum, dan dokumentasi resmi yang tidak terstruktur."
+          },
+          {
+            "label": "Beban",
+            "value": "Waktu tinggi untuk menyaring tutorial berkualitas rendah atau yang tidak lengkap."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan project-based-learning)",
+        "afterMeta": "Curated list • Direct access to high-quality resources • Structured learning path",
+        "afterCode": "# Navigasi langsung ke bagian C/C++ di README\n# 1. Buka README.md\n# 2. Scroll ke section 'C/C++'\n# 3. Temukan 'Write a Bootloader in C' dan 'Let's Write a Kernel'\n# 4. Akses langsung ke tutorial yang terkurasi dan berkualitas",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Akses instan ke tutorial yang sudah diverifikasi kualitasnya oleh komunitas."
+          },
+          {
+            "label": "Hasil",
+            "value": "Penghematan waktu pencarian dan fokus langsung pada implementasi teknis."
+          }
+        ],
+        "ruleBadge": "Curated Knowledge Base",
+        "metrics": [
+          {
+            "label": "Efisiensi Pencarian",
+            "value": "90% lebih cepat",
+            "color": "emerald"
+          },
+          {
+            "label": "Kualitas Konten",
+            "value": "Terkurasi & Teknis",
+            "color": "sky"
+          },
+          {
+            "label": "Cakupan Bahasa",
+            "value": "20+ Bahasa",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Clone Repositori",
+        "command": "git clone https://github.com/practical-tutorials/project-based-learning.git",
+        "description": "Unduh repositori ke lingkungan lokal untuk akses offline atau integrasi dengan IDE."
+      },
+      {
+        "step": 2,
+        "title": "Navigasi ke Bahasa Target",
+        "command": "cat README.md | grep -A 10 '## JavaScript'",
+        "description": "Gunakan grep atau editor untuk melompat langsung ke section bahasa pemrograman yang ingin dipelajari."
+      },
+      {
+        "step": 3,
+        "title": "Pilih Tutorial & Implementasi",
+        "command": "open <link-tutorial>",
+        "description": "Buka link tutorial yang dipilih dan ikuti langkah-langkah implementasi dari nol."
+      }
+    ],
+    "commands": [
+      {
+        "command": "fork",
+        "function": "Membuat salinan repositori untuk berkontribusi dengan menambahkan tutorial baru atau memperbaiki link yang rusak.",
+        "example": "git fork practical-tutorials/project-based-learning"
+      },
+      {
+        "command": "contribute",
+        "function": "Mengikuti panduan CONTRIBUTING.md untuk mengajukan Pull Request dengan tutorial baru yang memenuhi standar kualitas.",
+        "example": "git checkout -b add-new-tutorial && git commit -m 'Add new Rust tutorial'"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/practical-tutorials/project-based-learning.git"
+  },
+  "cassidoo/getting-a-gig": {
+    "corePurpose": "Repositori ini adalah panduan strategis berbasis teks untuk mahasiswa teknologi yang bertujuan memaksimalkan peluang mendapatkan magang atau pekerjaan pertama melalui optimasi materi lamaran dan persiapan teknis. Arsitekturnya bersifat dokumentatif, menyajikan checklist kompetensi data struktur/algoritma, template surat lamaran, dan protokol networking yang terstruktur.",
+    "problemsSolved": [
+      {
+        "title": "Resume yang Tidak Efektif",
+        "description": "Mahasiswa sering membuat resume yang terlalu panjang, berisi informasi tidak relevan (seperti pekerjaan non-teknis SMA), atau menyembunyikan tanggal kelulusan. Repo ini memberikan aturan ketat: satu halaman, nama besar, hapus objective, dan sertakan GPA serta link portofolio."
+      },
+      {
+        "title": "Kekosongan Pengetahuan Algoritma",
+        "description": "Banyak mahasiswa lulus tanpa mampu mengimplementasikan struktur data dasar di papan tulis tanpa IDE. Repo ini menyediakan checklist lengkap (Linked Lists, Trees, Graphs, Sorting) dan kurasi sumber latihan (LeetCode, HackerRank, buku CLRS) untuk menutup gap ini."
+      },
+      {
+        "title": "Ketakutan dan Kurangnya Networking",
+        "description": "Proses pencarian kerja bersifat kompetitif dan sering kali membuat mahasiswa merasa tidak percaya diri atau pasif. Repo ini menekankan 'Attitude' (sikap) dan memberikan langkah konkret untuk cold-calling, referral, dan menghadiri event untuk membangun jaringan secara proaktif."
+      }
+    ],
+    "ladderRules": [
+      "Resume adalah ringkasan eksekutif: Satu halaman, nama menonjol, tanpa objective, dan wajib mencantumkan GPA serta link GitHub/LinkedIn.",
+      "Persiapan Teknis adalah Implementasi Manual: Mampu mengimplementasikan struktur data (BFS/DFS, Sorting, Hash Maps) di kertas/papan tulis tanpa bantuan auto-complete IDE.",
+      "Networking adalah Proses Aktif: Jangan hanya menunggu email balasan; lakukan cold-calling, cari referral, dan tunjukkan antusiasme yang tulus (bukan arogan) di setiap interaksi."
+    ],
+    "useCases": [
+      "Saat mahasiswa semester awal ingin menyusun resume pertama yang lolos screening recruiter.",
+      "Saat mahasiswa mempersiapkan diri untuk technical interview onsite dalam 2-4 minggu ke depan.",
+      "Saat mahasiswa merasa stuck dalam pencarian kerja dan membutuhkan strategi networking yang lebih agresif."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Optimasi Pipeline Lamaran & Persiapan Interview",
+        "prompt": "\"Bantu saya audit resume saya berdasarkan panduan getting-a-gig dan buatkan checklist persiapan algoritma untuk interview minggu depan.\"",
+        "scenarioType": "efficiency",
+        "scenarioBadge": "🎯 Career Strategy & Technical Readiness",
+        "beforeTitle": "BEFORE (Pendekatan Tradisional & Reaktif)",
+        "beforeMeta": "Resume 3 halaman • Fokus pada deskripsi tugas • Belajar algoritma acak",
+        "beforeCode": "1. Tulis resume 3 halaman dengan detail semua pengalaman SMA.\n2. Tambahkan 'Objective: Mencari pekerjaan yang menantang'.\n3. Sembunyikan tanggal kelulusan karena merasa masih junior.\n4. Belajar algoritma hanya saat ada interview, tanpa struktur.",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Resume terlalu panjang dan tidak fokus, recruiter melewatkan detail penting."
+          },
+          {
+            "label": "Beban",
+            "value": "Stres tinggi karena persiapan teknis yang tidak terstruktur dan networking yang pasif."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan getting-a-gig)",
+        "afterMeta": "Resume 1 halaman • Checklist Algoritma Terstruktur • Networking Proaktif",
+        "afterCode": "1. Edit Resume: Nama besar, hapus objective, hapus info SMA, tambah GPA & Link GitHub.\n2. Eksekusi Checklist: Implementasikan BFS/DFS, Quick Sort, dan Hash Map di kertas.\n3. Networking: Kirim email cold-call ke 5 alumni dengan template 'Who-Where-Why-What'.",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Resume langsung menonjol dan mudah dibaca, persiapan teknis terukur."
+          },
+          {
+            "label": "Hasil",
+            "value": "Peningkatan signifikan pada tingkat respons recruiter dan kepercayaan diri saat interview."
+          }
+        ],
+        "ruleBadge": "Strategic Career Framework",
+        "metrics": [
+          {
+            "label": "Efisiensi Resume",
+            "value": "1 Halaman",
+            "color": "emerald"
+          },
+          {
+            "label": "Cakupan Algoritma",
+            "value": "100% Checklist",
+            "color": "sky"
+          },
+          {
+            "label": "Jangkauan Networking",
+            "value": "Proaktif",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Baca & Internalisasi Panduan",
+        "command": "git clone https://github.com/cassidoo/getting-a-gig.git && cat README.md",
+        "description": "Unduh repositori dan baca seluruh README untuk memahami filosofi 'Attitude' dan struktur konten."
+      },
+      {
+        "step": 2,
+        "title": "Audit & Revisi Dokumen",
+        "command": "n/a (Manual Process)",
+        "description": "Bandingkan resume dan cover letter Anda dengan aturan di bagian 'Your Resume' dan 'Your Cover Letter'. Hapus elemen yang dilarang (objective, info SMA) dan tambahkan yang wajib (GPA, link portofolio)."
+      },
+      {
+        "step": 3,
+        "title": "Eksekusi Latihan Teknis",
+        "command": "n/a (Practice on LeetCode/HackerRank)",
+        "description": "Gunakan daftar link di bagian 'Your Skills' untuk menyelesaikan soal-soal data struktur dan algoritma. Fokus pada implementasi manual tanpa IDE."
+      }
+    ],
+    "commands": [
+      {
+        "command": "Read Section: Your Resume",
+        "function": "Panduan spesifik untuk membuat resume yang efektif, termasuk aturan format dan konten yang harus dihindari.",
+        "example": "Cek apakah nama saya sudah cukup besar dan apakah saya sudah menghapus objective."
+      },
+      {
+        "command": "Read Section: Your Skills",
+        "function": "Checklist komprehensif struktur data dan algoritma yang wajib dikuasai, beserta kurasi sumber belajar (buku, website, mock interview).",
+        "example": "Review checklist: Apakah saya sudah bisa mengimplementasikan Binary Search Tree dan Dijkstra's Algorithm?"
+      },
+      {
+        "command": "Read Section: Your Search",
+        "function": "Strategi aktif untuk menemukan pekerjaan, mencakup teknik cold-calling, networking di event, dan memanfaatkan referral.",
+        "example": "Susun daftar 10 perusahaan target dan siapkan email cold-call berdasarkan template 'Who-Where-Why-What'."
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/cassidoo/getting-a-gig.git"
+  },
+  "cogsend/cogsend": {
+    "corePurpose": "CogSend adalah scheduler media sosial self-hosted yang memungkinkan pengguna menulis sekali dan menerbitkan ke berbagai platform (Mastodon, Bluesky, LinkedIn, Threads, X) dengan kustomisasi per platform. Arsitekturnya dibangun di atas Cloudflare Workers, menggunakan D1 untuk database dan R2 untuk media, sehingga data dan kredensial API tetap berada di akun Cloudflare pengguna sendiri, bukan di server pihak ketiga.",
+    "problemsSolved": [
+      {
+        "title": "Ketergantungan pada Layanan Berlangganan & Privasi Data",
+        "description": "Scheduler media sosial hosted biasanya mengenakan biaya per channel dan menyimpan token API serta konten di server mereka. CogSend menyelesaikan ini dengan berjalan di akun Cloudflare pengguna, memastikan data tersimpan di D1/R2 milik sendiri dan tidak ada biaya langganan berkelanjutan."
+      },
+      {
+        "title": "Kompleksitas Multi-Platform & Batasan Karakter",
+        "description": "Menulis ulang konten untuk setiap platform karena perbedaan format dan batasan karakter adalah beban kerja yang besar. CogSend menyediakan 'Auto-split' yang mengubah draf panjang menjadi thread yang sesuai untuk setiap platform yang dipilih, serta editor per-platform untuk penyesuaian spesifik."
+      },
+      {
+        "title": "Keandalan Publikasi & Manajemen Gagal",
+        "description": "Gagalnya publikasi otomatis sering kali tidak terdeteksi atau membutuhkan intervensi manual. CogSend memiliki mekanisme retry otomatis hingga 5 kali untuk kegagalan sementara, serta dashboard 'Insights' yang menampilkan statistik keberhasilan dan alasan kegagalan dalam rentang waktu 7, 30, atau 90 hari."
+      }
+    ],
+    "ladderRules": [
+      "Self-Hosting Sovereignty: Data dan kredensial API tidak pernah meninggalkan infrastruktur Cloudflare milik pengguna (D1 & R2).",
+      "Platform-Agnostic Abstraction: Satu draf inti yang dapat dipecah (auto-split) dan dikustomisasi secara independen untuk setiap platform tujuan.",
+      "Resilient Delivery: Implementasi retry otomatis untuk kegagalan jaringan sementara dan pemantauan status pengiriman yang transparan."
+    ],
+    "useCases": [
+      "Konten kreator yang ingin menghemat waktu dengan menulis satu konten dan mendistribusikannya ke 5+ platform sekaligus tanpa biaya langganan.",
+      "Tim marketing yang membutuhkan kontrol penuh atas data dan token API mereka, serta ingin menghindari vendor lock-in dari layanan scheduler pihak ketiga.",
+      "Pengguna yang ingin mengotomatisasi publikasi melalui AI Agent (MCP) seperti Claude Code atau Codex menggunakan API key pribadi."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Otomatisasi Publikasi Multi-Platform dengan AI Agent (MCP)",
+        "prompt": "\"Draft a thread about the new Svelte 5 release and schedule it for 9 AM on Mastodon, Bluesky, and LinkedIn using CogSend MCP.\"",
+        "scenarioType": "automation",
+        "scenarioBadge": "🤖 AI-Driven Social Automation",
+        "beforeTitle": "BEFORE (Manual Scheduling & Copy-Paste)",
+        "beforeMeta": "Manual copy-paste • 5x effort per post • No unified dashboard",
+        "beforeCode": "# Manual workflow\n1. Write post for Mastodon\n2. Copy to Bluesky, adjust character limit\n3. Copy to LinkedIn, adjust formatting\n4. Copy to X, adjust hashtags\n5. Schedule each manually in different apps\n\n# Cost: ~30 minutes per post, high risk of inconsistency",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Tidak ada standar format, risiko kesalahan karakter per platform"
+          },
+          {
+            "label": "Beban",
+            "value": "Waktu manual tinggi, tidak ada retry otomatis jika gagal"
+          }
+        ],
+        "afterTitle": "AFTER (Dengan cogsend)",
+        "afterMeta": "MCP Integration • Auto-split • One-click Schedule",
+        "afterCode": "# Using MCP Client (e.g., Claude Code)\n> /cogsend schedule --platforms mastodon,bluesky,linkedin --time 09:00 --content \"Svelte 5 is here!...\"\n\n# Or via CLI/API\nnpm run cogsend:publish -- --draft-id 123 --schedule \"2024-05-20T09:00:00Z\"",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Satu perintah untuk semua platform, auto-adjust format"
+          },
+          {
+            "label": "Hasil",
+            "value": "Publikasi terjadwal dengan retry otomatis dan tracking status"
+          }
+        ],
+        "ruleBadge": "MCP Server & Cloudflare Workers",
+        "metrics": [
+          {
+            "label": "Efisiensi Waktu",
+            "value": "Hemat 90% waktu manual",
+            "color": "emerald"
+          },
+          {
+            "label": "Keandalan",
+            "value": "5x Auto-Retry",
+            "color": "sky"
+          },
+          {
+            "label": "Integrasi",
+            "value": "MCP + REST API",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi & Setup Awal",
+        "command": "git clone --depth 1 https://github.com/cogsend/cogsend.git cogsend && cd cogsend && npm install",
+        "description": "Kloning repositori dan instal dependensi Node.js. Pastikan Node.js versi 22.17+, 24, atau 26+ terpasang."
+      },
+      {
+        "step": 2,
+        "title": "Inisialisasi Cloudflare Resources",
+        "command": "npm run setup",
+        "description": "Perintah ini membuat resource Cloudflare (Workers, D1, R2), membuat akun admin, mengatur secrets, dan mendeploy aplikasi. Anda akan diminta untuk memindai QR code untuk 2FA."
+      },
+      {
+        "step": 3,
+        "title": "Koneksi Akun & Publikasi",
+        "command": "npm run dev",
+        "description": "Jalankan server lokal untuk pengembangan atau akses URL produksi yang dicetak oleh setup. Hubungkan akun media sosial melalui UI atau API, lalu mulai menulis dan menjadwalkan postingan."
+      }
+    ],
+    "commands": [
+      {
+        "command": "npm run setup",
+        "function": "Membuat semua resource Cloudflare (D1, R2, Workers), menginisialisasi database, membuat akun admin, dan mendeploy aplikasi. Aman untuk dijalankan ulang.",
+        "example": "npm run setup"
+      },
+      {
+        "command": "npm run deploy:release",
+        "function": "Mendeploy rilis terbaru dari checkout lokal ke Cloudflare. Digunakan untuk update manual dari terminal.",
+        "example": "git pull && npm ci && npm run deploy:release"
+      },
+      {
+        "command": "npm run dev",
+        "function": "Menjalankan server pengembangan lokal dengan hot-reloading untuk pengembangan fitur atau debugging.",
+        "example": "npm run dev"
+      },
+      {
+        "command": "MCP: cogsend/draft",
+        "function": "Endpoint MCP untuk membuat draf postingan baru melalui AI Agent.",
+        "example": "Tool call: cogsend/draft with content and platforms"
+      },
+      {
+        "command": "MCP: cogsend/schedule",
+        "function": "Endpoint MCP untuk menjadwalkan draf yang sudah ada ke waktu tertentu.",
+        "example": "Tool call: cogsend/schedule with draft_id and timestamp"
+      },
+      {
+        "command": "MCP: cogsend/publish",
+        "function": "Endpoint MCP untuk mempublikasikan draf secara instan ke semua platform yang terhubung.",
+        "example": "Tool call: cogsend/publish with draft_id"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/cogsend/cogsend.git"
+  },
+  "virgiliojr94/book-to-skill": {
+    "corePurpose": "Proyek ini mengubah dokumen teknis (PDF, EPUB, DOCX) menjadi 'agent skill' terstruktur yang dapat dimuat secara on-demand oleh AI agent seperti Claude Code atau Copilot CLI. Arsitekturnya terdiri dari ekstraktor Python deterministik untuk membersihkan teks dan generator berbasis spesifikasi yang memecah konten menjadi file chapter terpisah, mengurangi beban token hingga 51x dibandingkan men-dump seluruh buku ke context window.",
+    "problemsSolved": [
+      {
+        "title": "Hilangnya Konteks Jangka Panjang",
+        "description": "Developer sering lupa detail teknis dari buku yang sudah dibaca. Solusi ini mengubah buku menjadi skill permanen di direktori agent, sehingga informasi dapat dipanggil kembali kapan saja tanpa perlu membuka file PDF lagi."
+      },
+      {
+        "title": "Inefisiensi Token & Discovery Loop Tax",
+        "description": "Memberikan PDF mentah ke LLM menyebabkan agent harus menavigasi ulang struktur dokumen (Table of Contents, backtracking) di setiap turn, membakar token secara tidak perlu. book-to-skill membayar biaya strukturalisasi sekali saat konversi, sehingga query hanya memuat chapter yang relevan."
+      },
+      {
+        "title": "Halusinasi & Ketidakakuratan Referensi",
+        "description": "Agent sering berhalusinasi atau mengaku tidak memiliki konten jika hanya diberi akses ke file biner PDF. Dengan memecah buku menjadi file Markdown terstruktur (glossary, patterns, chapters), agent dapat membaca konten asli secara presisi tanpa menebak-nebak."
+      }
+    ],
+    "ladderRules": [
+      "Struktur, bukan ringkasan: Menghasilkan file per-chapter, glossary, dan patterns yang mempertahankan granularitas asli dokumen.",
+      "On-Demand Loading: File chapter tidak dihitung dalam budget skill hingga benar-benar diminta, menjaga context window tetap kecil.",
+      "Deterministic Extraction: Menggunakan pipeline Python yang memilih tool ekstraksi terbaik (pdftotext vs docling) berdasarkan jenis konten (prosa vs teknis) secara otomatis."
+    ],
+    "useCases": [
+      "Mengonversi buku teknis (misal: 'Designing Data-Intensive Applications') menjadi referensi cepat untuk arsitektur database.",
+      "Mengintegrasikan dokumentasi internal perusahaan (runbooks, ADRs) ke dalam workflow coding agar agent memahami konteks proyek.",
+      "Membangun knowledge base dari kumpulan paper riset atau spesifikasi standar (RFC) untuk konsultasi teknis instan."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Konversi Buku Teknis Menjadi Skill Agent",
+        "prompt": "\"/book-to-skill ./my-technical-book.pdf\"",
+        "scenarioType": "efficiency",
+        "scenarioBadge": "📚 Knowledge Distillation & Context Optimization",
+        "beforeTitle": "BEFORE (Dumping PDF ke Context)",
+        "beforeMeta": "Brute-force context injection • Boros token • Halusinasi tinggi",
+        "beforeCode": "# Developer mencoba bertanya ke agent dengan PDF mentah\n# Agent harus memproses seluruh file biner/teks mentah\n# Setiap pertanyaan memicu re-parsing struktur dokumen\n\nuser: \"Apa rekomendasi untuk scaling database di chapter 7?\"\nagent: \"Saya tidak dapat membaca file PDF secara langsung atau konten chapter 7 spesifik tanpa konteks penuh.\"\n# Atau agent berhalusinasi karena tidak menemukan struktur yang jelas",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Agent tidak dapat menavigasi struktur PDF secara efisien"
+          },
+          {
+            "label": "Beban",
+            "value": "Biaya token tinggi karena re-processing metadata di setiap turn"
+          }
+        ],
+        "afterTitle": "AFTER (Dengan book-to-skill)",
+        "afterMeta": "Structured Skill Generation • Hemat 24x-51x tokens • Akurasi tinggi",
+        "afterCode": "# 1. Instal skill\nnpx skills add virgiliojr94/book-to-skill\n\n# 2. Jalankan konversi\n/book-to-skill ./my-technical-book.pdf\n\n# 3. Tanyakan spesifik (agent hanya memuat chapter relevan)\nuser: \"/my-technical-book scaling database\"\nagent: \"Berdasarkan chapter 7, rekomendasi untuk scaling adalah... [Jawaban presisi dari konten asli]\"",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Ekstraksi deterministik dan pemecahan chapter otomatis"
+          },
+          {
+            "label": "Hasil",
+            "value": "Jawaban langsung dari konten asli tanpa halusinasi"
+          }
+        ],
+        "ruleBadge": "Agent Skills Standard & On-Demand Loading",
+        "metrics": [
+          {
+            "label": "Efisiensi Token",
+            "value": "24x-51x lebih hemat",
+            "color": "emerald"
+          },
+          {
+            "label": "Akurasi Konten",
+            "value": "100% Berbasis Sumber Asli",
+            "color": "sky"
+          },
+          {
+            "label": "Integrasi",
+            "value": "Multi-Host (Claude, Copilot, Amp)",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi Skill",
+        "command": "npx skills add virgiliojr94/book-to-skill",
+        "description": "Menginstal skill ke direktori cross-agent (~/.agents/skills/) atau host spesifik (misal ~/.claude/skills/). Ini mendaftarkan perintah /book-to-skill ke agent Anda."
+      },
+      {
+        "step": 2,
+        "title": "Verifikasi Dependensi Ekstraksi",
+        "command": "python3 scripts/extract.py --check",
+        "description": "Memeriksa tool ekstraksi yang tersedia (pdftotext, docling, ebooklib, dll). Jika ada yang kurang, perintah ini akan menampilkan instruksi instalasi yang tepat."
+      },
+      {
+        "step": 3,
+        "title": "Eksekusi Konversi",
+        "command": "/book-to-skill ./path/to/book.pdf [skill-name]",
+        "description": "Menjalankan pipeline ekstraksi dan generasi skill. Agent akan bertanya apakah buku bersifat teknis atau prosa untuk memilih tool ekstraksi terbaik, lalu menghasilkan folder skill terstruktur."
+      }
+    ],
+    "commands": [
+      {
+        "command": "/book-to-skill",
+        "function": "Perintah utama untuk mengonversi file/folder dokumen menjadi agent skill terstruktur.",
+        "example": "/book-to-skill ./docs/architecture.pdf my-arch-skill"
+      },
+      {
+        "command": "python3 scripts/extract.py --check",
+        "function": "CLI utilitas untuk memverifikasi ketersediaan dependensi ekstraksi (PDF, EPUB, DOCX) dan menampilkan perintah instalasi jika ada yang hilang.",
+        "example": "python3 scripts/extract.py --check"
+      },
+      {
+        "command": "python3 tools/validate_skill.py",
+        "function": "Memvalidasi SKILL.md yang dihasilkan terhadap aturan host tertentu (Claude, Copilot, Amp, dll) untuk memastikan kompatibilitas.",
+        "example": "python3 tools/validate_skill.py --lens claude"
+      },
+      {
+        "command": "python3 tools/discovery_tax.py",
+        "function": "Mengukur biaya token perbandingan antara metode context-dump dan metode skill-based discovery loop.",
+        "example": "python3 tools/discovery_tax.py --book ./test-book.pdf"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/virgiliojr94/book-to-skill.git"
+  },
+  "diegosouzapw/omniroute": {
+    "corePurpose": "OmniRoute adalah gateway AI open-source (MIT) yang menyatukan 359+ provider dan 1200+ model (termasuk 150+ tier gratis) ke dalam satu endpoint tunggal, memungkinkan developer menggunakan Claude Code, Codex, Cursor, dan Cline tanpa perlu mengelola puluhan API key secara manual. Arsitekturnya berfokus pada 'quota-aware auto-fallback' yang secara otomatis beralih antar provider saat limit tercapai, serta sistem kompresi token (RTK + Caveman) yang mengurangi konsumsi token hingga 95%.",
+    "problemsSolved": [
+      {
+        "title": "Fragmentasi API Key & Rate Limiting",
+        "description": "Developer sering terhambat karena harus mengelola puluhan API key dari berbagai provider (OpenAI, Anthropic, Gemini, dll) dengan rate limit yang berbeda-beda. OmniRoute mengabstraksi ini dengan satu endpoint yang menangani autentikasi dan routing, sehingga developer tidak perlu khawatir tentang 'quota exhaustion' di satu provider karena sistem akan otomatis fallback ke provider lain yang masih memiliki kuota."
+      },
+      {
+        "title": "Biaya Token yang Membengkak",
+        "description": "Penggunaan AI coding assistant yang intensif dapat menghasilkan biaya langganan yang sangat tinggi. OmniRoute menerapkan kompresi 'RTK + Caveman' yang menyingkat prompt dan respons tanpa kehilangan konteks teknis, menghemat 15-95% token (rata-rata 89%), serta memanfaatkan katalog 1.62 miliar token gratis per bulan dari berbagai provider untuk meminimalkan biaya operasional."
+      },
+      {
+        "title": "Kompleksitas Integrasi Multi-Model",
+        "description": "Mengganti model AI (misal dari GPT ke Claude) biasanya memerlukan perubahan kode SDK dan logika penanganan error. OmniRoute menyediakan protokol standar (OpenAI-compatible) dan bridge modality (vision/audio/video), memungkinkan developer beralih model atau provider dengan mengubah satu variabel konfigurasi tanpa menyentuh logika aplikasi inti."
+      }
+    ],
+    "ladderRules": [
+      "Quota-Aware Scheduling: Sistem memantau sisa kuota (token) setiap provider secara real-time dan memilih provider dengan sisa kuota terbesar atau prioritas tertinggi untuk setiap request.",
+      "Stacked Compression (RTK + Caveman): Penerapan dua lapisan kompresi teks untuk mengurangi ukuran payload sebelum dikirim ke LLM, menjaga latensi rendah dan biaya minimal.",
+      "Zero-Config Free Tier Aggregation: Otomatis mendeteksi dan mengagregasi tier gratis dari 150+ provider, dengan deduplikasi pool token untuk memastikan perhitungan kuota yang akurat dan transparan."
+    ],
+    "useCases": [
+      "Developer yang menggunakan Claude Code atau Cursor secara intensif dan ingin menghindari limit harian/bulanan tanpa menambah biaya langganan.",
+      "Tim engineering yang ingin menguji berbagai model LLM (Kimi, DeepSeek, Gemini) untuk tugas spesifik (coding vs reasoning) tanpa menulis adapter terpisah untuk setiap provider.",
+      "Proyek open-source atau startup dengan budget terbatas yang ingin memanfaatkan 1.62B token gratis per bulan untuk CI/CD pipeline atau code review otomatis."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Auto-Fallback & Token Compression untuk Coding Agent",
+        "prompt": "\"Refactor this Python module to use async/await and add unit tests.\"",
+        "scenarioType": "efficiency",
+        "scenarioBadge": "🚀 AI Gateway & Cost Optimization",
+        "beforeTitle": "BEFORE (Penggunaan SDK Native per Provider)",
+        "beforeMeta": "Hardcoded API Keys • No Fallback • 100% Token Cost",
+        "beforeCode": "import openai\n\nclient = openai.OpenAI(api_key=\"sk-...\")\n\n# Jika limit habis, aplikasi crash atau gagal\nresponse = client.chat.completions.create(\n    model=\"gpt-4o\",\n    messages=[{\"role\": \"user\", \"content\": \"Refactor this Python module...\"}]\n)\n# Error: 429 Rate Limit Exceeded",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Tidak ada mekanisme fallback jika satu provider kehabisan kuota."
+          },
+          {
+            "label": "Beban",
+            "value": "Biaya token penuh tanpa kompresi; risiko downtime saat rate limit tercapai."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan OmniRoute)",
+        "afterMeta": "Single Endpoint • Auto-Fallback • 89% Token Savings",
+        "afterCode": "import requests\n\n# Satu endpoint untuk semua provider\nresponse = requests.post(\n    \"http://localhost:3000/v1/chat/completions\",\n    json={\n        \"model\": \"auto\", # OmniRoute memilih provider terbaik\n        \"messages\": [{\"role\": \"user\", \"content\": \"Refactor this Python module...\"}]\n    }\n)\n# OmniRoute otomatis: 1. Kompres prompt (RTK+Caveman), 2. Cek kuota, 3. Fallback ke provider gratis jika perlu.",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Otomatis beralih ke provider lain (misal DeepSeek atau Gemini) jika GPT limit habis."
+          },
+          {
+            "label": "Hasil",
+            "value": "Respons diterima tanpa error; token terpakai berkurang drastis berkat kompresi."
+          }
+        ],
+        "ruleBadge": "Quota-Aware Routing & RTK Compression",
+        "metrics": [
+          {
+            "label": "Efisiensi Token",
+            "value": "Hemat 89% (Rata-rata)",
+            "color": "emerald"
+          },
+          {
+            "label": "Resiliensi",
+            "value": "Auto-Fallback 359 Providers",
+            "color": "sky"
+          },
+          {
+            "label": "Biaya",
+            "value": "$0 (Menggunakan Free Tiers)",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi OmniRoute",
+        "command": "npm install -g omniroute",
+        "description": "Menginstal paket OmniRoute secara global menggunakan npm. Alternatif lain termasuk Docker atau instalasi dari source."
+      },
+      {
+        "step": 2,
+        "title": "Inisialisasi & Konfigurasi",
+        "command": "omniroute init",
+        "description": "Menjalankan wizard setup untuk mengonfigurasi API keys (opsional untuk tier gratis) dan memilih strategi routing default. Sistem akan mendeteksi provider gratis yang tersedia."
+      },
+      {
+        "step": 3,
+        "title": "Menjalankan Gateway",
+        "command": "omniroute start",
+        "description": "Memulai server gateway lokal. Endpoint akan tersedia di http://localhost:3000/v1, kompatibel dengan SDK OpenAI, Anthropic, dan lainnya."
+      }
+    ],
+    "commands": [
+      {
+        "command": "omniroute init",
+        "function": "Wizard interaktif untuk setup konfigurasi awal, termasuk pemilihan provider prioritas dan verifikasi API keys.",
+        "example": "omniroute init --provider-priority anthropic,openai"
+      },
+      {
+        "command": "omniroute start",
+        "function": "Menjalankan server gateway AI di latar depan atau sebagai daemon.",
+        "example": "omniroute start --port 3000"
+      },
+      {
+        "command": "omniroute status",
+        "function": "Menampilkan status live dari semua provider, sisa kuota (quota), dan kesehatan koneksi.",
+        "example": "omniroute status --verbose"
+      },
+      {
+        "command": "omniroute dashboard",
+        "function": "Membuka dashboard web lokal untuk memantau penggunaan token, biaya, dan statistik free-tier.",
+        "example": "omniroute dashboard"
+      },
+      {
+        "command": "omniroute models",
+        "function": "Mencari dan menampilkan daftar model yang tersedia di semua provider yang terhubung.",
+        "example": "omniroute models --filter claude"
+      },
+      {
+        "command": "omniroute config",
+        "function": "Mengelola konfigurasi routing, kompresi, dan preferensi provider secara CLI.",
+        "example": "omniroute config set compression.level aggressive"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/diegosouzapw/OmniRoute.git"
   }
 }
