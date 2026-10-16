@@ -17,7 +17,7 @@ import { AddRepoModal } from '@/components/AddRepoModal';
 import { AddCategoryModal } from '@/components/AddCategoryModal';
 import { ThemeAndSortDropdowns } from '@/components/ThemeAndSortDropdowns';
 import { getCategoriesTree, getRepositories, updateSubCategoryAction, deleteSubCategoryAction, moveRepositoryAction, updateRepositoryAction, deleteRepositoryAction } from '@/app/actions';
-import { formatCompactNumber } from '@/lib/utils';
+import { cn, formatCompactNumber } from '@/lib/utils';
 
 export default function HomePage() {
   const [theme, setTheme] = useState<'aurora' | 'sunset' | 'frost'>('aurora');
@@ -28,6 +28,7 @@ export default function HomePage() {
   const [repositories, setRepositories] = useState<RepoCardData[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
   // Modals state
   const [activeRepoModal, setActiveRepoModal] = useState<string | null>(null);
@@ -260,35 +261,41 @@ export default function HomePage() {
   }, [repositories, selectedCategory, selectedSubCategory, searchQuery, sortKey, currentCategoryObj]);
 
   return (
-    <>
+    <div className="h-screen w-screen overflow-hidden flex flex-col relative select-none">
       {/* 3D WebGL Canvas Backdrop (Three.js 5 Prisms & Torus matching prototype) */}
       <ThreeBackdrop theme={theme} isPlaying={isVideoPlaying} />
 
-      {/* Sidebar Navigation */}
-      <Sidebar
-        categories={categories}
-        selectedCategory={selectedCategory}
-        selectedSubCategory={selectedSubCategory}
-        totalCount={repositories.length}
-        categoryCounts={categoryCounts}
-        repositories={repositories}
-        onSelectRepo={fullName => setActiveRepoModal(fullName)}
-        onDropRepo={handleMoveRepo}
-        onSelectCategory={(catId, subId) => {
-          setSelectedCategory(catId);
-          setSelectedSubCategory(subId || null);
-        }}
-        onOpenAddCategory={() => setIsAddCategoryOpen(true)}
-        onUpdateSubCategory={handleUpdateSubCategory}
-        onDeleteSubCategory={handleDeleteSubCategory}
-        onUpdateRepo={handleUpdateRepo}
-        onDeleteRepo={handleDeleteRepo}
-      />
+      {/* Top Navbar Header spanning full width matching Foto 1 & Foto 2 */}
+      <header className="h-16 border-b border-white/10 flex items-center justify-between sticky top-0 glass-panel z-30 shrink-0">
+        {/* Left: Logo Section matching Foto 2 */}
+        <div 
+          className={cn(
+            "h-full border-r border-white/10 flex items-center justify-between px-4 shrink-0 brand-header-inner transition-all duration-200",
+            isSidebarCollapsed ? "w-[4.5rem] justify-center px-0" : "w-full md:w-72"
+          )}
+        >
+          <div className={cn("flex items-center", isSidebarCollapsed ? "justify-center w-full" : "space-x-3")}>
+            <img
+              src="/logo-neural-vault.svg"
+              alt="GitLibrary Logo"
+              className="w-10 h-10 rounded-xl shadow-lg shadow-indigo-500/25 shrink-0 object-contain select-none hover:scale-105 transition-transform"
+            />
+            {!isSidebarCollapsed && (
+              <div className="sidebar-text truncate">
+                <h1 className="text-sm font-bold text-slate-100 tracking-tight leading-none">GitLibrary</h1>
+                <span className="text-[10px] text-indigo-400 font-mono font-medium tracking-wide">Curated AI Repos</span>
+              </div>
+            )}
+          </div>
+          {!isSidebarCollapsed && (
+            <span className="sidebar-badge text-[11px] font-mono bg-white/5 text-slate-300 px-2.5 py-1 rounded-lg border border-white/10 shrink-0">
+              v1.0
+            </span>
+          )}
+        </div>
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 relative z-10 overflow-y-auto h-screen max-h-screen">
-        {/* Top Navbar Header */}
-        <header className="h-16 border-b border-white/10 px-6 flex items-center justify-between gap-4 sticky top-0 glass-panel z-10">
+        {/* Right: Search Input & Action Tools matching Foto 1 */}
+        <div className="flex-1 flex items-center justify-between px-4 md:px-6 gap-3 md:gap-4 min-w-0">
           {/* Search Input */}
           <div className="relative flex-1 max-w-lg">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -332,16 +339,45 @@ export default function HomePage() {
             {/* Add Repo CTA */}
             <button 
               onClick={() => setIsAddRepoOpen(true)}
-              className="pressable-btn flex items-center space-x-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:opacity-90 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-lg shadow-purple-500/25 border border-white/25 active:scale-95 transition-all"
+              className="pressable-btn flex items-center space-x-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:opacity-90 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-lg shadow-purple-500/25 border border-white/25 active:scale-95 transition-all cursor-pointer shrink-0"
             >
               <PlusCircle className="w-4 h-4" />
-              <span>Tambah Repository</span>
+              <span className="hidden sm:inline">Tambah Repository</span>
+              <span className="sm:hidden">Tambah</span>
             </button>
           </div>
-        </header>
+        </div>
+      </header>
 
-        {/* Content Viewport */}
-        <div className="p-6 flex-1 space-y-6">
+      {/* Main Body Area below Header */}
+      <div className="flex-1 flex min-h-0 overflow-hidden relative z-10">
+        {/* Sidebar Navigation */}
+        <Sidebar
+          categories={categories}
+          selectedCategory={selectedCategory}
+          selectedSubCategory={selectedSubCategory}
+          totalCount={repositories.length}
+          categoryCounts={categoryCounts}
+          repositories={repositories}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
+          onSelectRepo={fullName => setActiveRepoModal(fullName)}
+          onDropRepo={handleMoveRepo}
+          onSelectCategory={(catId, subId) => {
+            setSelectedCategory(catId);
+            setSelectedSubCategory(subId || null);
+          }}
+          onOpenAddCategory={() => setIsAddCategoryOpen(true)}
+          onUpdateSubCategory={handleUpdateSubCategory}
+          onDeleteSubCategory={handleDeleteSubCategory}
+          onUpdateRepo={handleUpdateRepo}
+          onDeleteRepo={handleDeleteRepo}
+        />
+
+        {/* Main Content Area */}
+        <main className="flex-1 flex flex-col min-w-0 relative z-10 overflow-y-auto h-full">
+          {/* Content Viewport */}
+          <div className="p-6 flex-1 space-y-6">
           {/* Stats / Headline Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
             <div>
@@ -404,6 +440,7 @@ export default function HomePage() {
           )}
         </div>
       </main>
+    </div>
 
       {/* GitHub Authentic Detail Modal */}
       <RepoDetailModal
@@ -476,6 +513,6 @@ export default function HomePage() {
           });
         }}
       />
-    </>
+    </div>
   );
 }

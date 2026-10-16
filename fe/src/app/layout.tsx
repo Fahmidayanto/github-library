@@ -28,7 +28,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="h-screen overflow-hidden flex flex-col md:flex-row antialiased select-none relative font-sans">
+      <body className="h-screen overflow-hidden flex flex-col antialiased select-none relative font-sans">
         {children}
       </body>
     </html>

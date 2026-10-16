@@ -62,6 +62,8 @@ interface SidebarProps {
   onUpdateRepo?: (id: string, newName: string) => Promise<void> | void;
   onDeleteRepo?: (id: string) => Promise<void> | void;
   onDropRepo?: (repoId: string, categoryId: string, subCategoryId: string, subCategoryName: string) => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -95,8 +97,19 @@ export function Sidebar({
   onUpdateRepo,
   onDeleteRepo,
   onDropRepo,
+  isCollapsed: propIsCollapsed,
+  onToggleCollapse,
 }: SidebarProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const isCollapsed = propIsCollapsed !== undefined ? propIsCollapsed : internalCollapsed;
+  const toggleCollapse = () => {
+    if (onToggleCollapse) {
+      onToggleCollapse();
+    } else {
+      setInternalCollapsed(prev => !prev);
+    }
+  };
+
   const [expandedSubIds, setExpandedSubIds] = useState<Record<string, boolean>>({});
   const [dragOverSubId, setDragOverSubId] = useState<string | null>(null);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
@@ -130,12 +143,12 @@ export function Sidebar({
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
         e.preventDefault();
-        setIsCollapsed(prev => !prev);
+        toggleCollapse();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [toggleCollapse]);
 
   const toggleGroup = (id: string) => {
     setOpenGroups(prev => ({ ...prev, [id]: !prev[id] }));
@@ -145,16 +158,16 @@ export function Sidebar({
     <aside 
       id="mainSidebar"
       className={cn(
-        "sidebar-container glass-panel relative border-r border-white/10 flex flex-col shrink-0 z-20 group/sidebar h-screen max-h-screen sticky top-0",
+        "sidebar-container glass-panel relative border-r border-white/10 flex flex-col shrink-0 z-20 group/sidebar h-full max-h-full",
         isCollapsed ? "collapsed w-[4.5rem]" : "w-full md:w-72"
       )}
     >
       {/* Floating Collapse / Expand Button (Hanya Muncul saat Kursor Diarahkan ke Sidebar) */}
       <button
         id="sidebarToggleBtn"
-        onClick={() => setIsCollapsed(!isCollapsed)}
+        onClick={toggleCollapse}
         title="Toggle Sidebar (Ctrl+B)"
-        className="sidebar-toggle-btn absolute -right-[1px] top-6 z-30 w-7 h-7 rounded-lg bg-[#0e1726]/90 backdrop-blur-md border border-sky-400/50 text-sky-400 hover:text-white hover:bg-sky-500/30 shadow-lg shadow-sky-950/60 flex items-center justify-center cursor-pointer transition-all active:scale-95"
+        className="sidebar-toggle-btn absolute -right-[1px] top-3.5 z-30 w-7 h-7 rounded-lg bg-[#0e1726]/90 backdrop-blur-md border border-sky-400/50 text-sky-400 hover:text-white hover:bg-sky-500/30 shadow-lg shadow-sky-950/60 flex items-center justify-center cursor-pointer transition-all active:scale-95"
       >
         {isCollapsed ? (
           <PanelLeftOpen className="w-4 h-4 stroke-[2.2]" />
@@ -162,31 +175,6 @@ export function Sidebar({
           <Columns2 className="w-4 h-4 stroke-[2.2]" />
         )}
       </button>
-
-      {/* Brand Header */}
-      <div className={cn(
-        "h-16 border-b border-white/10 flex items-center shrink-0 brand-header-inner",
-        isCollapsed ? "justify-center px-0" : "justify-between px-4"
-      )}>
-        <div className={cn("flex items-center", isCollapsed ? "justify-center w-full" : "space-x-3")}>
-          <img
-            src="/logo-neural-vault.svg"
-            alt="GitLibrary Logo"
-            className="w-10 h-10 rounded-xl shadow-lg shadow-indigo-500/25 shrink-0 object-contain select-none hover:scale-105 transition-transform"
-          />
-          {!isCollapsed && (
-            <div className="sidebar-text truncate">
-              <h1 className="text-sm font-bold text-slate-100 tracking-tight leading-none">GitLibrary</h1>
-              <span className="text-[10px] text-indigo-400 font-mono font-medium">Curated AI Repos</span>
-            </div>
-          )}
-        </div>
-        {!isCollapsed && (
-          <span className="sidebar-badge text-[11px] font-mono bg-white/5 text-slate-400 px-2 py-0.5 rounded border border-white/10 shrink-0">
-            v1.0
-          </span>
-        )}
-      </div>
 
       {/* Quick Filter: All Repos */}
       <div className="p-3 border-b border-white/10 shrink-0" id="quickFilterContainer">

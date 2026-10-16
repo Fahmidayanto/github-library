@@ -443,12 +443,20 @@ function generateClientHeuristicSuggestion(
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="glass-panel-elevated w-full max-w-lg rounded-2xl p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+    <div 
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="glass-panel-elevated w-full max-w-lg max-h-[90vh] rounded-2xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150 my-auto"
+      >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+        <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 shrink-0 bg-white/[0.02]">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30 shrink-0">
               <Plus className="w-4 h-4" />
             </div>
             <div>
@@ -456,12 +464,17 @@ function generateClientHeuristicSuggestion(
               <p className="text-[11px] text-slate-400">Paste link GitHub untuk auto-fetch detail</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-100">
+          <button 
+            type="button"
+            onClick={onClose} 
+            className="text-slate-400 hover:text-slate-100 p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="space-y-4 text-xs">
+        {/* Scrollable Form Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 text-xs premium-scrollbar">
           {/* URL Input & Auto-fetch Button */}
           <div>
             <label className="block font-medium text-slate-300 mb-1">GitHub URL</label>
@@ -889,12 +902,12 @@ function generateClientHeuristicSuggestion(
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center justify-end space-x-3 border-t border-white/10 pt-4">
+        {/* Action Buttons (Pinned at bottom) */}
+        <div className="flex items-center justify-end space-x-3 border-t border-white/10 px-6 py-4 shrink-0 bg-black/20">
           <button 
             type="button"
             onClick={onClose} 
-            className="px-4 py-2 rounded-xl text-xs text-slate-400 hover:text-slate-200 cursor-pointer"
+            className="px-4 py-2 rounded-xl text-xs text-slate-400 hover:text-slate-200 cursor-pointer transition-colors"
           >
             Batal
           </button>
