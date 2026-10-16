@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Star, 
   GitFork, 
@@ -14,6 +14,7 @@ import {
   GripVertical 
 } from 'lucide-react';
 import { formatCompactNumber } from '@/lib/utils';
+import { useLanguage } from '@/lib/i18n';
 
 export interface RepoCardData {
   id: string;
@@ -30,6 +31,7 @@ export interface RepoCardData {
   subCategoryName?: string;
   categoryId?: string;
   subCategoryId?: string;
+  avatarUrl?: string | null;
 }
 
 interface RepoCardProps {
@@ -98,12 +100,25 @@ function getLanguageDotColor(lang?: string | null) {
 }
 
 export function RepoCard({ repo, onClick }: RepoCardProps) {
+  const [imgError, setImgError] = useState(false);
+  const { t, language, translateCategory, translateSubCategory, translateRepoDescription } = useLanguage();
   const styling = getCategoryIconAndColor(repo.categoryName);
+  
+  const owner = repo.owner || (repo.fullName ? repo.fullName.split('/')[0] : '');
+  const avatarUrl = repo.avatarUrl || (owner ? `https://github.com/${owner}.png?size=64` : null);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [repo.id, avatarUrl]);
+
+  const translatedCatName = translateCategory(repo.categoryName);
+  const translatedSubName = translateSubCategory(repo.subCategoryName);
   // Fokus pada nama sub-kategori agar selalu 1 baris ringkas dan presisi
-  const badgeLabel = repo.subCategoryName || repo.categoryName || 'AI Repo';
-  const fullCategoryPath = repo.categoryName
-    ? `${repo.categoryName}${repo.subCategoryName ? ` • ${repo.subCategoryName}` : ''}`
-    : 'AI Repo';
+  const fallbackRepoLabel = language === 'en' ? 'AI Repo' : 'Repo AI';
+  const badgeLabel = translatedSubName || translatedCatName || fallbackRepoLabel;
+  const fullCategoryPath = translatedCatName
+    ? `${translatedCatName}${translatedSubName ? ` • ${translatedSubName}` : ''}`
+    : fallbackRepoLabel;
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('text/plain', repo.id);
@@ -128,10 +143,22 @@ export function RepoCard({ repo, onClick }: RepoCardProps) {
       className="glass-card rounded-2xl p-5 flex flex-col justify-between group cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:border-indigo-400/30 hover:shadow-xl hover:shadow-indigo-500/10 active:cursor-grabbing select-none"
     >
       <div className="space-y-3">
-        {/* Top Header: Icon + Full Name & 1-Line Category Badge underneath */}
+        {/* Top Header: Avatar/Icon + Full Name & 1-Line Category Badge underneath */}
         <div className="flex items-start space-x-2.5">
-          <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${styling.boxStyle}`}>
-            {styling.icon}
+          <div className={`w-7 h-7 rounded-full border flex items-center justify-center shrink-0 mt-0.5 overflow-hidden shadow-sm bg-slate-900/60 ${styling.boxStyle}`}>
+            {avatarUrl && !imgError ? (
+              <img
+                src={avatarUrl}
+                alt={owner || repo.name}
+                loading="lazy"
+                decoding="async"
+                referrerPolicy="no-referrer"
+                onError={() => setImgError(true)}
+                className="w-full h-full object-cover rounded-full"
+              />
+            ) : (
+              styling.icon
+            )}
           </div>
           <div className="min-w-0 flex-1 space-y-1.5">
             <div className={`text-sm font-semibold text-slate-100 flex items-center justify-between transition-colors ${styling.hoverColor}`}>
@@ -140,7 +167,7 @@ export function RepoCard({ repo, onClick }: RepoCardProps) {
                 <ArrowUpRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-indigo-400 shrink-0 inline-block" />
               </div>
               <span 
-                title="Tarik kartu ini ke sub-kategori di sidebar untuk memindahkannya"
+                title={t.card.dragTooltip}
                 className="opacity-0 group-hover:opacity-40 hover:!opacity-100 p-0.5 text-slate-400 hover:text-indigo-300 cursor-grab active:cursor-grabbing transition-opacity shrink-0"
               >
                 <GripVertical className="w-3.5 h-3.5" />
@@ -161,7 +188,7 @@ export function RepoCard({ repo, onClick }: RepoCardProps) {
 
         {/* Description */}
         <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
-          {repo.description || 'Tidak ada deskripsi repositori.'}
+          {translateRepoDescription(repo.fullName || `${repo.owner}/${repo.name}`, repo.description) || t.card.noDesc}
         </p>
 
         {/* Topics */}
@@ -183,14 +210,20 @@ export function RepoCard({ repo, onClick }: RepoCardProps) {
       <div className="flex items-center justify-between pt-4 mt-4 border-t border-white/10 text-xs text-slate-400">
         <div className="flex items-center space-x-1.5 font-mono text-[11px]">
           <span className={`w-2.5 h-2.5 rounded-full ${getLanguageDotColor(repo.primaryLanguage)}`} />
-          <span>{repo.primaryLanguage || 'Unknown'}</span>
+          <span>{(!repo.primaryLanguage || repo.primaryLanguage.toLowerCase() === 'unknown') ? (language === 'en' ? 'Unknown' : 'Lainnya') : repo.primaryLanguage}</span>
         </div>
         <div className="flex items-center space-x-3 font-mono text-[11px]">
-          <div className="flex items-center space-x-1 text-amber-400">
+          <div 
+            className="flex items-center space-x-1 text-amber-400"
+            title={language === 'en' ? `${formatCompactNumber(repo.starsCount || 0)} stars` : `${formatCompactNumber(repo.starsCount || 0)} bintang`}
+          >
             <Star className="w-3.5 h-3.5 fill-amber-400" />
             <span>{formatCompactNumber(repo.starsCount || 0)}</span>
           </div>
-          <div className="flex items-center space-x-1 text-slate-500">
+          <div 
+            className="flex items-center space-x-1 text-slate-500"
+            title={language === 'en' ? `${formatCompactNumber(repo.forksCount || 0)} forks` : `${formatCompactNumber(repo.forksCount || 0)} cabang fork`}
+          >
             <GitFork className="w-3.5 h-3.5" />
             <span>{formatCompactNumber(repo.forksCount || 0)}</span>
           </div>

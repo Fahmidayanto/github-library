@@ -1,14 +1,130 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const owner = searchParams.get('owner');
-  const repo = searchParams.get('repo');
+function getCacheFilePath(owner: string, repo: string): string {
+  const rootDir = path.resolve(process.cwd(), '../data/translated-readmes');
+  const localDir = path.resolve(process.cwd(), 'data/translated-readmes');
+  const dir = fs.existsSync(path.resolve(process.cwd(), '../data')) ? rootDir : localDir;
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  return path.join(dir, `${owner.toLowerCase()}_${repo.toLowerCase()}_id.html`);
+}
 
-  if (!owner || !repo) {
-    return NextResponse.json({ error: 'owner dan repo wajib diisi.' }, { status: 400 });
+async function translateText(text: string): Promise<string> {
+  if (!text || !text.trim()) return text;
+  try {
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=id&dt=t&q=${encodeURIComponent(text)}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    if (!res.ok) return text;
+    const json = await res.json();
+    if (Array.isArray(json) && Array.isArray(json[0])) {
+      return json[0].map((item: any) => item[0]).join('');
+    }
+    return text;
+  } catch {
+    return text;
+  }
+}
+
+async function translateBatchWithRetry(batch: string[], retries = 2): Promise<string[]> {
+  const SEP = '\n⟦SEP⟧\n';
+  const joined = batch.join(SEP);
+  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=id&dt=t&q=${encodeURIComponent(joined)}`;
+
+  for (let r = 0; r <= retries; r++) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+      if (res.ok) {
+        const json = await res.json();
+        if (Array.isArray(json) && Array.isArray(json[0])) {
+          const trans = json[0].map((item: any) => item[0]).join('');
+          const split = trans.split(/\s*⟦SEP⟧\s*/);
+          if (split.length === batch.length) {
+            return split.map(s => s.trim());
+          }
+        }
+      }
+    } catch {
+      // lanjut retry atau fallback
+    }
   }
 
+  // Fallback: translate individual segments jika batch separator gagal
+  const results: string[] = [];
+  for (const item of batch) {
+    try {
+      const single = await translateText(item);
+      results.push(single.trim());
+    } catch {
+      results.push(item);
+    }
+  }
+  return results;
+}
+
+async function translateHtml(html: string): Promise<string> {
+  // 1. Protect code blocks, pre tags, and svgs from translation
+  const codeBlocks: string[] = [];
+  const protectedHtml = html.replace(/<(pre|code|svg)[^>]*>[\s\S]*?<\/\1>/gi, m => {
+    codeBlocks.push(m);
+    return `___PRE_CODE_${codeBlocks.length - 1}___`;
+  });
+
+  // 2. Extract visible text between tags
+  const textSegments: string[] = [];
+  const placeholderRegex = />([^<]+)</g;
+  let match: RegExpExecArray | null;
+  while ((match = placeholderRegex.exec(protectedHtml)) !== null) {
+    const raw = match[1];
+    if (raw.trim().length > 1 && !/^___PRE_CODE_\d+___$/.test(raw.trim())) {
+      textSegments.push(raw);
+    }
+  }
+
+  if (textSegments.length === 0) return html;
+
+  // 3. Conservative batch size (max 1000 chars atau 20 item) agar tidak terkena HTTP 414 / dropping
+  let currentBatch: string[] = [];
+  let currentLen = 0;
+  const batches: string[][] = [];
+
+  for (const seg of textSegments) {
+    if ((currentLen + seg.length > 1000 || currentBatch.length >= 20) && currentBatch.length > 0) {
+      batches.push(currentBatch);
+      currentBatch = [];
+      currentLen = 0;
+    }
+    currentBatch.push(seg);
+    currentLen += seg.length;
+  }
+  if (currentBatch.length > 0) batches.push(currentBatch);
+
+  const translations: string[] = [];
+  for (let b = 0; b < batches.length; b++) {
+    const res = await translateBatchWithRetry(batches[b]);
+    translations.push(...res);
+  }
+
+  // 4. Inject translated text back into HTML
+  let idx = 0;
+  let replacedHtml = protectedHtml.replace(/>([^<]+)</g, (fullMatch, content) => {
+    if (content.trim().length > 1 && !/^___PRE_CODE_\d+___$/.test(content.trim())) {
+      const trans = translations[idx++] || content;
+      const leadingSpace = content.match(/^\s*/)?.[0] || '';
+      const trailingSpace = content.match(/\s*$/)?.[0] || '';
+      return '>' + leadingSpace + trans + trailingSpace + '<';
+    }
+    return fullMatch;
+  });
+
+  // 5. Restore code blocks
+  replacedHtml = replacedHtml.replace(/___PRE_CODE_(\d+)___/g, (_, i) => codeBlocks[Number(i)] || '');
+  return replacedHtml;
+}
+
+async function fetchRawReadmeHtml(owner: string, repo: string): Promise<string | null> {
   // Tier 1: GitHub Official REST API (Accept: application/vnd.github.html+json)
   try {
     const headers: Record<string, string> = {
@@ -28,10 +144,7 @@ export async function GET(request: Request) {
     if (res.ok) {
       const html = await res.text();
       if (html && html.trim()) {
-        return new NextResponse(html, {
-          status: 200,
-          headers: { 'Content-Type': 'text/html; charset=utf-8' },
-        });
+        return html;
       }
     }
   } catch {
@@ -53,10 +166,7 @@ export async function GET(request: Request) {
       const pageHtml = await pageRes.text();
       const articleMatch = pageHtml.match(/<article[^>]*class="[^"]*markdown-body[^"]*"[^>]*>([\s\S]*?)<\/article>/i);
       if (articleMatch && articleMatch[1].trim()) {
-        return new NextResponse(articleMatch[1], {
-          status: 200,
-          headers: { 'Content-Type': 'text/html; charset=utf-8' },
-        });
+        return articleMatch[1];
       }
     }
   } catch {
@@ -78,16 +188,11 @@ export async function GET(request: Request) {
               .replace(/</g, '&lt;')
               .replace(/>/g, '&gt;');
 
-            // Ubah sintaks markdown image ![alt](url) menjadi tag img nyata
             processedHtml = processedHtml.replace(/!\[(.*?)\]\((https?:\/\/[^\s\)]+|[^\s\)]+\.(?:png|jpe?g|gif|webp|svg)[^\s\)]*)\)/gi, (_m, alt, src) => {
               return `<img src="${src}" alt="${alt}" referrerpolicy="no-referrer" class="rounded-xl max-w-full h-auto my-3" />`;
             });
 
-            const safeHtml = `<div class="whitespace-pre-wrap font-sans text-sm text-slate-200 leading-relaxed">${processedHtml}</div>`;
-            return new NextResponse(safeHtml, {
-              status: 200,
-              headers: { 'Content-Type': 'text/html; charset=utf-8' },
-            });
+            return `<div class="whitespace-pre-wrap font-sans text-sm text-slate-200 leading-relaxed">${processedHtml}</div>`;
           }
         }
       } catch {
@@ -96,5 +201,68 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ error: 'README.md tidak ditemukan di repositori ini.' }, { status: 404 });
+  return null;
+}
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const owner = searchParams.get('owner');
+  const repo = searchParams.get('repo');
+  const lang = (searchParams.get('lang') || 'en').toLowerCase();
+
+  if (!owner || !repo) {
+    return NextResponse.json({ error: 'owner dan repo wajib diisi.' }, { status: 400 });
+  }
+
+  // Jika meminta Bahasa Indonesia, periksa cache terjemahan terlebih dahulu
+  if (lang === 'id') {
+    try {
+      const cacheFile = getCacheFilePath(owner, repo);
+      if (fs.existsSync(cacheFile)) {
+        const cachedHtml = fs.readFileSync(cacheFile, 'utf-8');
+        if (cachedHtml && cachedHtml.trim()) {
+          return new NextResponse(cachedHtml, {
+            status: 200,
+            headers: { 'Content-Type': 'text/html; charset=utf-8' },
+          });
+        }
+      }
+    } catch {
+      // cache read failed, proceed to fetch & translate
+    }
+  }
+
+  const rawHtml = await fetchRawReadmeHtml(owner, repo);
+  if (!rawHtml) {
+    return NextResponse.json({ error: 'README.md tidak ditemukan di repositori ini.' }, { status: 404 });
+  }
+
+  // Jika meminta Bahasa Indonesia, terjemahkan dan simpan ke cache
+  if (lang === 'id') {
+    try {
+      const translatedHtml = await translateHtml(rawHtml);
+      try {
+        const cacheFile = getCacheFilePath(owner, repo);
+        fs.writeFileSync(cacheFile, translatedHtml, 'utf-8');
+      } catch (err) {
+        console.warn('Gagal menyimpan cache README terjemahan:', err);
+      }
+      return new NextResponse(translatedHtml, {
+        status: 200,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      });
+    } catch (err) {
+      console.warn('Gagal menerjemahkan README, fallback ke original:', err);
+      return new NextResponse(rawHtml, {
+        status: 200,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      });
+    }
+  }
+
+  // Jika meminta Bahasa Inggris (Original)
+  return new NextResponse(rawHtml, {
+    status: 200,
+    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+  });
 }

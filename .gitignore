@@ -36,3 +36,8 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+# Test artifacts & Scratch
+test-results/
+aura-launch-vo-prompt.md
+
+

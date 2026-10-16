@@ -1,0 +1,2720 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub Library Hub — 3D Galaxy Graph Prototype</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            galaxy: {
+              bg: '#07090e',
+              panel: 'rgba(15, 23, 42, 0.75)',
+              border: 'rgba(255, 255, 255, 0.08)',
+              purple: '#a855f7',
+              cyan: '#38bdf8',
+              emerald: '#10b981',
+              amber: '#f59e0b',
+              orange: '#f97316'
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Three.js & OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <!-- GSAP Core for Emil Design Eng micro-interactions -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+  <style>
+    body {
+      background-color: #07090e;
+      color: #e2e8f0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow-x: hidden;
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-input {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .glass-input:focus {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(99, 102, 241, 0.5);
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#07090e] select-none text-slate-100">
+
+  <!-- Top Navbar -->
+  <header class="h-16 border-b border-white/10 glass-card sticky top-0 z-40 flex items-center justify-between px-4 lg:px-6">
+    <!-- Brand -->
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 p-0.5 flex items-center justify-center shadow-lg shadow-purple-500/20">
+        <div class="w-full h-full bg-[#07090e] rounded-[10px] flex items-center justify-center">
+          <i data-lucide="git-branch" class="w-5 h-5 text-indigo-400"></i>
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <h1 class="text-sm font-bold tracking-tight text-white">GitLibrary Hub</h1>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold">v1.2 Prototype</span>
+        </div>
+        <p class="text-[11px] text-slate-400 font-mono">Curated Knowledge & 3D Universe</p>
+      </div>
+    </div>
+
+    <!-- Search Input -->
+    <div class="hidden md:flex relative flex-1 max-w-md mx-6">
+      <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+      <input 
+        type="text" 
+        id="globalSearch"
+        placeholder="Cari repository, topik, atau bahasa... (⌘K)" 
+        class="w-full pl-9 pr-12 py-1.5 rounded-xl glass-input text-xs text-slate-100 placeholder-slate-400 focus:outline-none transition-all"
+      />
+      <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 border border-white/10 bg-white/5 px-1.5 py-0.5 rounded">⌘K</span>
+    </div>
+
+    <!-- Quick Stats & Actions -->
+    <div class="flex items-center space-x-3">
+      <div class="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-mono">
+        <i data-lucide="star" class="w-3.5 h-3.5 text-amber-400 fill-amber-400"></i>
+        <span class="text-slate-300">148.5k Total Stars</span>
+      </div>
+      <button class="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl shadow-lg shadow-indigo-600/25 border border-indigo-400/30 transition-all cursor-pointer">
+        <i data-lucide="plus" class="w-4 h-4"></i>
+        <span>Add Repo</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main View Area -->
+  <div class="flex-1 flex min-h-0 overflow-hidden relative">
+
+    <!-- Left Main Sidebar -->
+    <aside class="w-64 border-r border-white/10 glass-card hidden lg:flex flex-col shrink-0 p-4 space-y-4">
+      <div class="text-[11px] font-mono font-semibold text-slate-400 tracking-wider uppercase">Categories</div>
+      <nav class="space-y-1 text-xs">
+        <button class="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 font-medium">
+          <span class="flex items-center space-x-2.5">
+            <i data-lucide="folder" class="w-4 h-4 text-indigo-400"></i>
+            <span>All Repositories</span>
+          </span>
+          <span class="text-[10px] font-mono bg-indigo-500/30 px-2 py-0.5 rounded-full">14</span>
+        </button>
+        <button class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-300 hover:bg-white/5 transition-colors">
+          <span class="flex items-center space-x-2.5">
+            <i data-lucide="cpu" class="w-4 h-4 text-purple-400"></i>
+            <span>AI & LLM</span>
+          </span>
+          <span class="text-[10px] font-mono text-slate-500">4</span>
+        </button>
+        <button class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-300 hover:bg-white/5 transition-colors">
+          <span class="flex items-center space-x-2.5">
+            <i data-lucide="video" class="w-4 h-4 text-pink-400"></i>
+            <span>Video & Motion</span>
+          </span>
+          <span class="text-[10px] font-mono text-slate-500">3</span>
+        </button>
+        <button class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-300 hover:bg-white/5 transition-colors">
+          <span class="flex items-center space-x-2.5">
+            <i data-lucide="database" class="w-4 h-4 text-cyan-400"></i>
+            <span>Database & ORM</span>
+          </span>
+          <span class="text-[10px] font-mono text-slate-500">3</span>
+        </button>
+        <button class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-300 hover:bg-white/5 transition-colors">
+          <span class="flex items-center space-x-2.5">
+            <i data-lucide="layers" class="w-4 h-4 text-emerald-400"></i>
+            <span>Web Frameworks</span>
+          </span>
+          <span class="text-[10px] font-mono text-slate-500">4</span>
+        </button>
+      </nav>
+
+      <div class="pt-4 border-t border-white/10 space-y-2">
+        <div class="text-[11px] font-mono font-semibold text-slate-400 tracking-wider uppercase">3D Galaxy Status</div>
+        <div class="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-purple-300 font-medium">Universe Engine</span>
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300">Ready</span>
+          </div>
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            Menghubungkan Repository, Kategori, Sub-kategori, Bahasa, dan Topik dalam ruang koordinat gravitasi 3D.
+          </p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace (Houses Content Header, Grid, and 3D Galaxy View) -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+
+      <!-- Content Header with the View Switcher -->
+      <section class="px-6 py-4 border-b border-white/10 glass-card flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 z-30">
+        <div>
+          <div class="flex items-center space-x-2.5">
+            <h2 class="text-lg font-bold text-white tracking-tight">Katalog Ekosistem Repository</h2>
+            <span class="text-[11px] font-mono bg-white/10 text-slate-300 px-2 py-0.5 rounded-full border border-white/10">14 Repos</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">Jelajahi relasi repositori melalui mode Grid 2D atau visualisasi galaksi 3D interaktif.</p>
+        </div>
+
+        <!-- THE VIEW SWITCHER COMPONENT -->
+        <div class="flex items-center bg-[#05070c] p-1 rounded-2xl border border-white/15 shadow-inner">
+          <button 
+            id="btnViewGrid"
+            onclick="switchView('grid')"
+            class="flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer bg-white/10 text-white shadow-sm"
+          >
+            <i data-lucide="layout-grid" class="w-4 h-4 text-indigo-400"></i>
+            <span>Grid View</span>
+          </button>
+          
+          <button 
+            id="btnViewGraph"
+            onclick="switchView('graph')"
+            class="flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-all cursor-pointer"
+          >
+            <i data-lucide="orbit" class="w-4 h-4 text-purple-400"></i>
+            <span class="flex items-center gap-1.5">
+              <span>3D Galaxy Graph</span>
+              <span class="w-2 h-2 rounded-full bg-purple-400 animate-ping"></span>
+            </span>
+          </button>
+        </div>
+      </section>
+
+      <!-- VIEW 1: Grid View Container -->
+      <div id="viewGridContainer" class="flex-1 p-6 overflow-y-auto space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" id="repoCardsGrid">
+          <!-- Dynamically populated via JS -->
+        </div>
+      </div>
+
+      <!-- VIEW 2: 3D Galaxy Graph Container (Matching Codebase Memory Layout) -->
+      <div id="viewGraphContainer" class="flex-1 relative overflow-hidden hidden bg-[#05070b]">
+        
+        <!-- 3D WebGL Canvas Layer -->
+        <div id="threejs-canvas-wrapper" class="absolute inset-0 z-0 cursor-grab active:cursor-grabbing"></div>
+
+        <!-- Floating Top Bar for 3D Graph -->
+        <div class="absolute top-4 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-3 pointer-events-none">
+          <!-- Stats Badge -->
+          <div class="pointer-events-auto flex items-center space-x-3 px-3.5 py-2 rounded-xl glass-card text-xs font-mono shadow-xl border border-white/15">
+            <div class="flex items-center space-x-2 text-purple-400 font-bold">
+              <i data-lucide="sparkles" class="w-4 h-4 animate-spin text-purple-400" style="animation-duration: 8s;"></i>
+              <span>GALAXY GRAPH</span>
+            </div>
+            <span class="text-white/20">|</span>
+            <span class="text-slate-300" id="graphStats">42 Nodes / 58 Edges</span>
+            <span class="text-white/20">|</span>
+            <span class="text-emerald-400 text-[11px]">5 Entity Clusters</span>
+          </div>
+
+          <!-- Active Highlight Banner -->
+          <div id="highlightPill" class="hidden pointer-events-auto flex items-center space-x-2.5 px-4 py-2 rounded-xl bg-purple-950/80 border border-purple-500/50 backdrop-blur-md text-xs shadow-2xl text-slate-200">
+            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
+            <span>Highlight Konektor: <strong id="highlightNodeName" class="text-cyan-300"></strong></span>
+            <span class="text-purple-300 font-mono text-[11px]" id="highlightConnCount"></span>
+            <button onclick="clearHighlight()" class="ml-2 px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white cursor-pointer text-[10px] font-mono">
+              ✕ Reset
+            </button>
+          </div>
+
+          <!-- Controls Button -->
+          <div class="pointer-events-auto flex items-center space-x-2">
+            <button 
+              onclick="resetCamera()"
+              class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl glass-card hover:bg-white/10 text-slate-200 text-xs font-medium border border-white/10 shadow-lg cursor-pointer"
+            >
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+              <span>Reset Camera</span>
+            </button>
+            <button 
+              id="btnAutoRotate"
+              onclick="toggleAutoRotate()"
+              class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl glass-card hover:bg-white/10 text-purple-300 text-xs font-medium border border-purple-500/30 shadow-lg cursor-pointer"
+            >
+              <i data-lucide="play" class="w-3.5 h-3.5"></i>
+              <span id="rotateStatusText">Auto-Rotate: ON</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Floating Left Sidebar for Filters (Mirip Codebase Memory) -->
+        <div class="absolute top-16 left-4 bottom-4 w-72 glass-card rounded-2xl p-4 z-20 overflow-y-auto space-y-4 shadow-2xl border border-white/15">
+          <!-- Filters Header -->
+          <div class="flex items-center justify-between border-b border-white/10 pb-2.5">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="filter" class="w-3.5 h-3.5 text-indigo-400"></i>
+              <span>FILTERS</span>
+            </span>
+            <div class="space-x-2 text-[11px] font-mono">
+              <button onclick="toggleAllTypes(true)" class="text-indigo-400 hover:underline cursor-pointer">All</button>
+              <span class="text-slate-600">/</span>
+              <button onclick="toggleAllTypes(false)" class="text-slate-400 hover:underline cursor-pointer">None</button>
+            </div>
+          </div>
+
+          <!-- Node Types Pills with Counters & Colors -->
+          <div class="space-y-2">
+            <div class="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Node Types</div>
+            <div class="space-y-1.5" id="nodeTypesList">
+              <!-- Rendered via JS: Category, SubCategory, Repo, Language, Topic -->
+            </div>
+          </div>
+
+          <!-- Category Clusters Isolation -->
+          <div class="space-y-2 pt-2 border-t border-white/10">
+            <div class="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Galaxy Clusters</div>
+            <div class="space-y-1.5 text-xs text-slate-300" id="categoryClusterFilter">
+              <!-- Cluster checkboxes -->
+            </div>
+          </div>
+
+          <!-- Display Setting Controls -->
+          <div class="space-y-3 pt-2 border-t border-white/10 text-xs">
+            <div class="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Display Settings</div>
+            
+            <!-- Star Size Slider -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-[11px] text-slate-400 font-mono">
+                <span>Star Scale</span>
+                <span id="starScaleValue">1.0x</span>
+              </div>
+              <input 
+                type="range" 
+                min="0.5" 
+                max="2.5" 
+                step="0.1" 
+                value="1" 
+                id="sliderStarScale"
+                oninput="updateStarScale(this.value)"
+                class="w-full accent-purple-500 h-1.5 bg-white/10 rounded-lg cursor-pointer"
+              />
+            </div>
+
+            <!-- Edge Opacity Slider -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-[11px] text-slate-400 font-mono">
+                <span>Link Glow</span>
+                <span id="linkGlowValue">0.5</span>
+              </div>
+              <input 
+                type="range" 
+                min="0.1" 
+                max="1.0" 
+                step="0.05" 
+                value="0.5" 
+                id="sliderLinkGlow"
+                oninput="updateLinkGlow(this.value)"
+                class="w-full accent-cyan-500 h-1.5 bg-white/10 rounded-lg cursor-pointer"
+              />
+            </div>
+
+            <!-- Node Neon Sun Glow Slider -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-[11px] text-slate-400 font-mono">
+                <span>Neon Sun Glow</span>
+                <span id="neonShadowValue">0.6</span>
+              </div>
+              <input 
+                type="range" 
+                min="0.0" 
+                max="1.0" 
+                step="0.05" 
+                value="0.6" 
+                id="sliderNeonShadow"
+                oninput="updateNeonShadow(this.value)"
+                class="w-full accent-fuchsia-500 h-1.5 bg-white/10 rounded-lg cursor-pointer"
+              />
+            </div>
+
+            <!-- Toggle Labels -->
+            <label class="flex items-center space-x-2.5 text-xs text-slate-300 cursor-pointer pt-1">
+              <input type="checkbox" id="checkShowLabels" checked onchange="toggleLabels(this.checked)" class="rounded accent-purple-500" />
+              <span>Show Orbit Labels</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Node Tooltip Card on Hover -->
+        <div id="nodeHoverTooltip" class="absolute pointer-events-none hidden z-30 p-3 rounded-xl glass-card border border-white/20 shadow-2xl text-xs space-y-1 max-w-xs transition-opacity duration-150">
+          <div class="flex items-center space-x-2">
+            <span id="tooltipTypeBadge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase"></span>
+            <span id="tooltipTitle" class="font-bold text-white truncate"></span>
+          </div>
+          <p id="tooltipDesc" class="text-[11px] text-slate-300 leading-tight"></p>
+          <div id="tooltipMeta" class="pt-1.5 border-t border-white/10 text-[10px] font-mono text-slate-400 flex items-center justify-between"></div>
+        </div>
+
+        <!-- Bottom Legend & Shortcuts -->
+        <div class="absolute bottom-4 right-4 z-20 hidden md:flex items-center space-x-3 text-[11px] font-mono px-3 py-1.5 rounded-xl glass-card text-slate-400 border border-white/10">
+          <span><kbd class="text-white bg-white/10 px-1 rounded">Drag</kbd> Rotate 3D</span>
+          <span><kbd class="text-white bg-white/10 px-1 rounded">Scroll</kbd> Zoom</span>
+          <span><kbd class="text-white bg-white/10 px-1 rounded">Right-Click</kbd> Pan</span>
+          <span><kbd class="text-white bg-white/10 px-1 rounded">Click</kbd> Focus Node</span>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Detail Modal on Node Click -->
+  <div id="nodeDetailModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="glass-card rounded-2xl border border-white/20 max-w-md w-full p-6 space-y-4 shadow-2xl relative">
+      <button onclick="closeDetailModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white cursor-pointer">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center space-x-2.5">
+        <div id="modalIconBox" class="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold"></div>
+        <div>
+          <span id="modalTypeBadge" class="text-[10px] font-mono uppercase px-2 py-0.5 rounded font-bold"></span>
+          <h3 id="modalTitle" class="text-base font-bold text-white"></h3>
+        </div>
+      </div>
+
+      <p id="modalDesc" class="text-xs text-slate-300 leading-relaxed"></p>
+
+      <div class="space-y-2 pt-2 border-t border-white/10 text-xs">
+        <div class="text-[11px] font-mono text-slate-400 uppercase">Connected Galaxy Links</div>
+        <div id="modalLinksList" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto"></div>
+      </div>
+
+      <div class="pt-3 border-t border-white/10 flex justify-end space-x-2">
+        <button onclick="closeDetailModal()" class="px-4 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-slate-300 text-xs cursor-pointer">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Javascript Application Code -->
+  <script>
+    // -------------------------------------------------------------
+    // 1. DATA ENTITAS RELASI GITHUB LIBRARY
+    // -------------------------------------------------------------
+    const GALAXY_DATA = {
+      categories: [
+        { id: 'cat-ai', name: 'AI & LLM', color: '#c084fc', icon: 'cpu' },
+        { id: 'cat-video', name: 'Video & Motion', color: '#f472b6', icon: 'video' },
+        { id: 'cat-db', name: 'Database & ORM', color: '#38bdf8', icon: 'database' },
+        { id: 'cat-framework', name: 'Web Frameworks', color: '#4ade80', icon: 'layers' }
+      ],
+      subCategories: [
+        { id: 'sub-llm', catId: 'cat-ai', name: 'LLM Inference', color: '#a855f7' },
+        { id: 'sub-rag', catId: 'cat-ai', name: 'RAG & Vectors', color: '#9333ea' },
+        { id: 'sub-video-edit', catId: 'cat-video', name: 'Video Editing', color: '#ec4899' },
+        { id: 'sub-video-ai', catId: 'cat-video', name: 'Shorts & Automation', color: '#db2777' },
+        { id: 'sub-orm', catId: 'cat-db', name: 'TypeScript ORM', color: '#0284c7' },
+        { id: 'sub-serverless-db', catId: 'cat-db', name: 'Serverless Postgres', color: '#0369a1' },
+        { id: 'sub-fullstack', catId: 'cat-framework', name: 'Fullstack React', color: '#16a34a' },
+        { id: 'sub-motion-lib', catId: 'cat-framework', name: '3D & Motion UI', color: '#15803d' }
+      ],
+      languages: [
+        { id: 'lang-ts', name: 'TypeScript', color: '#3178c6' },
+        { id: 'lang-py', name: 'Python', color: '#3776ab' },
+        { id: 'lang-rust', name: 'Rust', color: '#ce412b' },
+        { id: 'lang-js', name: 'JavaScript', color: '#f7df1e' },
+        { id: 'lang-cpp', name: 'C++', color: '#00599c' }
+      ],
+      topics: [
+        { id: 'top-llm', name: 'llm', color: '#fb923c' },
+        { id: 'top-agent', name: 'ai-agents', color: '#fb923c' },
+        { id: 'top-remotion', name: 'remotion', color: '#fb923c' },
+        { id: 'top-three', name: 'threejs', color: '#fb923c' },
+        { id: 'top-drizzle', name: 'drizzle', color: '#fb923c' },
+        { id: 'top-neon', name: 'neon-pg', color: '#fb923c' },
+        { id: 'top-nextjs', name: 'nextjs', color: '#fb923c' },
+        { id: 'top-video', name: 'video-gen', color: '#fb923c' }
+      ],
+      repositories: [
+        {
+          id: 'repo-vllm',
+          name: 'vllm-project/vllm',
+          subCatId: 'sub-llm',
+          langId: 'lang-py',
+          stars: 48500,
+          desc: 'High-throughput and memory-efficient LLM serving engine with PagedAttention.',
+          topics: ['top-llm', 'top-agent']
+        },
+        {
+          id: 'repo-openmontage',
+          name: 'OpenMontage/OpenMontage',
+          subCatId: 'sub-video-edit',
+          langId: 'lang-py',
+          stars: 12400,
+          desc: 'Automated video assembly and algorithmic composition orchestrator.',
+          topics: ['top-video', 'top-remotion']
+        },
+        {
+          id: 'repo-openshorts',
+          name: 'openshorts/openshorts',
+          subCatId: 'sub-video-ai',
+          langId: 'lang-ts',
+          stars: 8900,
+          desc: 'Multi-container automated short-form video creation platform.',
+          topics: ['top-video', 'top-agent']
+        },
+        {
+          id: 'repo-drizzle',
+          name: 'drizzle-team/drizzle-orm',
+          subCatId: 'sub-orm',
+          langId: 'lang-ts',
+          stars: 42100,
+          desc: 'Next generation TypeScript ORM that feels like writing SQL.',
+          topics: ['top-drizzle', 'top-neon']
+        },
+        {
+          id: 'repo-neon',
+          name: 'neondatabase/serverless',
+          subCatId: 'sub-serverless-db',
+          langId: 'lang-ts',
+          stars: 6200,
+          desc: 'Serverless PostgreSQL driver for Edge functions and Neon Serverless.',
+          topics: ['top-neon']
+        },
+        {
+          id: 'repo-nextjs',
+          name: 'vercel/next.js',
+          subCatId: 'sub-fullstack',
+          langId: 'lang-ts',
+          stars: 132000,
+          desc: 'The React Framework for the Web with App Router and Turbopack.',
+          topics: ['top-nextjs']
+        },
+        {
+          id: 'repo-threejs',
+          name: 'mrdoob/three.js',
+          subCatId: 'sub-motion-lib',
+          langId: 'lang-js',
+          stars: 104000,
+          desc: 'JavaScript 3D Library that makes WebGL simple and expressive.',
+          topics: ['top-three']
+        }
+      ]
+    };
+
+    // -------------------------------------------------------------
+    // 2. VIEW SWITCHER LOGIC (GRID vs 3D GRAPH)
+    // -------------------------------------------------------------
+    let currentView = 'grid';
+
+    function switchView(view) {
+      currentView = view;
+      const btnGrid = document.getElementById('btnViewGrid');
+      const btnGraph = document.getElementById('btnViewGraph');
+      const containerGrid = document.getElementById('viewGridContainer');
+      const containerGraph = document.getElementById('viewGraphContainer');
+
+      if (view === 'grid') {
+        btnGrid.className = 'flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white/10 text-white shadow-sm cursor-pointer';
+        btnGraph.className = 'flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-all cursor-pointer';
+        containerGrid.classList.remove('hidden');
+        containerGraph.classList.add('hidden');
+      } else {
+        btnGrid.className = 'flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-all cursor-pointer';
+        btnGraph.className = 'flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/25 cursor-pointer';
+        containerGrid.classList.add('hidden');
+        containerGraph.classList.remove('hidden');
+
+        // Initialized 3D Engine on first switch
+        if (!isThreeInit) {
+          initThreeGalaxy();
+        } else {
+          onWindowResize();
+        }
+      }
+    }
+
+    // Populate Grid Cards Sample
+    function renderGridCards() {
+      const grid = document.getElementById('repoCardsGrid');
+      grid.innerHTML = GALAXY_DATA.repositories.map(repo => {
+        const sub = GALAXY_DATA.subCategories.find(s => s.id === repo.subCatId);
+        const cat = GALAXY_DATA.categories.find(c => c.id === sub?.catId);
+        const lang = GALAXY_DATA.languages.find(l => l.id === repo.langId);
+
+        return `
+          <div class="glass-card rounded-2xl p-5 border border-white/10 hover:border-indigo-500/30 transition-all duration-200 hover:-translate-y-1 space-y-3.5 group flex flex-col justify-between">
+            <div class="space-y-2">
+              <div class="flex items-center justify-between text-xs font-mono">
+                <span class="px-2 py-0.5 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">${cat?.name || 'Category'}</span>
+                <span class="flex items-center space-x-1 text-amber-400">
+                  <i data-lucide="star" class="w-3.5 h-3.5 fill-amber-400"></i>
+                  <span>${(repo.stars / 1000).toFixed(1)}k</span>
+                </span>
+              </div>
+              <h4 class="text-sm font-bold text-white group-hover:text-indigo-400 transition-colors">${repo.name}</h4>
+              <p class="text-xs text-slate-400 line-clamp-2">${repo.desc}</p>
+            </div>
+
+            <div class="pt-3 border-t border-white/10 flex items-center justify-between text-xs">
+              <span class="flex items-center space-x-1.5 font-mono text-[11px] text-slate-300">
+                <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${lang?.color}"></span>
+                <span>${lang?.name}</span>
+              </span>
+              <div class="flex items-center space-x-1">
+                ${repo.topics.map(tId => {
+                  const t = GALAXY_DATA.topics.find(top => top.id === tId);
+                  return `<span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-slate-400">#${t?.name}</span>`;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    // -------------------------------------------------------------
+    // 3. THREE.JS 3D GALAXY GRAPH ENGINE
+    // -------------------------------------------------------------
+    let isThreeInit = false;
+    let scene, camera, renderer, controls;
+    let nodesMeshGroup, edgesMeshGroup, highlightedEdgesGroup, labelsGroup;
+    let selectedHighlightNode = null;
+    let pulseNeonTime = 0;
+    let nodeObjects = [];
+    let edgeObjects = [];
+    let raycaster, mouse;
+    let autoRotate = true;
+    let starScaleMultiplier = 1.0;
+    let linkGlowOpacity = 0.5;
+    let nodeNeonShadowOpacity = 0.6;
+    let showLabels = true;
+
+    // Filters active status
+    const activeTypes = {
+      category: true,
+      subCategory: true,
+      repository: true,
+      language: true,
+      topic: true
+    };
+
+    function initThreeGalaxy() {
+      isThreeInit = true;
+      const container = document.getElementById('threejs-canvas-wrapper');
+
+      // Scene
+      scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x05070b, 0.001);
+
+      // Camera (Spacious view angle)
+      camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 4000);
+      camera.position.set(0, 320, 800);
+
+      // Renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      // OrbitControls
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.maxDistance = 2200;
+      controls.minDistance = 60;
+
+      // Studio / Celestial Lighting (Saturasi warna optimal, tanpa overexposure)
+      const ambient = new THREE.AmbientLight(0xffffff, 0.45);
+      scene.add(ambient);
+
+      // Key light for crisp 3D facet reflections
+      const keyLight = new THREE.DirectionalLight(0xffffff, 0.7);
+      keyLight.position.set(200, 350, 250);
+      scene.add(keyLight);
+
+      // Cool cyan rim light from opposite angle
+      const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.4);
+      rimLight.position.set(-250, -150, -200);
+      scene.add(rimLight);
+
+      // Warm purple point light at galaxy core
+      const coreLight = new THREE.PointLight(0xa855f7, 0.8, 1400);
+      coreLight.position.set(0, 0, 0);
+      scene.add(coreLight);
+
+      // Starfield Particle Dust in Background
+      createStarDust();
+
+      // Groups
+      nodesMeshGroup = new THREE.Group();
+      edgesMeshGroup = new THREE.Group();
+      highlightedEdgesGroup = new THREE.Group();
+      labelsGroup = new THREE.Group();
+      scene.add(edgesMeshGroup);
+      scene.add(highlightedEdgesGroup);
+      scene.add(nodesMeshGroup);
+      scene.add(labelsGroup);
+
+      // Raycaster & Mouse
+      raycaster = new THREE.Raycaster();
+      raycaster.params.Points.threshold = 10;
+      mouse = new THREE.Vector2();
+
+      // Build 3D Graph Nodes & Edges
+      buildGalaxyGraph();
+
+      // Setup UI Filters
+      setupFilterUI();
+
+      // Event Listeners
+      window.addEventListener('resize', onWindowResize);
+      container.addEventListener('mousemove', onMouseMove);
+      container.addEventListener('click', onCanvasClick);
+
+      // Start Animation Loop
+      animate();
+    }
+
+    // Create Background Starfield
+    function createStarDust() {
+      const count = 1200;
+      const geo = new THREE.BufferGeometry();
+      const pos = new Float32Array(count * 3);
+      for (let i = 0; i < count * 3; i += 3) {
+        pos[i] = (Math.random() - 0.5) * 1600;
+        pos[i + 1] = (Math.random() - 0.5) * 1000;
+        pos[i + 2] = (Math.random() - 0.5) * 1600;
+      }
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const mat = new THREE.PointsMaterial({
+        size: 2,
+        color: 0x475569,
+        transparent: true,
+        opacity: 0.6
+      });
+      const stars = new THREE.Points(geo, mat);
+      scene.add(stars);
+    }
+
+    // Cache tekstur solar corona agar hemat resource canvas & performa lancar
+    const coronaTextureCache = {};
+
+    // Generator Tekstur Radiasi Matahari (Solar Corona) Konsentris Mengelilingi Bola Node
+    function getSolarCoronaTexture(colorHex, type = 'inner') {
+      const key = `${colorHex}_${type}`;
+      if (coronaTextureCache[key]) return coronaTextureCache[key];
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+      const cx = 128, cy = 128;
+
+      if (type === 'inner') {
+        // Cincin pijar terik persis di lingkar luar bola (lingkar korona matahari)
+        const grad = ctx.createRadialGradient(cx, cy, 38, cx, cy, 128);
+        grad.addColorStop(0, colorHex);
+        grad.addColorStop(0.38, colorHex);
+        grad.addColorStop(0.62, colorHex + 'cc');
+        grad.addColorStop(0.85, colorHex + '33');
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 256, 256);
+      } else {
+        // Flare pendaran lembut atmosferik luar yang menyebar luas (solar wind flare)
+        const grad = ctx.createRadialGradient(cx, cy, 12, cx, cy, 128);
+        grad.addColorStop(0, colorHex + 'bb');
+        grad.addColorStop(0.28, colorHex + '77');
+        grad.addColorStop(0.65, colorHex + '25');
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 256, 256);
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      coronaTextureCache[key] = tex;
+      return tex;
+    }
+
+    // =============================================================
+    // KOSMOLOGI PROCEDURAL TEXTURES (Matahari, Gas Giant, Planet, Bulan, Meteor)
+    // =============================================================
+    const celestialTextureCache = {};
+
+    // 1. TEKSTUR MATAHARI (SUN) - 4 Kelas Bintang Kosmik Unik (Bukan hanya kuning!)
+    function getSunTexture(colorHex, catId) {
+      const key = 'sun_' + (catId || colorHex);
+      if (celestialTextureCache[key]) return celestialTextureCache[key];
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+
+      // Variasi kelas spektral bintang:
+      // cat-ai: Bintang Violet Hypergiant (Ultra-bright Purple/White)
+      // cat-video: Bintang Merah Supergiant Betelgeuse (Deep Crimson & Orange)
+      // cat-db: Bintang Biru Raksasa Rigel (Electric Sapphire & Cyan)
+      // cat-framework: Bintang Surya Zamrud-Emas (Emerald Sol & Gold)
+      let stops = [];
+      let granuleColor = '#ffffff';
+      let flareColor = 'rgba(255, 255, 255, 0)';
+
+      if (catId === 'cat-ai') {
+        stops = ['#ffffff', '#e9d5ff', '#c084fc', '#9333ea', '#3b0764'];
+        granuleColor = '#faf5ff';
+        flareColor = 'rgba(192, 132, 252, 0)';
+      } else if (catId === 'cat-video') {
+        stops = ['#fff1f2', '#fb7185', '#e11d48', '#9f1239', '#4c0519'];
+        granuleColor = '#ffe4e6';
+        flareColor = 'rgba(225, 29, 72, 0)';
+      } else if (catId === 'cat-db') {
+        stops = ['#ffffff', '#bae6fd', '#38bdf8', '#0284c7', '#082f49'];
+        granuleColor = '#f0f9ff';
+        flareColor = 'rgba(56, 189, 248, 0)';
+      } else if (catId === 'cat-framework') {
+        stops = ['#fef9c3', '#a3e635', '#22c55e', '#15803d', '#064e3b'];
+        granuleColor = '#fef08a';
+        flareColor = 'rgba(74, 222, 128, 0)';
+      } else {
+        stops = ['#fffbe6', '#ffea00', '#ff8800', '#ea580c', '#7c2d12'];
+        granuleColor = '#fffbe6';
+        flareColor = 'rgba(255, 136, 0, 0)';
+      }
+
+      const grad = ctx.createLinearGradient(0, 0, 0, 256);
+      grad.addColorStop(0, stops[4]);
+      grad.addColorStop(0.2, stops[2]);
+      grad.addColorStop(0.5, stops[0]);
+      grad.addColorStop(0.8, stops[2]);
+      grad.addColorStop(1, stops[4]);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 512, 256);
+
+      // Sel konveksi plasma surya bergolak & lidah api (300+ granules)
+      for (let i = 0; i < 300; i++) {
+        const x = Math.random() * 512;
+        const y = Math.random() * 256;
+        const r = 3 + Math.random() * 16;
+        const spotGrad = ctx.createRadialGradient(x, y, 0, x, y, r);
+        spotGrad.addColorStop(0, granuleColor);
+        spotGrad.addColorStop(0.35, stops[1]);
+        spotGrad.addColorStop(0.7, stops[2]);
+        spotGrad.addColorStop(1, flareColor);
+        ctx.fillStyle = spotGrad;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.ClampToEdgeWrapping;
+      celestialTextureCache[key] = tex;
+      return tex;
+    }
+
+    // 2. TEKSTUR PLANET (8 Variasi Planet Unik - Tidak Ada yang Sama!)
+    function getPlanetTexture(subId, colorHex) {
+      const key = 'planet_' + subId;
+      if (celestialTextureCache[key]) return celestialTextureCache[key];
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+
+      if (subId === 'sub-llm') {
+        // A. Planet Gas Raksasa Saturnus Ungu (Lavender & Amethyst Bands)
+        const bands = ['#1e1b4b', '#4338ca', '#7c3aed', '#c084fc', '#e9d5ff', '#6d28d9', '#312e81'];
+        let y = 0;
+        for (let i = 0; i < 14; i++) {
+          const h = (256 / 14) + (Math.sin(i) * 3);
+          ctx.fillStyle = bands[i % bands.length];
+          ctx.fillRect(0, y, 512, h + 2);
+          y += h;
+        }
+        // Badai emas lavender
+        for (let i = 0; i < 30; i++) {
+          ctx.fillStyle = 'rgba(253, 224, 71, 0.18)';
+          ctx.beginPath();
+          ctx.ellipse(Math.random() * 512, 40 + Math.random() * 170, 35 + Math.random() * 40, 6 + Math.random() * 8, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+      } else if (subId === 'sub-rag') {
+        // B. Planet Es Uranus (Turquoise & Cyan Smooth Bands)
+        const bands = ['#042f2e', '#0f766e', '#14b8a6', '#2dd4bf', '#99f6e4', '#0d9488'];
+        let y = 0;
+        for (let i = 0; i < 12; i++) {
+          const h = 256 / 12;
+          ctx.fillStyle = bands[i % bands.length];
+          ctx.fillRect(0, y, 512, h + 2);
+          y += h;
+        }
+        // Kabut es kristal kutub
+        ctx.fillStyle = 'rgba(204, 251, 241, 0.35)';
+        ctx.fillRect(0, 0, 512, 45);
+        ctx.fillRect(0, 211, 512, 45);
+
+      } else if (subId === 'sub-video-edit') {
+        // C. Planet Magma Vulkanik (Lava World - Kerak Arang Hitam & Retakan Magma)
+        ctx.fillStyle = '#1c1917';
+        ctx.fillRect(0, 0, 512, 256);
+        // Retakan magma merah & jingga menyala
+        for (let i = 0; i < 45; i++) {
+          ctx.strokeStyle = (i % 2 === 0) ? '#ef4444' : '#f97316';
+          ctx.lineWidth = 2 + Math.random() * 3;
+          ctx.beginPath();
+          let px = Math.random() * 512, py = Math.random() * 256;
+          ctx.moveTo(px, py);
+          for (let step = 0; step < 5; step++) {
+            px += (Math.random() - 0.5) * 60;
+            py += (Math.random() - 0.5) * 40;
+            ctx.lineTo(px, py);
+          }
+          ctx.stroke();
+        }
+
+      } else if (subId === 'sub-video-ai') {
+        // D. Planet Badai Raksasa Jupiter (Coral & Peach dengan Pusaran Badai Raksasa)
+        const bands = ['#4c0519', '#9f1239', '#e11d48', '#fb7185', '#fecdd3', '#fda4af'];
+        let y = 0;
+        for (let i = 0; i < 16; i++) {
+          const h = 256 / 16;
+          ctx.fillStyle = bands[i % bands.length];
+          ctx.fillRect(0, y, 512, h + 2);
+          y += h;
+        }
+        // PUSARAN BADAI MERAH RAKSASA (Great Red Storm Eye)
+        const stormGrad = ctx.createRadialGradient(220, 130, 5, 220, 130, 48);
+        stormGrad.addColorStop(0, '#fff1f2');
+        stormGrad.addColorStop(0.3, '#f43f5e');
+        stormGrad.addColorStop(0.7, '#881337');
+        stormGrad.addColorStop(1, 'rgba(76, 5, 25, 0)');
+        ctx.fillStyle = stormGrad;
+        ctx.beginPath();
+        ctx.ellipse(220, 130, 55, 32, -0.15, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (subId === 'sub-orm') {
+        // E. Planet Samudra Laut Dalam (Deep Oceanic Blue & Cyclone Clouds)
+        ctx.fillStyle = '#032b43';
+        ctx.fillRect(0, 0, 512, 256);
+        // Reef cyan dangkal
+        ctx.fillStyle = '#0284c7';
+        for (let i = 0; i < 16; i++) {
+          ctx.beginPath();
+          ctx.arc(Math.random() * 512, 40 + Math.random() * 170, 25 + Math.random() * 35, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        // Siklon awan putih pusaran
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+        for (let i = 0; i < 28; i++) {
+          ctx.beginPath();
+          ctx.ellipse(Math.random() * 512, Math.random() * 256, 40 + Math.random() * 50, 7 + Math.random() * 10, Math.random() * 0.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+      } else if (subId === 'sub-serverless-db') {
+        // F. Planet Kristal Geometris (Crystalline Metallic Silver & Cyan)
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, 512, 256);
+        // Kisi-kisi kristal berlian
+        for (let i = 0; i < 50; i++) {
+          ctx.fillStyle = (i % 2 === 0) ? '#38bdf8' : '#e2e8f0';
+          ctx.beginPath();
+          ctx.arc(Math.random() * 512, Math.random() * 256, 8 + Math.random() * 22, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+      } else if (subId === 'sub-fullstack') {
+        // G. Planet Terestrial Zamrud (Terra Nova - Benua Hijau, Laut Biru, Awan)
+        ctx.fillStyle = '#075985';
+        ctx.fillRect(0, 0, 512, 256);
+        ctx.fillStyle = '#10b981';
+        for (let i = 0; i < 18; i++) {
+          const cx = Math.random() * 512, cy = 50 + Math.random() * 150;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 30 + Math.random() * 45, 0, Math.PI * 2);
+          ctx.fill();
+          for (let j = 0; j < 4; j++) {
+            ctx.beginPath();
+            ctx.arc(cx + (Math.random() - 0.5) * 50, cy + (Math.random() - 0.5) * 35, 14 + Math.random() * 20, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+        for (let i = 0; i < 22; i++) {
+          ctx.beginPath();
+          ctx.ellipse(Math.random() * 512, Math.random() * 256, 45 + Math.random() * 55, 8 + Math.random() * 12, (Math.random() - 0.5) * 0.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+      } else {
+        // H. Planet Super-Saturn Mint-Aurora (Mint Green & Lime Aurora Bands)
+        const bands = ['#064e3b', '#047857', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0'];
+        let y = 0;
+        for (let i = 0; i < 14; i++) {
+          const h = 256 / 14;
+          ctx.fillStyle = bands[i % bands.length];
+          ctx.fillRect(0, y, 512, h + 2);
+          y += h;
+        }
+        ctx.fillStyle = 'rgba(190, 242, 100, 0.35)';
+        ctx.fillRect(0, 0, 512, 35);
+        ctx.fillRect(0, 221, 512, 35);
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      celestialTextureCache[key] = tex;
+      return tex;
+    }
+
+    // 3. TEKSTUR CINCIN PLANET (Variasi: Cassini, Tipis Vertikal, Debris, Tiga Lapis)
+    function getPlanetaryRingTexture(colorHex, ringType = 'cassini') {
+      const key = `ring_${colorHex}_${ringType}`;
+      if (celestialTextureCache[key]) return celestialTextureCache[key];
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+      const cx = 128, cy = 128;
+
+      if (ringType === 'thin') {
+        // Cincin Tipis Tajam (Uranus / Cincin Silang)
+        const grad = ctx.createRadialGradient(cx, cy, 95, cx, cy, 126);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(0.25, colorHex + 'cc');
+        grad.addColorStop(0.5, colorHex + 'ff');
+        grad.addColorStop(0.85, colorHex + '99');
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 256, 256);
+
+      } else if (ringType === 'debris') {
+        // Cincin Serpihan Batuan Hangus Magma
+        const grad = ctx.createRadialGradient(cx, cy, 80, cx, cy, 126);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(0.3, colorHex + 'aa');
+        grad.addColorStop(0.6, colorHex + '44');
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 256, 256);
+        // Bintik-bintik debris batuan
+        for (let i = 0; i < 180; i++) {
+          const ang = Math.random() * Math.PI * 2;
+          const dist = 85 + Math.random() * 38;
+          ctx.fillStyle = (i % 2 === 0) ? '#ea580c' : '#292524';
+          ctx.fillRect(cx + Math.cos(ang) * dist, cy + Math.sin(ang) * dist, 1.8, 1.8);
+        }
+
+      } else {
+        // Cincin Saturnus Klasik dengan Celah Cassini
+        const grad = ctx.createRadialGradient(cx, cy, 68, cx, cy, 126);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(0.12, 'rgba(0,0,0,0)');
+        grad.addColorStop(0.2, colorHex + '66');
+        grad.addColorStop(0.45, colorHex + 'ee');
+        grad.addColorStop(0.54, 'rgba(0,0,0,0.04)'); // Celah Cassini
+        grad.addColorStop(0.68, colorHex + 'cc');
+        grad.addColorStop(0.92, colorHex + '77');
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 256, 256);
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      celestialTextureCache[key] = tex;
+      return tex;
+    }
+
+    // 4. TEKSTUR BULAN (Bulan Sabit, Bulan Vulkanik Io, Bulan Es Europa, Bulan Titan, Bulan Phobos)
+    function getMoonTexture(repoId, colorHex) {
+      const key = 'moon_' + repoId;
+      if (celestialTextureCache[key]) return celestialTextureCache[key];
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+
+      if (repoId === 'repo-vllm') {
+        // 🌙 BULAN SABIT EMAS (Golden Lunar Regolith)
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(0, 0, 256, 128);
+        ctx.fillStyle = '#d97706';
+        for (let i = 0; i < 25; i++) {
+          ctx.beginPath();
+          ctx.arc(Math.random() * 256, Math.random() * 128, 3 + Math.random() * 8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+      } else if (repoId === 'repo-openmontage') {
+        // 🌋 BULAN IO (Jupiter) - Sulfur Kuning, Kaldera Jingga & Magma Hitam (Loki Patera)
+        ctx.fillStyle = '#facc15';
+        ctx.fillRect(0, 0, 256, 128);
+        // Kaldera vulkanik jingga/merah
+        for (let i = 0; i < 18; i++) {
+          const cx = Math.random() * 256, cy = Math.random() * 128;
+          ctx.fillStyle = '#ea580c';
+          ctx.beginPath();
+          ctx.arc(cx, cy, 6 + Math.random() * 12, 0, Math.PI * 2);
+          ctx.fill();
+          // Inti magma hitam
+          ctx.fillStyle = '#1c1917';
+          ctx.beginPath();
+          ctx.arc(cx, cy, 2 + Math.random() * 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+      } else if (repoId === 'repo-openshorts') {
+        // 🌙 BULAN SABIT PERAK (Silver Sharp Crescent)
+        ctx.fillStyle = '#f1f5f9';
+        ctx.fillRect(0, 0, 256, 128);
+        ctx.fillStyle = '#94a3b8';
+        for (let i = 0; i < 20; i++) {
+          ctx.beginPath();
+          ctx.arc(Math.random() * 256, Math.random() * 128, 2 + Math.random() * 6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+      } else if (repoId === 'repo-drizzle') {
+        // 🧊 BULAN EUROPA (Jupiter) - Es Pualam Putih dengan Retakan Lineae Kemerahan
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(0, 0, 256, 128);
+        // Retakan es lineae kemerahan
+        ctx.strokeStyle = '#b91c1c';
+        ctx.lineWidth = 1.2;
+        for (let i = 0; i < 16; i++) {
+          ctx.beginPath();
+          let x = Math.random() * 256, y = Math.random() * 128;
+          ctx.moveTo(x, y);
+          ctx.bezierCurveTo(x + 40, y + 25, x + 80, y - 20, x + 120, y + 10);
+          ctx.stroke();
+        }
+
+      } else if (repoId === 'repo-neon') {
+        // 🪐 BULAN TITAN (Saturnus) - Kabut Metana Oranye Tebal & Danau Hidrokarbon Gelap
+        const grad = ctx.createLinearGradient(0, 0, 0, 128);
+        grad.addColorStop(0, '#78350f');
+        grad.addColorStop(0.5, '#d97706');
+        grad.addColorStop(1, '#b45309');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 256, 128);
+        // Danau metana gelap di kutub
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.ellipse(80, 20, 35, 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (repoId === 'repo-nextjs') {
+        // 🥔 BULAN PHOBOS (Mars) - Batuan Asimetris Karbonat Abu-Abu Kawah Dalam
+        ctx.fillStyle = '#57534e';
+        ctx.fillRect(0, 0, 256, 128);
+        // Kawah tumbukan Stickney raksasa
+        ctx.fillStyle = '#292524';
+        ctx.beginPath();
+        ctx.arc(128, 64, 28, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#78716c';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+      } else {
+        // 🌓 BULAN KUARTIR / PERBANI (Half Moon Phase)
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillRect(0, 0, 128, 128); // sisi terang
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(128, 0, 128, 128); // sisi bayangan gelap
+        // Kawah lunar
+        ctx.fillStyle = '#475569';
+        for (let i = 0; i < 20; i++) {
+          ctx.beginPath();
+          ctx.arc(Math.random() * 120, Math.random() * 128, 2 + Math.random() * 6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      celestialTextureCache[key] = tex;
+      return tex;
+    }
+
+    // 5. TEKSTUR METEOR / ASTEROID (Batu Antariksa Berpori)
+    function getMeteorTexture(colorHex) {
+      if (celestialTextureCache['meteor_' + colorHex]) return celestialTextureCache['meteor_' + colorHex];
+      const canvas = document.createElement('canvas');
+      canvas.width = 128;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#292524';
+      ctx.fillRect(0, 0, 128, 128);
+
+      for (let i = 0; i < 30; i++) {
+        const x = Math.random() * 128;
+        const y = Math.random() * 128;
+        ctx.fillStyle = (i % 2 === 0) ? '#ea580c' : '#78716c';
+        ctx.beginPath();
+        ctx.arc(x, y, 2 + Math.random() * 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      celestialTextureCache['meteor_' + colorHex] = tex;
+      return tex;
+    }
+
+    // 6. TEKSTUR EKOR PIJAR METEOR (Fiery Bolide, Blue Ion, Green Magnesium, Gold Sparks, Cosmic Violet)
+    function getMeteorTailTexture(tailType = 'fire', colorHex = '#f97316') {
+      const key = `tail_${tailType}_${colorHex}`;
+      if (celestialTextureCache[key]) return celestialTextureCache[key];
+      const canvas = document.createElement('canvas');
+      canvas.width = 128;
+      canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+
+      const grad = ctx.createLinearGradient(0, 0, 0, 256);
+      grad.addColorStop(0, '#ffffff'); // Kepala meteor putih berpijar sangat terik
+
+      if (tailType === 'ion') {
+        // Ekor Ion Biru Elektrik Komet
+        grad.addColorStop(0.18, '#38bdf8');
+        grad.addColorStop(0.5, '#0284c7');
+        grad.addColorStop(0.85, 'rgba(3, 105, 161, 0.25)');
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      } else if (tailType === 'emerald') {
+        // Ekor Hijau Zamrud Bolide Magnesium
+        grad.addColorStop(0.18, '#34d399');
+        grad.addColorStop(0.5, '#059669');
+        grad.addColorStop(0.85, 'rgba(4, 120, 87, 0.25)');
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      } else if (tailType === 'spark') {
+        // Ekor Emas Percikan Surya
+        grad.addColorStop(0.18, '#fbbf24');
+        grad.addColorStop(0.5, '#d97706');
+        grad.addColorStop(0.85, 'rgba(180, 83, 9, 0.25)');
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      } else if (tailType === 'cosmic') {
+        // Ekor Ungu Ultraviolet Sinar Kosmik
+        grad.addColorStop(0.18, '#c084fc');
+        grad.addColorStop(0.5, '#9333ea');
+        grad.addColorStop(0.85, 'rgba(88, 28, 135, 0.25)');
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      } else {
+        // Ekor Api Magma Merah-Jingga Terik
+        grad.addColorStop(0.18, '#f97316');
+        grad.addColorStop(0.48, '#dc2626');
+        grad.addColorStop(0.85, 'rgba(153, 27, 27, 0.25)');
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      }
+
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 128, 256);
+
+      // Percikan partikel api ekor
+      for (let i = 0; i < 40; i++) {
+        const x = Math.random() * 128;
+        const y = Math.random() * 200;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x, y, 1.5, 1.5);
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      celestialTextureCache[key] = tex;
+      return tex;
+    }
+
+    // Billboard Text Sprite for Orbit Labels
+    function createTextSprite(text, colorHex) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+
+      // Rounded pill container
+      ctx.fillStyle = 'rgba(10, 15, 29, 0.85)';
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(8, 8, 240, 48, 12);
+        ctx.fill();
+        ctx.strokeStyle = colorHex;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      } else {
+        ctx.fillRect(8, 8, 240, 48);
+      }
+
+      ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 128, 32);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      const spriteMat = new THREE.SpriteMaterial({
+        map: texture,
+        transparent: true,
+        opacity: 0.92,
+        depthWrite: false
+      });
+      const sprite = new THREE.Sprite(spriteMat);
+      sprite.scale.set(52, 13, 1);
+      sprite.raycast = () => {};
+      return sprite;
+    }
+
+    // Build Galaxy Nodes in 3D Space (Anti-Collision Sector Layout + Physics Relaxation)
+    function buildGalaxyGraph() {
+      nodeObjects = [];
+      edgeObjects = [];
+
+      // 1. Position Categories at Galaxy Inner Orbit (4 Distinct Quadrants)
+      const catCount = GALAXY_DATA.categories.length;
+      const catRadius = 185;
+      const yElevations = [-35, 35, -30, 40];
+
+      GALAXY_DATA.categories.forEach((cat, idx) => {
+        const angle = (idx / catCount) * Math.PI * 2 + Math.PI / 4;
+        const x = Math.cos(angle) * catRadius;
+        const z = Math.sin(angle) * catRadius;
+        const y = yElevations[idx % yElevations.length];
+
+        const groupDescriptions = {
+          'cat-ai': 'Grup ekosistem Artificial Intelligence, Machine Learning, dan Large Language Models.',
+          'cat-video': 'Grup orkestrasi video, motion graphics, dan otomatisasi multimedia.',
+          'cat-db': 'Grup basis data modern, object-relational mapping, dan engine database serverless.',
+          'cat-framework': 'Grup framework web modern, fullstack reactive, dan visual UI library.'
+        };
+        const groupDesc = groupDescriptions[cat.id] || `Grup kategori utama ${cat.name}.`;
+
+        nodeObjects.push({
+          id: cat.id,
+          name: cat.name,
+          type: 'category',
+          desc: groupDesc,
+          color: cat.color,
+          baseSize: 32,
+          collisionRadius: 62,
+          x, y, z,
+          angle,
+          targetPosition: new THREE.Vector3(x, y, z),
+          connections: []
+        });
+      });
+
+      // 2. Position SubCategories branching outward from Parent Category Sector (Planet Cincin / Gas Giant)
+      GALAXY_DATA.subCategories.forEach((sub, idx) => {
+        const parent = nodeObjects.find(n => n.id === sub.catId);
+        const siblings = GALAXY_DATA.subCategories.filter(s => s.catId === sub.catId);
+        const subIndex = siblings.indexOf(sub);
+        const subCount = siblings.length;
+
+        // Fan outward in parent's radial sector (~27° spread)
+        const fanSpread = 0.48;
+        const offsetAngle = (subCount === 1) ? 0 : (subIndex - (subCount - 1) / 2) * fanSpread;
+        const branchAngle = parent.angle + offsetAngle;
+        const dist = 125;
+
+        const x = parent.x + Math.cos(branchAngle) * dist;
+        const z = parent.z + Math.sin(branchAngle) * dist;
+        const y = parent.y + (subIndex % 2 === 0 ? 32 : -32);
+
+        const subGroupDescriptions = {
+          'sub-llm': 'Sub-grup engine inference LLM, akselerasi throughput, dan optimasi memory model.',
+          'sub-rag': 'Sub-grup arsitektur Retrieval-Augmented Generation, embeddings, dan vector database.',
+          'sub-video-edit': 'Sub-grup editing video algoritmik, timeline assembler, dan automasi rendering.',
+          'sub-video-ai': 'Sub-grup otomasi short-form video, skrip AI otomatis, dan sintesis audio/visual.',
+          'sub-orm': 'Sub-grup Object-Relational Mapping TypeScript type-safe dan migration tooling.',
+          'sub-serverless-db': 'Sub-grup basis data PostgreSQL serverless, branching DB, dan cloud storage.',
+          'sub-fullstack': 'Sub-grup framework React fullstack modern dengan server component dan routing.',
+          'sub-motion-lib': 'Sub-grup library 3D WebGL, Three.js canvas, dan animasi interaktif UI.'
+        };
+        const subDesc = subGroupDescriptions[sub.id] || `Sub-grup spesialisasi di bawah grup ${parent.name}.`;
+
+        nodeObjects.push({
+          id: sub.id,
+          name: sub.name,
+          type: 'subCategory',
+          catId: sub.catId,
+          desc: subDesc,
+          color: '#38bdf8',
+          baseSize: 22,
+          collisionRadius: 46,
+          x, y, z,
+          branchAngle,
+          targetPosition: new THREE.Vector3(x, y, z),
+          connections: [parent.id]
+        });
+
+        // Add Edge
+        edgeObjects.push({ source: parent.id, target: sub.id, color: 0xa855f7 });
+        parent.connections.push(sub.id);
+      });
+
+      // 3. Position Repositories orbiting outward from SubCategory (Bulan Sabit & Satelit Planet Lain)
+      GALAXY_DATA.repositories.forEach((repo, idx) => {
+        const parentSub = nodeObjects.find(n => n.id === repo.subCatId);
+        const siblings = GALAXY_DATA.repositories.filter(r => r.subCatId === repo.subCatId);
+        const repoIndex = siblings.indexOf(repo);
+        const repoCount = siblings.length;
+
+        const fanSpread = 0.38;
+        const offsetAngle = (repoCount === 1) ? 0 : (repoIndex - (repoCount - 1) / 2) * fanSpread;
+        const repoAngle = (parentSub.branchAngle || 0) + offsetAngle;
+        const dist = 105;
+
+        const x = parentSub.x + Math.cos(repoAngle) * dist;
+        const z = parentSub.z + Math.sin(repoAngle) * dist;
+        const y = parentSub.y + (repoIndex % 2 === 0 ? -32 : 32);
+
+        // Size scaled by star count
+        const starSize = Math.max(13, Math.min(25, 12 + (repo.stars / 10000) * 1.2));
+
+        const node = {
+          id: repo.id,
+          name: repo.name,
+          type: 'repository',
+          subCatId: repo.subCatId,
+          langId: repo.langId,
+          stars: repo.stars,
+          topics: repo.topics,
+          desc: repo.desc,
+          color: '#10b981',
+          baseSize: starSize,
+          collisionRadius: 40,
+          x, y, z,
+          targetPosition: new THREE.Vector3(x, y, z),
+          connections: [parentSub.id]
+        };
+
+        nodeObjects.push(node);
+        edgeObjects.push({ source: parentSub.id, target: repo.id, color: 0x38bdf8 });
+        parentSub.connections.push(repo.id);
+      });
+
+      // 4. Position Languages on High/Low Outer Orbital Halo (Komet Antariksa Berekor Ion)
+      const langCount = GALAXY_DATA.languages.length;
+      GALAXY_DATA.languages.forEach((lang, idx) => {
+        const angle = (idx / langCount) * Math.PI * 2 + 0.32;
+        const dist = 360;
+        const x = Math.cos(angle) * dist;
+        const z = Math.sin(angle) * dist;
+        const y = (idx % 2 === 0 ? 115 : -115);
+
+        const langNode = {
+          id: lang.id,
+          name: lang.name,
+          type: 'language',
+          desc: `Bahasa pemrograman utama yang digunakan pada repositori katalog.`,
+          color: '#f59e0b',
+          baseSize: 15,
+          collisionRadius: 36,
+          x, y, z,
+          targetPosition: new THREE.Vector3(x, y, z),
+          connections: []
+        };
+        nodeObjects.push(langNode);
+
+        // Connect to repos with this language
+        GALAXY_DATA.repositories.filter(r => r.langId === lang.id).forEach(repo => {
+          edgeObjects.push({ source: repo.id, target: lang.id, color: 0xf59e0b });
+          langNode.connections.push(repo.id);
+          const rNode = nodeObjects.find(n => n.id === repo.id);
+          if (rNode) rNode.connections.push(lang.id);
+        });
+      });
+
+      // 5. Position Topics forming Outermost Perimeter Constellations (Meteor Jatuh Menghujam)
+      const topicCount = GALAXY_DATA.topics.length;
+      GALAXY_DATA.topics.forEach((top, idx) => {
+        const angle = (idx / topicCount) * Math.PI * 2 + 0.18;
+        const dist = 490 + (idx % 2) * 50;
+        const x = Math.cos(angle) * dist;
+        const z = Math.sin(angle) * dist;
+        const y = Math.sin(idx * 1.5) * 65;
+
+        const topNode = {
+          id: top.id,
+          name: '#' + top.name,
+          type: 'topic',
+          desc: `Tag klasifikasi topik teknologi ekosistem GitHub Library.`,
+          color: '#f97316',
+          baseSize: 11,
+          collisionRadius: 32,
+          x, y, z,
+          targetPosition: new THREE.Vector3(x, y, z),
+          connections: []
+        };
+        nodeObjects.push(topNode);
+
+        // Connect to repos that have this topic
+        GALAXY_DATA.repositories.filter(r => r.topics.includes(top.id)).forEach(repo => {
+          edgeObjects.push({ source: repo.id, target: top.id, color: 0xf97316 });
+          topNode.connections.push(repo.id);
+          const rNode = nodeObjects.find(n => n.id === repo.id);
+          if (rNode) rNode.connections.push(top.id);
+        });
+      });
+
+      // 6. Jalankan Iterative 3D Physics Relaxation Solver untuk mencegah overlapping
+      resolveNodeCollisions(nodeObjects, 80);
+
+      renderGraphMeshes();
+      document.getElementById('graphStats').innerText = `${nodeObjects.length} Nodes / ${edgeObjects.length} Edges`;
+    }
+
+    // Iterative 3D Physics Relaxation Solver (Mencegah Node & Ring Saling Bertumpuk)
+    function resolveNodeCollisions(nodes, iterations = 80) {
+      const padding = 16; // Margin udara ekstra agar orbit & ring tidak saling tumpang tindih
+      for (let iter = 0; iter < iterations; iter++) {
+        let maxOverlap = 0;
+        for (let i = 0; i < nodes.length; i++) {
+          for (let j = i + 1; j < nodes.length; j++) {
+            const a = nodes[i];
+            const b = nodes[j];
+
+            let dx = b.x - a.x;
+            let dy = b.y - a.y;
+            let dz = b.z - a.z;
+            let dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+            const minDist = (a.collisionRadius || 36) + (b.collisionRadius || 36) + padding;
+
+            if (dist < minDist) {
+              if (dist < 0.001) {
+                dx = (Math.random() - 0.5) * 2;
+                dy = (Math.random() - 0.5) * 2;
+                dz = (Math.random() - 0.5) * 2;
+                dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+              }
+
+              const overlap = minDist - dist;
+              if (overlap > maxOverlap) maxOverlap = overlap;
+
+              const nx = dx / dist;
+              const ny = dy / dist;
+              const nz = dz / dist;
+
+              // Node yang lebih masif (category) bergerak lebih sedikit dibanding node daun
+              const weightA = a.type === 'category' ? 0.15 : (a.type === 'subCategory' ? 0.35 : 0.5);
+              const weightB = b.type === 'category' ? 0.15 : (b.type === 'subCategory' ? 0.35 : 0.5);
+              const totalWeight = weightA + weightB;
+
+              const shiftA = overlap * (weightB / totalWeight);
+              const shiftB = overlap * (weightA / totalWeight);
+
+              a.x -= nx * shiftA;
+              a.y -= ny * shiftA;
+              a.z -= nz * shiftA;
+
+              b.x += nx * shiftB;
+              b.y += ny * shiftB;
+              b.z += nz * shiftB;
+            }
+          }
+        }
+        if (maxOverlap < 0.1) break;
+      }
+
+      // Sinkronkan Vector3 targetPosition setelah relaksasi
+      nodes.forEach(n => {
+        n.targetPosition.set(n.x, n.y, n.z);
+      });
+    }
+
+    // Helper: Buat Benda Langit 3D (Matahari 4 Tipe, 8 Planet Eksotik, 7 Bulan & Sabit 3D, Meteor Jatuh Berekor)
+    function createNode3DGeometry(node) {
+      const group = new THREE.Group();
+      const col = new THREE.Color(node.color);
+
+      if (node.type === 'category') {
+        // =============================================================
+        // 1. MATAHARI (SUN) - 4 KELAS BINTANG KOSMIK BERVARIASI (BUKAN HANYA KUNING!)
+        // =============================================================
+        const baseR = (node.baseSize || 32) * 0.52;
+        const sphereGeo = new THREE.SphereGeometry(baseR, 32, 32);
+
+        // Emissive tint spesifik tiap kelas bintang
+        let starEmissive = 0xff7700;
+        if (node.id === 'cat-ai') starEmissive = 0xa855f7;        // Violet Hypergiant
+        else if (node.id === 'cat-video') starEmissive = 0xe11d48;  // Red Supergiant Betelgeuse
+        else if (node.id === 'cat-db') starEmissive = 0x0284c7;     // Blue Giant Rigel
+        else if (node.id === 'cat-framework') starEmissive = 0x16a34a; // Emerald Star Sol
+
+        const sphereMat = new THREE.MeshPhongMaterial({
+          map: getSunTexture(node.color, node.id),
+          emissive: starEmissive,
+          emissiveIntensity: 0.92,
+          shininess: 35
+        });
+        const coreMesh = new THREE.Mesh(sphereGeo, sphereMat);
+        coreMesh.userData = node;
+        group.add(coreMesh);
+        node.coreMesh = coreMesh;
+
+        // Inner Solar Corona: Cincin terik pijar bintang
+        const innerCoronaMat = new THREE.SpriteMaterial({
+          map: getSolarCoronaTexture(node.color, 'inner'),
+          transparent: true,
+          opacity: nodeNeonShadowOpacity * 0.95,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false
+        });
+        const innerCorona = new THREE.Sprite(innerCoronaMat);
+        innerCorona.raycast = () => {};
+        const innerScale = baseR * 3.3;
+        innerCorona.scale.set(innerScale, innerScale, 1);
+        innerCorona.userData = node;
+        group.add(innerCorona);
+        node.innerCorona = innerCorona;
+        node.baseInnerCoronaScale = innerScale;
+
+        // Outer Solar Flare: Radiasi luas angin matahari
+        const outerCoronaMat = new THREE.SpriteMaterial({
+          map: getSolarCoronaTexture(node.color, 'outer'),
+          transparent: true,
+          opacity: nodeNeonShadowOpacity * 0.65,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false
+        });
+        const outerCorona = new THREE.Sprite(outerCoronaMat);
+        outerCorona.raycast = () => {};
+        const outerScale = baseR * 5.5;
+        outerCorona.scale.set(outerScale, outerScale, 1);
+        outerCorona.userData = node;
+        group.add(outerCorona);
+        node.outerCorona = outerCorona;
+        node.baseOuterCoronaScale = outerScale;
+
+      } else if (node.type === 'subCategory') {
+        // =============================================================
+        // 2. PLANET (8 VARIASI BENTUK, WARNA & SISTEM CINCIN - TIDAK ADA YANG SAMA!)
+        // =============================================================
+        const baseR = (node.baseSize || 22) * 0.5;
+        let coreMesh;
+        let planetMat;
+
+        // Bentuk Geometri Khusus per Planet:
+        if (node.id === 'sub-serverless-db') {
+          // Planet Kristal Berlian Icosahedron
+          const crystalGeo = new THREE.IcosahedronGeometry(baseR, 2);
+          planetMat = new THREE.MeshPhongMaterial({
+            map: getPlanetTexture(node.id, node.color),
+            flatShading: true,
+            specular: 0x99e6ff,
+            shininess: 90,
+            emissive: 0x0284c7,
+            emissiveIntensity: 0.35
+          });
+          coreMesh = new THREE.Mesh(crystalGeo, planetMat);
+        } else {
+          // Bola Planet dengan Deformasi Oblate bagi Raksasa Gas
+          const sphereGeo = new THREE.SphereGeometry(baseR, 32, 32);
+          planetMat = new THREE.MeshPhongMaterial({
+            map: getPlanetTexture(node.id, node.color),
+            specular: (node.id === 'sub-orm') ? 0x88ccff : 0x444444,
+            shininess: (node.id === 'sub-orm') ? 80 : 45,
+            emissive: (node.id === 'sub-video-edit') ? 0xea580c : col,
+            emissiveIntensity: (node.id === 'sub-video-edit') ? 0.65 : 0.35
+          });
+          coreMesh = new THREE.Mesh(sphereGeo, planetMat);
+          
+          if (node.id === 'sub-llm') {
+            coreMesh.scale.set(1.08, 0.92, 1.08); // Oblate Saturnus
+          } else if (node.id === 'sub-video-ai') {
+            coreMesh.scale.set(1.06, 0.94, 1.06); // Oblate Jupiter
+          } else if (node.id === 'sub-motion-lib') {
+            coreMesh.scale.set(1.1, 0.88, 1.1);  // Oblate Super-Saturn
+          }
+        }
+        coreMesh.userData = node;
+        group.add(coreMesh);
+        node.coreMesh = coreMesh;
+
+        // Sistem Cincin / Satelit Unik Tiap Planet
+        const ringGroup = new THREE.Group();
+
+        if (node.id === 'sub-llm') {
+          // A. Saturnus Ungu: Cincin Ganda Lebar dengan Celah Cassini (miring 35°)
+          const ringGeo = new THREE.RingGeometry(baseR * 1.35, baseR * 2.35, 48);
+          const ringMat = new THREE.MeshBasicMaterial({
+            map: getPlanetaryRingTexture('#c084fc', 'cassini'),
+            transparent: true,
+            opacity: 0.92,
+            side: THREE.DoubleSide,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+          });
+          ringGroup.add(new THREE.Mesh(ringGeo, ringMat));
+          ringGroup.rotation.x = Math.PI * 0.38;
+          ringGroup.rotation.y = Math.PI * 0.12;
+          group.add(ringGroup);
+          node.ringGroup = ringGroup;
+
+        } else if (node.id === 'sub-rag') {
+          // B. Uranus Es: Cincin Tipis Neon Tegak Lurus Vertikal (miring 82°)
+          const ringGeo = new THREE.RingGeometry(baseR * 1.4, baseR * 1.62, 48);
+          const ringMat = new THREE.MeshBasicMaterial({
+            map: getPlanetaryRingTexture('#2dd4bf', 'thin'),
+            transparent: true,
+            opacity: 0.88,
+            side: THREE.DoubleSide,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+          });
+          ringGroup.add(new THREE.Mesh(ringGeo, ringMat));
+          ringGroup.rotation.x = Math.PI * 0.48; // Hampir 90 derajat vertikal!
+          ringGroup.rotation.z = Math.PI * 0.25;
+          group.add(ringGroup);
+          node.ringGroup = ringGroup;
+
+        } else if (node.id === 'sub-video-edit') {
+          // C. Planet Magma: Cincin Serpihan Batuan Hangus Pijar Magma (miring 32°)
+          const ringGeo = new THREE.RingGeometry(baseR * 1.25, baseR * 1.5, 32);
+          const ringMat = new THREE.MeshBasicMaterial({
+            map: getPlanetaryRingTexture('#ea580c', 'debris'),
+            transparent: true,
+            opacity: 0.75,
+            side: THREE.DoubleSide,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+          });
+          ringGroup.add(new THREE.Mesh(ringGeo, ringMat));
+          ringGroup.rotation.x = Math.PI * 0.32;
+          group.add(ringGroup);
+          node.ringGroup = ringGroup;
+
+        } else if (node.id === 'sub-serverless-db') {
+          // D. Planet Kristal: Cincin Silang Ganda (Cross Rings)
+          const ringGeo = new THREE.RingGeometry(baseR * 1.35, baseR * 1.85, 48);
+          const ringMat = new THREE.MeshBasicMaterial({
+            map: getPlanetaryRingTexture('#38bdf8', 'thin'),
+            transparent: true,
+            opacity: 0.8,
+            side: THREE.DoubleSide,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+          });
+          const r1 = new THREE.Mesh(ringGeo, ringMat);
+          const r2 = new THREE.Mesh(ringGeo, ringMat);
+          r1.rotation.x = Math.PI * 0.35;
+          r2.rotation.x = -Math.PI * 0.35;
+          r2.rotation.y = Math.PI * 0.25;
+          ringGroup.add(r1);
+          ringGroup.add(r2);
+          group.add(ringGroup);
+          node.ringGroup = ringGroup;
+
+        } else if (node.id === 'sub-orm') {
+          // E. Planet Samudra: Cincin Kristal Es Halus Miring (18°)
+          const ringGeo = new THREE.RingGeometry(baseR * 1.45, baseR * 2.15, 48);
+          const ringMat = new THREE.MeshBasicMaterial({
+            map: getPlanetaryRingTexture('#7dd3fc', 'cassini'),
+            transparent: true,
+            opacity: 0.75,
+            side: THREE.DoubleSide,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+          });
+          ringGroup.add(new THREE.Mesh(ringGeo, ringMat));
+          ringGroup.rotation.x = Math.PI * 0.18;
+          group.add(ringGroup);
+          node.ringGroup = ringGroup;
+
+        } else if (node.id === 'sub-motion-lib') {
+          // F. Super-Saturn: Cincin Tiga Lapis Konsentris Megah
+          const ringGeo1 = new THREE.RingGeometry(baseR * 1.3, baseR * 1.62, 48);
+          const ringGeo2 = new THREE.RingGeometry(baseR * 1.75, baseR * 2.1, 48);
+          const ringGeo3 = new THREE.RingGeometry(baseR * 2.25, baseR * 2.58, 48);
+          const ringMat = new THREE.MeshBasicMaterial({
+            map: getPlanetaryRingTexture('#34d399', 'cassini'),
+            transparent: true,
+            opacity: 0.88,
+            side: THREE.DoubleSide,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+          });
+          ringGroup.add(new THREE.Mesh(ringGeo1, ringMat));
+          ringGroup.add(new THREE.Mesh(ringGeo2, ringMat));
+          ringGroup.add(new THREE.Mesh(ringGeo3, ringMat));
+          ringGroup.rotation.x = Math.PI * 0.42;
+          ringGroup.rotation.y = Math.PI * 0.15;
+          group.add(ringGroup);
+          node.ringGroup = ringGroup;
+
+        } else if (node.id === 'sub-video-ai') {
+          // G. Jupiter Badai Raksasa: 2 Satelit Trojan Pengiring Mengorbit!
+          const moonletGroup = new THREE.Group();
+          const moonlet1 = new THREE.Mesh(
+            new THREE.SphereGeometry(baseR * 0.18, 12, 12),
+            new THREE.MeshPhongMaterial({ color: 0xfbcfe8, emissive: 0xf43f5e, emissiveIntensity: 0.5 })
+          );
+          moonlet1.position.set(baseR * 2.1, 0, 0);
+          const moonlet2 = new THREE.Mesh(
+            new THREE.SphereGeometry(baseR * 0.14, 12, 12),
+            new THREE.MeshPhongMaterial({ color: 0xfde047, emissive: 0xeab308, emissiveIntensity: 0.5 })
+          );
+          moonlet2.position.set(-baseR * 2.5, baseR * 0.35, 0);
+          moonletGroup.add(moonlet1);
+          moonletGroup.add(moonlet2);
+          group.add(moonletGroup);
+          node.moonletGroup = moonletGroup;
+        }
+
+        // Atmosfer planet ozon halo
+        const innerCoronaMat = new THREE.SpriteMaterial({
+          map: getSolarCoronaTexture(node.color, 'inner'),
+          transparent: true,
+          opacity: nodeNeonShadowOpacity * 0.45,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false
+        });
+        const innerCorona = new THREE.Sprite(innerCoronaMat);
+        innerCorona.raycast = () => {};
+        const innerScale = baseR * 2.1;
+        innerCorona.scale.set(innerScale, innerScale, 1);
+        innerCorona.userData = node;
+        group.add(innerCorona);
+        node.innerCorona = innerCorona;
+        node.baseInnerCoronaScale = innerScale;
+
+      } else if (node.type === 'repository') {
+        // =============================================================
+        // 3. BULAN (FASE SABIT 3D, BULAN IO JUPITER, EUROPA ES, TITAN SATURNUS, PHOBOS MARS)
+        // =============================================================
+        const baseR = (node.baseSize || 16) * 0.48;
+        let coreMesh;
+
+        if (node.id === 'repo-vllm' || node.id === 'repo-openshorts') {
+          // 🌙 BULAN SABIT 3D ASLI (Extruded Beveled 3D Crescent Moon Geometry)
+          const isGold = (node.id === 'repo-vllm');
+          const shape = new THREE.Shape();
+          const r = baseR * 1.15;
+          // Busur luar sabit
+          shape.absarc(0, 0, r, -Math.PI * 0.5, Math.PI * 0.5, false);
+          // Busur dalam melengkung yang memotong (scooped inner arc)
+          const offset = isGold ? r * 0.48 : r * 0.62;
+          const rInner = isGold ? r * 0.86 : r * 0.94;
+          shape.absarc(offset, 0, rInner, Math.PI * 0.5, -Math.PI * 0.5, true);
+          shape.closePath();
+
+          const crescentGeo = new THREE.ExtrudeGeometry(shape, {
+            depth: r * 0.42,
+            bevelEnabled: true,
+            bevelSegments: 3,
+            steps: 1,
+            bevelSize: r * 0.1,
+            bevelThickness: r * 0.1
+          });
+          crescentGeo.center();
+
+          const crescentMat = new THREE.MeshPhongMaterial({
+            map: getMoonTexture(node.id, isGold ? '#f59e0b' : '#e2e8f0'),
+            specular: isGold ? 0xffd700 : 0xffffff,
+            shininess: 60,
+            emissive: isGold ? 0xd97706 : 0x94a3b8,
+            emissiveIntensity: 0.45
+          });
+          coreMesh = new THREE.Mesh(crescentGeo, crescentMat);
+
+        } else if (node.id === 'repo-nextjs') {
+          // 🥔 BULAN PHOBOS MARS (Bulan Kentang Asimetris dengan Kawah Stickney Raksasa)
+          const potatoGeo = new THREE.DodecahedronGeometry(baseR, 1);
+          const pos = potatoGeo.attributes.position;
+          for (let i = 0; i < pos.count; i++) {
+            let vx = pos.getX(i) * 1.35; // lonjong sumbu X
+            let vy = pos.getY(i) * 0.88;
+            let vz = pos.getZ(i) * 0.92;
+            const distStickney = Math.hypot(vx - baseR * 0.6, vy, vz);
+            if (distStickney < baseR * 0.85) {
+              vx *= 0.72; vy *= 0.72; vz *= 0.72; // Lekukan kawah Stickney
+            } else {
+              const noise = 1 + Math.sin(vx * 6 + vy * 5) * 0.14;
+              vx *= noise; vy *= noise; vz *= noise;
+            }
+            pos.setXYZ(i, vx, vy, vz);
+          }
+          potatoGeo.computeVertexNormals();
+
+          const potatoMat = new THREE.MeshPhongMaterial({
+            map: getMoonTexture(node.id, '#78716c'),
+            flatShading: true,
+            specular: 0x333333,
+            shininess: 15,
+            emissive: 0x44403c,
+            emissiveIntensity: 0.3
+          });
+          coreMesh = new THREE.Mesh(potatoGeo, potatoMat);
+
+        } else if (node.id === 'repo-threejs') {
+          // 🌓 BULAN KUARTIR / PERBANI (Fase Separuh Bulan Terang-Gelap 3D)
+          const halfSphereGeo = new THREE.SphereGeometry(baseR, 24, 24, 0, Math.PI, 0, Math.PI);
+          const halfMat = new THREE.MeshPhongMaterial({
+            map: getMoonTexture(node.id, '#94a3b8'),
+            specular: 0x666666,
+            shininess: 30,
+            emissive: 0x64748b,
+            emissiveIntensity: 0.35,
+            side: THREE.DoubleSide
+          });
+          coreMesh = new THREE.Mesh(halfSphereGeo, halfMat);
+
+        } else {
+          // 🌋 BULAN IO (Jupiter), 🧊 BULAN EUROPA (Jupiter), 🪐 BULAN TITAN (Saturnus)
+          const sphereGeo = new THREE.SphereGeometry(baseR, 32, 32);
+          const moonMat = new THREE.MeshPhongMaterial({
+            map: getMoonTexture(node.id, node.color),
+            specular: (node.id === 'repo-drizzle') ? 0x99ddff : 0x555555,
+            shininess: (node.id === 'repo-drizzle') ? 75 : 25,
+            emissive: (node.id === 'repo-openmontage') ? 0xea580c : col,
+            emissiveIntensity: (node.id === 'repo-openmontage') ? 0.6 : 0.32
+          });
+          coreMesh = new THREE.Mesh(sphereGeo, moonMat);
+        }
+
+        coreMesh.userData = node;
+        group.add(coreMesh);
+        node.coreMesh = coreMesh;
+
+        // Aura Lunar Glow Halus
+        const innerCoronaMat = new THREE.SpriteMaterial({
+          map: getSolarCoronaTexture(node.color, 'inner'),
+          transparent: true,
+          opacity: nodeNeonShadowOpacity * 0.4,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false
+        });
+        const innerCorona = new THREE.Sprite(innerCoronaMat);
+        innerCorona.raycast = () => {};
+        const innerScale = baseR * 1.85;
+        innerCorona.scale.set(innerScale, innerScale, 1);
+        innerCorona.userData = node;
+        group.add(innerCorona);
+        node.innerCorona = innerCorona;
+        node.baseInnerCoronaScale = innerScale;
+
+      } else {
+        // =============================================================
+        // 4 & 5. METEOR & KOMET (MENGIKUTI ARAH JATUH DENGAN EKOR PIJAR BERVARIASI)
+        // =============================================================
+        const isLang = (node.type === 'language');
+        const baseR = (node.baseSize || (isLang ? 14 : 11)) * 0.45;
+
+        // 1. Kepala Meteor / Inti Komet: Batu bergerigi asimetris
+        const rockGeo = new THREE.DodecahedronGeometry(baseR, 1);
+        const pos = rockGeo.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+          const vx = pos.getX(i), vy = pos.getY(i), vz = pos.getZ(i);
+          const jitter = 1 + Math.sin(vx * 8 + vy * 6) * 0.22 + Math.cos(vz * 7) * 0.16;
+          pos.setXYZ(i, vx * jitter, vy * jitter, vz * jitter);
+        }
+        rockGeo.computeVertexNormals();
+
+        const rockMat = new THREE.MeshPhongMaterial({
+          map: getMeteorTexture(node.color),
+          flatShading: true,
+          shininess: 30,
+          emissive: col,
+          emissiveIntensity: 0.55
+        });
+        const coreMesh = new THREE.Mesh(rockGeo, rockMat);
+        coreMesh.userData = node;
+        group.add(coreMesh);
+        node.coreMesh = coreMesh;
+
+        // 2. Vektor Arah Menghujam (Seperti Jatuh ke Bumi / Gravitasi Inti Galaksi)
+        const fallDir = new THREE.Vector3(-node.x, -node.y - 80, -node.z).normalize();
+
+        // 3. Ekor Pijar Meteor / Komet (Glowing Flaming Tail)
+        // Panjang dan tipe ekor bervariasi:
+        const tailTypes = ['fire', 'ion', 'emerald', 'spark', 'cosmic'];
+        const seed = Math.abs(node.id.split('').reduce((a,c)=>a+c.charCodeAt(0), 0));
+        const tailType = tailTypes[seed % tailTypes.length];
+        const tailLengths = [50, 68, 46, 58, 64];
+        const tailLen = tailLengths[seed % tailLengths.length];
+
+        const tailGeo = new THREE.CylinderGeometry(baseR * 0.95, 0.1, tailLen, 16, 1, true);
+        tailGeo.translate(0, -tailLen * 0.5, 0); // Ekor meruncing ke belakang dari kepala
+
+        const tailMat = new THREE.MeshBasicMaterial({
+          map: getMeteorTailTexture(tailType, node.color),
+          transparent: true,
+          opacity: 0.88,
+          side: THREE.DoubleSide,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false
+        });
+        const tailMesh = new THREE.Mesh(tailGeo, tailMat);
+        
+        // Orientasikan ekor mengikuti arah jatuh (menghadap ke belakang arah jatuh)
+        tailMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), fallDir.clone().negate());
+        group.add(tailMesh);
+        node.tailMesh = tailMesh;
+        node.baseTailLen = tailLen;
+        node.tailPhase = Math.random() * Math.PI * 2;
+
+        // Pijar Ledakan Udara Kepala Meteor (Atmospheric Shockwave Flare)
+        const innerCoronaMat = new THREE.SpriteMaterial({
+          map: getSolarCoronaTexture(node.color, 'inner'),
+          transparent: true,
+          opacity: nodeNeonShadowOpacity * 0.7,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false
+        });
+        const innerCorona = new THREE.Sprite(innerCoronaMat);
+        innerCorona.raycast = () => {};
+        const innerScale = baseR * 2.4;
+        innerCorona.scale.set(innerScale, innerScale, 1);
+        innerCorona.userData = node;
+        group.add(innerCorona);
+        node.innerCorona = innerCorona;
+        node.baseInnerCoronaScale = innerScale;
+      }
+
+      group.position.copy(node.targetPosition);
+      group.scale.set(starScaleMultiplier, starScaleMultiplier, starScaleMultiplier);
+      group.userData = node;
+
+      // Store base scale for GSAP micro-interactions
+      node.baseScale = starScaleMultiplier;
+
+      // Variasi kecepatan rotasi mandiri & denyut corona matahari
+      node.rotSpeedX = (Math.random() - 0.5) * 0.012;
+      node.rotSpeedY = 0.009 + Math.random() * 0.012;
+      node.coronaPhase = Math.random() * Math.PI * 2;
+
+      return group;
+    }
+
+    // Render Nodes & Edges to Three.js Scene
+    function renderGraphMeshes() {
+      // Clear previous
+      while (nodesMeshGroup.children.length > 0) {
+        const obj = nodesMeshGroup.children[0];
+        nodesMeshGroup.remove(obj);
+      }
+      while (edgesMeshGroup.children.length > 0) {
+        const obj = edgesMeshGroup.children[0];
+        edgesMeshGroup.remove(obj);
+      }
+
+      // 1. Create Distinct 3D Geometric Meshes for each Node
+      nodeObjects.forEach(node => {
+        const node3DGroup = createNode3DGeometry(node);
+        node.mesh = node3DGroup;
+        node.group = node3DGroup;
+        nodesMeshGroup.add(node3DGroup);
+      });
+
+      // 2. Create Lines for Edges
+      const linePositions = [];
+      const lineColors = [];
+
+      edgeObjects.forEach(edge => {
+        const srcNode = nodeObjects.find(n => n.id === edge.source);
+        const tgtNode = nodeObjects.find(n => n.id === edge.target);
+
+        if (srcNode && tgtNode) {
+          linePositions.push(srcNode.x, srcNode.y, srcNode.z);
+          linePositions.push(tgtNode.x, tgtNode.y, tgtNode.z);
+
+          const col = new THREE.Color(edge.color);
+          lineColors.push(col.r, col.g, col.b);
+          lineColors.push(col.r, col.g, col.b);
+        }
+      });
+
+      const lineGeo = new THREE.BufferGeometry();
+      lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+      lineGeo.setAttribute('color', new THREE.Float32BufferAttribute(lineColors, 3));
+
+      const edgeMesh = new THREE.LineSegments(
+        lineGeo, 
+        new THREE.LineBasicMaterial({
+          vertexColors: true,
+          transparent: true,
+          opacity: linkGlowOpacity,
+          blending: THREE.AdditiveBlending
+        })
+      );
+      edgesMeshGroup.add(edgeMesh);
+
+      // 3. Create Billboards / Orbit Labels for Categories
+      if (labelsGroup) {
+        while (labelsGroup.children.length > 0) {
+          labelsGroup.remove(labelsGroup.children[0]);
+        }
+        nodeObjects.filter(n => n.type === 'category').forEach(cat => {
+          const sprite = createTextSprite(cat.name, cat.color);
+          sprite.position.set(cat.x, cat.y + 44, cat.z);
+          labelsGroup.add(sprite);
+        });
+        labelsGroup.visible = showLabels;
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 4. FILTERING & CONTROLS UI
+    // -------------------------------------------------------------
+    function setupFilterUI() {
+      const typeList = document.getElementById('nodeTypesList');
+      const counts = {
+        category: nodeObjects.filter(n => n.type === 'category').length,
+        subCategory: nodeObjects.filter(n => n.type === 'subCategory').length,
+        repository: nodeObjects.filter(n => n.type === 'repository').length,
+        language: nodeObjects.filter(n => n.type === 'language').length,
+        topic: nodeObjects.filter(n => n.type === 'topic').length
+      };
+
+      const typeConfigs = [
+        { key: 'category', label: 'Group (☀️ Matahari)', color: '#c084fc', shapeIcon: '☀️' },
+        { key: 'subCategory', label: 'Sub-Group (🪐 Planet)', color: '#38bdf8', shapeIcon: '🪐' },
+        { key: 'repository', label: 'Repository (🌙 Bulan)', color: '#10b981', shapeIcon: '🌙' },
+        { key: 'language', label: 'Language (☄️ Komet)', color: '#f59e0b', shapeIcon: '☄️' },
+        { key: 'topic', label: 'Topic (🌠 Meteor)', color: '#f97316', shapeIcon: '🌠' }
+      ];
+
+      typeList.innerHTML = typeConfigs.map(c => `
+        <button 
+          onclick="toggleNodeType('${c.key}', this)"
+          class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs bg-white/5 hover:bg-white/10 transition-colors border border-white/5 cursor-pointer"
+        >
+          <span class="flex items-center space-x-2">
+            <span class="text-sm font-bold" style="color: ${c.color}">${c.shapeIcon}</span>
+            <span class="text-slate-200">${c.label}</span>
+          </span>
+          <span class="text-[10px] font-mono text-slate-400 bg-white/5 px-2 py-0.5 rounded-full">${counts[c.key]}</span>
+        </button>
+      `).join('');
+
+      // Cluster filters
+      const clusterList = document.getElementById('categoryClusterFilter');
+      clusterList.innerHTML = GALAXY_DATA.categories.map(cat => `
+        <label class="flex items-center space-x-2 cursor-pointer hover:text-white transition-colors">
+          <input type="checkbox" checked onchange="filterCluster('${cat.id}', this.checked)" class="rounded accent-purple-500" />
+          <span>${cat.name}</span>
+        </label>
+      `).join('');
+    }
+
+    function toggleNodeType(type, el) {
+      activeTypes[type] = !activeTypes[type];
+      el.classList.toggle('opacity-40');
+
+      nodeObjects.forEach(n => {
+        if (n.type === type && n.group) {
+          n.group.visible = activeTypes[type];
+        }
+      });
+    }
+
+    function toggleAllTypes(enabled) {
+      Object.keys(activeTypes).forEach(k => activeTypes[k] = enabled);
+      document.querySelectorAll('#nodeTypesList button').forEach(btn => {
+        if (enabled) btn.classList.remove('opacity-40');
+        else btn.classList.add('opacity-40');
+      });
+      nodeObjects.forEach(n => {
+        if (n.group) n.group.visible = enabled;
+      });
+    }
+
+    function filterCluster(catId, isChecked) {
+      const subs = GALAXY_DATA.subCategories.filter(s => s.catId === catId).map(s => s.id);
+      const repos = GALAXY_DATA.repositories.filter(r => subs.includes(r.subCatId)).map(r => r.id);
+
+      nodeObjects.forEach(n => {
+        if (n.id === catId || subs.includes(n.id) || repos.includes(n.id)) {
+          if (n.group) n.group.visible = isChecked;
+        }
+      });
+    }
+
+    function updateStarScale(val) {
+      starScaleMultiplier = parseFloat(val);
+      document.getElementById('starScaleValue').innerText = val + 'x';
+      nodeObjects.forEach(n => {
+        if (n.group) {
+          n.group.scale.set(starScaleMultiplier, starScaleMultiplier, starScaleMultiplier);
+        }
+      });
+    }
+
+    function updateLinkGlow(val) {
+      linkGlowOpacity = parseFloat(val);
+      document.getElementById('linkGlowValue').innerText = val;
+      edgesMeshGroup.children.forEach(c => {
+        if (c.material) c.material.opacity = linkGlowOpacity;
+      });
+    }
+
+    function updateNeonShadow(val) {
+      nodeNeonShadowOpacity = parseFloat(val);
+      document.getElementById('neonShadowValue').innerText = val;
+      nodeObjects.forEach(n => {
+        if (n.innerCorona && n.innerCorona.material) {
+          n.innerCorona.material.opacity = nodeNeonShadowOpacity * 0.88;
+          n.innerCorona.visible = nodeNeonShadowOpacity > 0.01;
+        }
+        if (n.outerCorona && n.outerCorona.material) {
+          n.outerCorona.material.opacity = nodeNeonShadowOpacity * 0.55;
+          n.outerCorona.visible = nodeNeonShadowOpacity > 0.01;
+        }
+      });
+    }
+
+    function toggleAutoRotate() {
+      autoRotate = !autoRotate;
+      document.getElementById('rotateStatusText').innerText = `Auto-Rotate: ${autoRotate ? 'ON' : 'OFF'}`;
+      document.getElementById('btnAutoRotate').classList.toggle('text-purple-300', autoRotate);
+      document.getElementById('btnAutoRotate').classList.toggle('text-slate-400', !autoRotate);
+    }
+
+    function toggleLabels(isChecked) {
+      showLabels = isChecked;
+      if (labelsGroup) labelsGroup.visible = isChecked;
+    }
+
+    function resetCamera() {
+      camera.position.set(0, 320, 800);
+      controls.target.set(0, 0, 0);
+    }
+
+    // -------------------------------------------------------------
+    // 5. INTERACTION (RAYCASTING, HOVER TOOLTIP, MODAL)
+    // -------------------------------------------------------------
+    let hoveredNode = null;
+
+    function onMouseMove(event) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      
+      // Ambil seluruh grup node yang sedang visible (aktif di filter)
+      const visibleGroups = nodesMeshGroup.children.filter(grp => grp.visible);
+      const intersects = raycaster.intersectObjects(visibleGroups, true);
+      
+      const tooltip = document.getElementById('nodeHoverTooltip');
+      const badge = document.getElementById('tooltipTypeBadge');
+      const tooltipTitle = document.getElementById('tooltipTitle');
+      const tooltipDesc = document.getElementById('tooltipDesc');
+      const meta = document.getElementById('tooltipMeta');
+
+      let hit = null;
+      for (let i = 0; i < intersects.length; i++) {
+        let obj = intersects[i].object;
+        if (obj.isSprite) continue; // Abaikan sprite corona/label agar fokus ke bentuk 3D benda langit
+        while (obj && (!obj.userData || !obj.userData.id)) {
+          obj = obj.parent;
+        }
+        if (obj && obj.userData && obj.userData.id) {
+          hit = obj.userData;
+          break;
+        }
+      }
+
+      if (hit) {
+        if (hoveredNode !== hit) {
+          // Reset node sebelumnya dengan GSAP smooth return
+          if (hoveredNode && hoveredNode.group) {
+            const baseS = (selectedHighlightNode && selectedHighlightNode.id === hoveredNode.id) 
+              ? starScaleMultiplier * 1.35 
+              : starScaleMultiplier;
+            gsap.to(hoveredNode.group.scale, {
+              x: baseS,
+              y: baseS,
+              z: baseS,
+              duration: 0.35,
+              ease: "power2.out",
+              overwrite: "auto"
+            });
+          }
+
+          hoveredNode = hit;
+
+          // Tactile physics-based spring scale on 3D node
+          if (hit && hit.group) {
+            const targetS = starScaleMultiplier * 1.35;
+            gsap.to(hit.group.scale, {
+              x: targetS,
+              y: targetS,
+              z: targetS,
+              duration: 0.42,
+              ease: "back.out(2.2)",
+              overwrite: "auto"
+            });
+          }
+
+          // Tooltip Pop-in Animation dengan GSAP
+          if (tooltipTitle) tooltipTitle.innerText = hit.name;
+          if (tooltipDesc) tooltipDesc.innerText = hit.desc || '';
+          
+          const entityLabels = {
+            category: 'GROUP',
+            subCategory: 'SUB-GROUP',
+            repository: 'REPOSITORY',
+            language: 'LANGUAGE',
+            topic: 'TOPIC'
+          };
+          if (badge) {
+            badge.innerText = entityLabels[hit.type] || hit.type;
+            badge.style.backgroundColor = (hit.color || '#a855f7') + '25';
+            badge.style.color = hit.color || '#a855f7';
+          }
+
+          if (meta) {
+            if (hit.type === 'category') {
+              const subCount = GALAXY_DATA.subCategories.filter(s => s.catId === hit.id).length;
+              const reposInCat = GALAXY_DATA.repositories.filter(r => {
+                const sub = GALAXY_DATA.subCategories.find(s => s.id === r.subCatId);
+                return sub && sub.catId === hit.id;
+              });
+              const starsInCat = reposInCat.reduce((sum, r) => sum + r.stars, 0);
+              meta.innerHTML = `<span>${subCount} Sub-Grup</span><span>${reposInCat.length} Repositori</span><span>★ ${(starsInCat / 1000).toFixed(1)}k Stars</span>`;
+            } else if (hit.type === 'subCategory') {
+              const parentCat = GALAXY_DATA.categories.find(c => c.id === hit.catId);
+              const reposInSub = GALAXY_DATA.repositories.filter(r => r.subCatId === hit.id);
+              const starsInSub = reposInSub.reduce((sum, r) => sum + r.stars, 0);
+              meta.innerHTML = `<span>Grup: ${parentCat?.name || ''}</span><span>${reposInSub.length} Repo</span><span>★ ${(starsInSub / 1000).toFixed(1)}k Stars</span>`;
+            } else if (hit.type === 'repository') {
+              const langObj = GALAXY_DATA.languages.find(l => l.id === hit.langId);
+              const topNames = (hit.topics || []).map(tId => GALAXY_DATA.topics.find(t => t.id === tId)?.name).filter(Boolean);
+              meta.innerHTML = `<span>★ ${((hit.stars || 0) / 1000).toFixed(1)}k Stars</span><span>${langObj?.name || 'Code'}</span>${topNames.length ? `<span>#${topNames[0]}</span>` : ''}`;
+            } else if (hit.type === 'language') {
+              const repoCount = GALAXY_DATA.repositories.filter(r => r.langId === hit.id).length;
+              meta.innerHTML = `<span>${repoCount} Repositori</span><span>Bahasa Pemrograman</span>`;
+            } else if (hit.type === 'topic') {
+              const rawId = hit.id.replace('#', '');
+              const repoCount = GALAXY_DATA.repositories.filter(r => (r.topics || []).includes(rawId)).length;
+              meta.innerHTML = `<span>${repoCount} Repositori</span><span>Tag Topik</span>`;
+            }
+          }
+
+          if (tooltip) {
+            tooltip.classList.remove('hidden');
+            gsap.fromTo(tooltip, 
+              { opacity: 0, scale: 0.94, y: 6 }, 
+              { opacity: 1, scale: 1, y: 0, duration: 0.2, ease: "power3.out", overwrite: "auto" }
+            );
+          }
+        }
+
+        if (tooltip) {
+          let posX = event.clientX - rect.left + 16;
+          let posY = event.clientY - rect.top + 16;
+          if (posX + 260 > rect.width) posX = Math.max(10, event.clientX - rect.left - 260);
+          if (posY + 140 > rect.height) posY = Math.max(10, event.clientY - rect.top - 140);
+          tooltip.style.left = `${posX}px`;
+          tooltip.style.top = `${posY}px`;
+        }
+        document.body.style.cursor = 'pointer';
+      } else {
+        if (hoveredNode) {
+          if (hoveredNode.group) {
+            const baseS = (selectedHighlightNode && selectedHighlightNode.id === hoveredNode.id) 
+              ? starScaleMultiplier * 1.35 
+              : starScaleMultiplier;
+            gsap.to(hoveredNode.group.scale, {
+              x: baseS,
+              y: baseS,
+              z: baseS,
+              duration: 0.35,
+              ease: "power2.out",
+              overwrite: "auto"
+            });
+          }
+          hoveredNode = null;
+          if (tooltip) {
+            gsap.to(tooltip, {
+              opacity: 0,
+              scale: 0.96,
+              duration: 0.15,
+              ease: "power2.in",
+              onComplete: () => tooltip.classList.add('hidden')
+            });
+          }
+        }
+        document.body.style.cursor = 'default';
+      }
+    }
+
+    // -------------------------------------------------------------
+    // SISTEM NEON HIGHLIGHT KONEKTOR (TANPA POPUP MODAL)
+    // -------------------------------------------------------------
+    function applyHighlight(node) {
+      selectedHighlightNode = node;
+      if (!node) {
+        clearHighlight();
+        return;
+      }
+
+      // 1. Kumpulkan semua ID node yang terhubung dan edges aktif
+      const connectedNodeIds = new Set([node.id]);
+      const activeEdges = [];
+
+      // Edges langsung
+      edgeObjects.forEach(edge => {
+        if (edge.source === node.id || edge.target === node.id) {
+          activeEdges.push(edge);
+          connectedNodeIds.add(edge.source);
+          connectedNodeIds.add(edge.target);
+        }
+      });
+
+      // Jika node adalah Category (Group), highlight juga seluruh jalur sub-kategori ke repositori!
+      if (node.type === 'category') {
+        const subIds = GALAXY_DATA.subCategories.filter(s => s.catId === node.id).map(s => s.id);
+        edgeObjects.forEach(edge => {
+          if (subIds.includes(edge.source) || subIds.includes(edge.target)) {
+            if (!activeEdges.includes(edge)) activeEdges.push(edge);
+            connectedNodeIds.add(edge.source);
+            connectedNodeIds.add(edge.target);
+          }
+        });
+      }
+
+      // 2. Redupkan edges normal menjadi sangat samar
+      if (edgesMeshGroup.children.length > 0) {
+        edgesMeshGroup.children.forEach(c => {
+          if (c.material) c.material.opacity = 0.03;
+        });
+      }
+
+      // 3. Buat Garis Konektor Neon Aktif (Glowing Electric Cyan & Purple)
+      while (highlightedEdgesGroup.children.length > 0) {
+        highlightedEdgesGroup.remove(highlightedEdgesGroup.children[0]);
+      }
+
+      activeEdges.forEach(edge => {
+        const src = nodeObjects.find(n => n.id === edge.source);
+        const tgt = nodeObjects.find(n => n.id === edge.target);
+        if (!src || !tgt) return;
+
+        const pts = [src.targetPosition, tgt.targetPosition];
+        const geo = new THREE.BufferGeometry().setFromPoints(pts);
+
+        // Core line: Electric Neon Cyan (sangat terang)
+        const coreMat = new THREE.LineBasicMaterial({
+          color: 0x00ffff,
+          transparent: true,
+          opacity: 1.0,
+          blending: THREE.AdditiveBlending
+        });
+        const line = new THREE.Line(geo, coreMat);
+        highlightedEdgesGroup.add(line);
+
+        // Outer glow line: Aura neon warna grup/edge
+        const auraMat = new THREE.LineBasicMaterial({
+          color: edge.color || 0xa855f7,
+          transparent: true,
+          opacity: 0.8,
+          blending: THREE.AdditiveBlending
+        });
+        const auraLine = new THREE.Line(geo, auraMat);
+        highlightedEdgesGroup.add(auraLine);
+      });
+
+      // 4. Update Node Visuals (Emissive neon kuat pada target, redupkan yang tidak terkait)
+      nodeObjects.forEach(n => {
+        if (!n.group) return;
+        const isPrimary = (n.id === node.id);
+        const isConnected = connectedNodeIds.has(n.id);
+
+        n.group.traverse(child => {
+          if (child.isMesh && child.material) {
+            if (isPrimary) {
+              child.material.opacity = 1.0;
+              if (child.material.emissive) child.material.emissiveIntensity = 1.2;
+            } else if (isConnected) {
+              child.material.opacity = 0.95;
+              if (child.material.emissive) child.material.emissiveIntensity = 0.7;
+            } else {
+              child.material.opacity = 0.15;
+              if (child.material.emissive) child.material.emissiveIntensity = 0.05;
+            }
+          }
+          if (child.isSprite && child.material) {
+            if (child === n.innerCorona) {
+              child.material.opacity = (isPrimary ? Math.min(1.0, nodeNeonShadowOpacity * 1.5) : (isConnected ? nodeNeonShadowOpacity * 0.9 : 0.04));
+            } else if (child === n.outerCorona) {
+              child.material.opacity = (isPrimary ? Math.min(1.0, nodeNeonShadowOpacity * 1.3) : (isConnected ? nodeNeonShadowOpacity * 0.6 : 0.02));
+            } else {
+              child.material.opacity = (isPrimary ? 0.9 : (isConnected ? 0.5 : 0.03));
+            }
+          }
+        });
+
+        // Skala fokus transisi elastis dengan GSAP (Emil Design Eng: Elastic physics)
+        const targetScale = starScaleMultiplier * (isPrimary ? 1.38 : (isConnected ? 1.15 : 0.82));
+        gsap.to(n.group.scale, {
+          x: targetScale,
+          y: targetScale,
+          z: targetScale,
+          duration: isPrimary ? 0.6 : 0.4,
+          ease: isPrimary ? "elastic.out(1, 0.45)" : (isConnected ? "back.out(2)" : "power2.out"),
+          overwrite: "auto"
+        });
+      });
+
+      // 5. Tampilkan Banner Status Highlight di Atas
+      const pill = document.getElementById('highlightPill');
+      if (pill) {
+        document.getElementById('highlightNodeName').innerText = node.name;
+        document.getElementById('highlightConnCount').innerText = `${connectedNodeIds.size - 1} Terhubung (${activeEdges.length} Neon Links)`;
+        pill.classList.remove('hidden');
+      }
+    }
+
+    function clearHighlight() {
+      selectedHighlightNode = null;
+
+      // Kembalikan transparansi edge normal
+      if (edgesMeshGroup.children.length > 0) {
+        edgesMeshGroup.children.forEach(c => {
+          if (c.material) c.material.opacity = linkGlowOpacity;
+        });
+      }
+
+      // Hapus neon highlight lines
+      while (highlightedEdgesGroup.children.length > 0) {
+        highlightedEdgesGroup.remove(highlightedEdgesGroup.children[0]);
+      }
+
+      // Kembalikan semua node ke opacity dan skala normal dengan GSAP smooth return
+      nodeObjects.forEach(n => {
+        if (!n.group) return;
+        n.group.traverse(child => {
+          if (child.isMesh && child.material) {
+            child.material.opacity = 1.0;
+            if (child.material.emissive) child.material.emissiveIntensity = 0.45;
+          }
+          if (child.isSprite && child.material) {
+            if (child === n.innerCorona) {
+              child.material.opacity = nodeNeonShadowOpacity * 0.88;
+            } else if (child === n.outerCorona) {
+              child.material.opacity = nodeNeonShadowOpacity * 0.55;
+            } else {
+              child.material.opacity = 0.35;
+            }
+          }
+        });
+        
+        gsap.to(n.group.scale, {
+          x: starScaleMultiplier,
+          y: starScaleMultiplier,
+          z: starScaleMultiplier,
+          duration: 0.38,
+          ease: "power2.out",
+          overwrite: "auto"
+        });
+      });
+
+      // Sembunyikan banner status
+      const pill = document.getElementById('highlightPill');
+      if (pill) pill.classList.add('hidden');
+    }
+
+    function onCanvasClick() {
+      if (hoveredNode) {
+        // Toggle highlight jika klik node yang sama, aktifkan highlight jika klik node lain (tanpa zoom in)
+        if (selectedHighlightNode && selectedHighlightNode.id === hoveredNode.id) {
+          clearHighlight();
+        } else {
+          applyHighlight(hoveredNode);
+        }
+      } else {
+        // Klik pada ruang kosong canvas me-reset highlight
+        clearHighlight();
+      }
+    }
+
+    function gsapGlideCamera(targetCamPos, lookAtTarget) {
+      let t = 0;
+      const startPos = camera.position.clone();
+      const startTarget = controls.target.clone();
+
+      function lerpLoop() {
+        t += 0.05;
+        camera.position.lerpVectors(startPos, targetCamPos, t);
+        controls.target.lerpVectors(startTarget, lookAtTarget, t);
+        if (t < 1) requestAnimationFrame(lerpLoop);
+      }
+      lerpLoop();
+    }
+
+    function showNodeDetail(node) {
+      // Fungsi manual jika user ingin melihat modal via tombol khusus
+      const modal = document.getElementById('nodeDetailModal');
+      document.getElementById('modalTitle').innerText = node.name;
+      document.getElementById('modalDesc').innerText = node.desc;
+      
+      const badge = document.getElementById('modalTypeBadge');
+      const entityLabels = {
+        category: 'GROUP',
+        subCategory: 'SUB-GROUP',
+        repository: 'REPOSITORY',
+        language: 'LANGUAGE',
+        topic: 'TOPIC'
+      };
+      badge.innerText = entityLabels[node.type] || node.type;
+      badge.style.backgroundColor = node.color + '25';
+      badge.style.color = node.color;
+
+      const iconBox = document.getElementById('modalIconBox');
+      iconBox.style.backgroundColor = node.color + '15';
+      iconBox.style.color = node.color;
+      iconBox.innerHTML = `<i data-lucide="${node.type === 'repository' ? 'git-branch' : (node.type === 'category' ? 'folder' : 'share-2')}" class="w-5 h-5"></i>`;
+
+      // Connected links
+      const linksContainer = document.getElementById('modalLinksList');
+      linksContainer.innerHTML = node.connections.map(cId => {
+        const connNode = nodeObjects.find(n => n.id === cId);
+        if (!connNode) return '';
+        return `
+          <span class="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-[11px] font-mono text-slate-300">
+            <span class="w-2 h-2 rounded-full" style="background-color: ${connNode.color}"></span>
+            <span>${connNode.name}</span>
+          </span>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+      modal.classList.remove('hidden');
+    }
+
+    function closeDetailModal() {
+      document.getElementById('nodeDetailModal').classList.add('hidden');
+    }
+
+    function onWindowResize() {
+      if (!renderer || !camera) return;
+      const container = document.getElementById('threejs-canvas-wrapper');
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    }
+
+    // -------------------------------------------------------------
+    // 6. ANIMATION LOOP
+    // -------------------------------------------------------------
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Rotasi keseluruhan galaksi
+      if (autoRotate && nodesMeshGroup && edgesMeshGroup) {
+        nodesMeshGroup.rotation.y += 0.0012;
+        edgesMeshGroup.rotation.y += 0.0012;
+        if (highlightedEdgesGroup) highlightedEdgesGroup.rotation.y += 0.0012;
+        if (labelsGroup) labelsGroup.rotation.y += 0.0012;
+      }
+
+      // Animasi denyut halus (pulsing neon) pada konektor aktif
+      if (selectedHighlightNode && highlightedEdgesGroup && highlightedEdgesGroup.children.length > 0) {
+        pulseNeonTime += 0.06;
+        const pulse = 0.8 + Math.sin(pulseNeonTime) * 0.2;
+        highlightedEdgesGroup.children.forEach((line, idx) => {
+          if (line.material) {
+            line.material.opacity = (idx % 2 === 0 ? pulse : pulse * 0.7);
+          }
+        });
+      }
+
+      // Animasi pendaran tata surya & rotasi benda langit (Matahari, Planet, Bulan, Meteor)
+      const time = performance.now() * 0.002;
+      nodeObjects.forEach(n => {
+        if (n.group && n.group.visible) {
+          if (n.coreMesh) {
+            if (n.type === 'topic') {
+              // Meteor berputar bebas (tumbling) di ruang hampa
+              n.coreMesh.rotation.y += (n.rotSpeedY || 0.01) * 1.6;
+              n.coreMesh.rotation.x += (n.rotSpeedX || 0.008) * 1.6;
+              n.coreMesh.rotation.z += 0.009;
+            } else {
+              // Planet, Matahari, Bulan rotasi teratur pada sumbu Y
+              n.coreMesh.rotation.y += n.rotSpeedY || 0.008;
+              n.coreMesh.rotation.x += n.rotSpeedX || 0.004;
+            }
+          }
+
+          // Matahari: Korona surya berdenyut terik dinamis
+          if (n.type === 'category') {
+            if (n.innerCorona && n.baseInnerCoronaScale && nodeNeonShadowOpacity > 0.05) {
+              const pulseInner = 1 + Math.sin(time * 2.4 + (n.coronaPhase || 0)) * 0.08;
+              const curScale = n.baseInnerCoronaScale * pulseInner;
+              n.innerCorona.scale.set(curScale, curScale, 1);
+            }
+            if (n.outerCorona && n.baseOuterCoronaScale && nodeNeonShadowOpacity > 0.05) {
+              const pulseOuter = 1 + Math.sin(time * 1.4 + (n.coronaPhase || 0) + 1) * 0.1;
+              const curScale = n.baseOuterCoronaScale * pulseOuter;
+              n.outerCorona.scale.set(curScale, curScale, 1);
+            }
+          } else {
+            // Planet, Bulan, Meteor: Denyut halus atmosfer
+            if (n.innerCorona && n.baseInnerCoronaScale && nodeNeonShadowOpacity > 0.05) {
+              const pulse = 1 + Math.sin(time * 1.2 + (n.coronaPhase || 0)) * 0.04;
+              const curScale = n.baseInnerCoronaScale * pulse;
+              n.innerCorona.scale.set(curScale, curScale, 1);
+            }
+          }
+
+          // Rotasi Cincin Saturnus pada Gas Giant (SubCategory)
+          if (n.ringGroup) {
+            n.ringGroup.rotation.z += 0.008;
+          }
+
+          // Rotasi Satelit Trojan Pengiring Jupiter
+          if (n.moonletGroup) {
+            n.moonletGroup.rotation.y += 0.022;
+          }
+
+          // Efek Pijar Getar Ekor Meteor & Komet Menghujam
+          if (n.tailMesh && n.baseTailLen) {
+            const flicker = 1 + Math.sin(time * 9 + (n.tailPhase || 0)) * 0.12;
+            n.tailMesh.scale.y = flicker;
+          }
+        }
+      });
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // Initialize Page
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      renderGridCards();
+    });
+  </script>
+</body>
+</html>

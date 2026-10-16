@@ -33,8 +33,9 @@ import {
   Maximize2,
   Minimize2
 } from 'lucide-react';
-import { formatCompactNumber } from '@/lib/utils';
+import { cn, formatCompactNumber } from '@/lib/utils';
 import { getRepoSummary, RepoSummary, CaseNote, CaseMetric } from '@/lib/repo-summary';
+import { useLanguage } from '@/lib/i18n';
 
 interface RepoDetailModalProps {
   isOpen: boolean;
@@ -42,16 +43,29 @@ interface RepoDetailModalProps {
   onClose: () => void;
 }
 
-function getFallbackHtml(code: string, isAfter: boolean): string {
+function getFallbackHtml(code: string, isAfter: boolean, isEn: boolean = false): string {
   const accent = isAfter ? 'emerald' : 'rose';
-  const badgeText = isAfter ? '✨ Optimal Craftsmanship' : '⚠️ Unoptimized / Legacy UI';
-  const buttonText = isAfter ? 'Konfirmasi Aksi' : 'Submit Form';
+  const badgeText = isAfter 
+    ? (isEn ? '✨ Optimal Craftsmanship' : '✨ Desain & Kualitas Optimal')
+    : (isEn ? '⚠️ Unoptimized / Legacy UI' : '⚠️ UI Tidak Optimal / Warisan');
+  const buttonText = isAfter 
+    ? (isEn ? 'Confirm Action' : 'Konfirmasi Aksi') 
+    : (isEn ? 'Submit Form' : 'Kirim Formulir');
   const buttonClass = isAfter 
     ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-md shadow-emerald-500/20' 
     : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-750';
+  const previewTitle = isEn ? 'Visual UI Preview' : 'Pratinjau Visual UI';
+  const perfTitle = isEn ? 'Rendering Performance' : 'Performa Rendering';
+  const perfVal = isAfter 
+    ? (isEn ? '60 FPS (Fluid)' : '60 FPS (Mulus)') 
+    : (isEn ? '30 FPS (Drops)' : '30 FPS (Tersendat)');
+  const a11yTitle = isEn ? 'A11y & Contrast' : 'Aksesibilitas & Kontras';
+  const a11yVal = isAfter 
+    ? (isEn ? 'WCAG AAA (100%)' : 'WCAG AAA (100%)') 
+    : (isEn ? 'Fail (2.1:1)' : 'Gagal (2.1:1)');
 
   return `<!DOCTYPE html>
-<html lang="id">
+<html lang="${isEn ? 'en' : 'id'}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -65,7 +79,7 @@ function getFallbackHtml(code: string, isAfter: boolean): string {
         <span class="w-2 h-2 rounded-full bg-${accent}-400"></span>
         <span>${badgeText}</span>
       </span>
-      <span class="text-slate-400 font-medium">Visual UI Preview</span>
+      <span class="text-slate-400 font-medium">${previewTitle}</span>
     </div>
 
     <div class="space-y-1.5">
@@ -76,12 +90,12 @@ function getFallbackHtml(code: string, isAfter: boolean): string {
 
     <div class="grid grid-cols-2 gap-2 pt-1 font-mono text-[10px]">
       <div class="p-2.5 rounded-lg bg-black/40 border border-white/10">
-        <div class="text-slate-400 uppercase tracking-wider text-[9px]">Rendering Performance</div>
-        <div class="text-${accent}-400 font-bold mt-0.5 text-xs">${isAfter ? '60 FPS (Fluid)' : '30 FPS (Drops)'}</div>
+        <div class="text-slate-400 uppercase tracking-wider text-[9px]">${perfTitle}</div>
+        <div class="text-${accent}-400 font-bold mt-0.5 text-xs">${perfVal}</div>
       </div>
       <div class="p-2.5 rounded-lg bg-black/40 border border-white/10">
-        <div class="text-slate-400 uppercase tracking-wider text-[9px]">A11y & Contrast</div>
-        <div class="text-${accent}-400 font-bold mt-0.5 text-xs">${isAfter ? 'WCAG AAA (100%)' : 'Fail (2.1:1)'}</div>
+        <div class="text-slate-400 uppercase tracking-wider text-[9px]">${a11yTitle}</div>
+        <div class="text-${accent}-400 font-bold mt-0.5 text-xs">${a11yVal}</div>
       </div>
     </div>
 
@@ -93,11 +107,110 @@ function getFallbackHtml(code: string, isAfter: boolean): string {
 </html>`;
 }
 
+function processReadmeHtml(html: string, owner: string, repo: string, defaultBranch: string = 'main'): string {
+  if (!html) return '';
+  const altBranch = defaultBranch === 'main' ? 'master' : 'main';
+  const rawBaseUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${defaultBranch}/`;
+  const altRawBaseUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${altBranch}/`;
+  const cdnBaseUrl = `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${defaultBranch}/`;
+  const githubBaseUrl = `https://github.com/${owner}/${repo}/blob/${defaultBranch}/`;
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+
+  doc.querySelectorAll('img').forEach(img => {
+    const rawSrc = img.getAttribute('src') || '';
+    const canonicalSrc = img.getAttribute('data-canonical-src');
+    img.setAttribute('data-original-src', rawSrc);
+
+    // 1. Prioritaskan URL Canonical Asli (Bypass proxy Camo yang sering timeout/403)
+    if (canonicalSrc && canonicalSrc.startsWith('http')) {
+      img.setAttribute('src', canonicalSrc);
+      img.setAttribute('data-fallback-cdn', rawSrc);
+    }
+    // 2. Rewrite GitHub blob URLs langsung ke raw image
+    else if (rawSrc.includes(`github.com/${owner}/${repo}/blob/`)) {
+      const cleaned = rawSrc
+        .replace(`github.com/${owner}/${repo}/blob/`, `raw.githubusercontent.com/${owner}/${repo}/`)
+        .replace('/HEAD/', `/${defaultBranch}/`);
+      img.setAttribute('src', cleaned);
+    }
+    // 3. Rewrite GitHub raw URLs (normalisasi HEAD ke defaultBranch)
+    else if (rawSrc.includes(`raw.githubusercontent.com/${owner}/${repo}/HEAD/`)) {
+      img.setAttribute('src', rawSrc.replace('/HEAD/', `/${defaultBranch}/`));
+    }
+    else if (rawSrc.includes(`github.com/${owner}/${repo}/raw/`)) {
+      const cleaned = rawSrc
+        .replace(`github.com/${owner}/${repo}/raw/`, `raw.githubusercontent.com/${owner}/${repo}/`)
+        .replace('/HEAD/', `/${defaultBranch}/`);
+      img.setAttribute('src', cleaned);
+    }
+    // 4. Rewrite path relatif GitHub SSR (/owner/repo/raw/... atau /owner/repo/blob/...)
+    else if (rawSrc.startsWith(`/${owner}/${repo}/raw/`)) {
+      const pathWithoutRaw = rawSrc
+        .replace(`/${owner}/${repo}/raw/`, `/${owner}/${repo}/`)
+        .replace('/HEAD/', `/${defaultBranch}/`);
+      img.setAttribute('src', `https://raw.githubusercontent.com${pathWithoutRaw}`);
+    }
+    else if (rawSrc.startsWith(`/${owner}/${repo}/blob/`)) {
+      const pathWithoutBlob = rawSrc
+        .replace(`/${owner}/${repo}/blob/`, `/${owner}/${repo}/`)
+        .replace('/HEAD/', `/${defaultBranch}/`);
+      img.setAttribute('src', `https://raw.githubusercontent.com${pathWithoutBlob}`);
+    }
+    // 5. Resolve Relative Paths dengan pembersihan duplikasi owner/repo
+    else if (rawSrc && !rawSrc.startsWith('http://') && !rawSrc.startsWith('https://') && !rawSrc.startsWith('data:')) {
+      let cleanSrc = rawSrc.replace(/^(\.\/|\.\.\/|\/)+/, '');
+      if (cleanSrc.startsWith(`${owner}/${repo}/`)) {
+        cleanSrc = cleanSrc.replace(`${owner}/${repo}/`, '');
+      }
+      cleanSrc = cleanSrc.replace(/^raw\//, '').replace(/^HEAD\//, '');
+
+      img.setAttribute('src', rawBaseUrl + cleanSrc);
+      img.setAttribute('data-fallback-branch', altRawBaseUrl + cleanSrc);
+      img.setAttribute('data-fallback-cdn', cdnBaseUrl + cleanSrc);
+    }
+
+    img.setAttribute('referrerpolicy', 'no-referrer');
+    img.setAttribute('loading', 'lazy');
+    img.setAttribute('decoding', 'async');
+    img.classList.add('rounded-xl', 'max-w-full', 'h-auto', 'my-3');
+  });
+
+  doc.querySelectorAll('a').forEach(a => {
+    const href = a.getAttribute('href');
+    if (href && !href.startsWith('http://') && !href.startsWith('https://') && !href.startsWith('#') && !href.startsWith('mailto:')) {
+      let cleanHref = href.replace(/^(\.\/|\.\.\/|\/)+/, '');
+      if (cleanHref.startsWith(`${owner}/${repo}/`)) {
+        cleanHref = cleanHref.replace(`${owner}/${repo}/`, '');
+      }
+      a.setAttribute('href', githubBaseUrl + cleanHref);
+    }
+    a.setAttribute('target', '_blank');
+    a.setAttribute('rel', 'noopener noreferrer');
+  });
+
+  // Nest anchor link directly inside heading so it renders inline on hover like GitHub
+  doc.querySelectorAll('.markdown-heading').forEach(headingDiv => {
+    const heading = headingDiv.querySelector('h1, h2, h3, h4, h5, h6');
+    const anchor = headingDiv.querySelector('a.anchor');
+    if (heading && anchor) {
+      heading.appendChild(anchor);
+    }
+  });
+
+  return doc.body.innerHTML;
+}
+
 export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailModalProps) {
+  const { t, language, translateRepoDescription } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [repoData, setRepoData] = useState<any>(null);
   const [contents, setContents] = useState<any[]>([]);
   const [readmeHtml, setReadmeHtml] = useState<string>('');
+  const [readmeLang, setReadmeLang] = useState<'id' | 'en'>(language);
+  const [readmeLoading, setReadmeLoading] = useState(false);
+  const [readmeCache, setReadmeCache] = useState<{ id?: string; en?: string }>({});
   const [languages, setLanguages] = useState<Record<string, number>>({});
   const [scrollProgress, setScrollProgress] = useState(0);
   const [isSummaryDrawerOpen, setIsSummaryDrawerOpen] = useState(false);
@@ -272,8 +385,9 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
 
         // 4. README HTML & Multi-Tier Resilient Image Resolver
         let html = '';
+        const initialLang = language;
         try {
-          const proxyRes = await fetch(`/api/github/readme?owner=${owner}&repo=${repo}`);
+          const proxyRes = await fetch(`/api/github/readme?owner=${owner}&repo=${repo}&lang=${initialLang}`);
           if (proxyRes.ok) {
             html = await proxyRes.text();
           } else {
@@ -285,95 +399,16 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
             }
           }
         } catch {
-          const proxyRes = await fetch(`/api/github/readme?owner=${owner}&repo=${repo}`);
+          const proxyRes = await fetch(`/api/github/readme?owner=${owner}&repo=${repo}&lang=${initialLang}`);
           if (proxyRes.ok) {
             html = await proxyRes.text();
           }
         }
 
         if (html) {
-          const altBranch = defaultBranch === 'main' ? 'master' : 'main';
-          const rawBaseUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${defaultBranch}/`;
-          const altRawBaseUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${altBranch}/`;
-          const cdnBaseUrl = `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${defaultBranch}/`;
-          const githubBaseUrl = `https://github.com/${owner}/${repo}/blob/${defaultBranch}/`;
-
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, 'text/html');
-
-          doc.querySelectorAll('img').forEach(img => {
-            const rawSrc = img.getAttribute('src') || '';
-            const canonicalSrc = img.getAttribute('data-canonical-src');
-            img.setAttribute('data-original-src', rawSrc);
-
-            // 1. Prioritaskan URL Canonical Asli (Bypass proxy Camo yang sering timeout/403)
-            if (canonicalSrc && canonicalSrc.startsWith('http')) {
-              img.setAttribute('src', canonicalSrc);
-              img.setAttribute('data-fallback-cdn', rawSrc);
-            }
-            // 2. Rewrite GitHub blob URLs langsung ke raw image
-            else if (rawSrc.includes(`github.com/${owner}/${repo}/blob/`)) {
-              const cleaned = rawSrc
-                .replace(`github.com/${owner}/${repo}/blob/`, `raw.githubusercontent.com/${owner}/${repo}/`)
-                .replace('/HEAD/', `/${defaultBranch}/`);
-              img.setAttribute('src', cleaned);
-            }
-            // 3. Rewrite GitHub raw URLs (normalisasi HEAD ke defaultBranch)
-            else if (rawSrc.includes(`raw.githubusercontent.com/${owner}/${repo}/HEAD/`)) {
-              img.setAttribute('src', rawSrc.replace('/HEAD/', `/${defaultBranch}/`));
-            }
-            else if (rawSrc.includes(`github.com/${owner}/${repo}/raw/`)) {
-              const cleaned = rawSrc
-                .replace(`github.com/${owner}/${repo}/raw/`, `raw.githubusercontent.com/${owner}/${repo}/`)
-                .replace('/HEAD/', `/${defaultBranch}/`);
-              img.setAttribute('src', cleaned);
-            }
-            // 4. Rewrite path relatif GitHub SSR (/owner/repo/raw/... atau /owner/repo/blob/...)
-            else if (rawSrc.startsWith(`/${owner}/${repo}/raw/`)) {
-              const pathWithoutRaw = rawSrc
-                .replace(`/${owner}/${repo}/raw/`, `/${owner}/${repo}/`)
-                .replace('/HEAD/', `/${defaultBranch}/`);
-              img.setAttribute('src', `https://raw.githubusercontent.com${pathWithoutRaw}`);
-            }
-            else if (rawSrc.startsWith(`/${owner}/${repo}/blob/`)) {
-              const pathWithoutBlob = rawSrc
-                .replace(`/${owner}/${repo}/blob/`, `/${owner}/${repo}/`)
-                .replace('/HEAD/', `/${defaultBranch}/`);
-              img.setAttribute('src', `https://raw.githubusercontent.com${pathWithoutBlob}`);
-            }
-            // 5. Resolve Relative Paths dengan pembersihan duplikasi owner/repo
-            else if (rawSrc && !rawSrc.startsWith('http://') && !rawSrc.startsWith('https://') && !rawSrc.startsWith('data:')) {
-              let cleanSrc = rawSrc.replace(/^(\.\/|\.\.\/|\/)+/, '');
-              if (cleanSrc.startsWith(`${owner}/${repo}/`)) {
-                cleanSrc = cleanSrc.replace(`${owner}/${repo}/`, '');
-              }
-              cleanSrc = cleanSrc.replace(/^raw\//, '').replace(/^HEAD\//, '');
-
-              img.setAttribute('src', rawBaseUrl + cleanSrc);
-              img.setAttribute('data-fallback-branch', altRawBaseUrl + cleanSrc);
-              img.setAttribute('data-fallback-cdn', cdnBaseUrl + cleanSrc);
-            }
-
-            img.setAttribute('referrerpolicy', 'no-referrer');
-            img.setAttribute('loading', 'lazy');
-            img.setAttribute('decoding', 'async');
-            img.classList.add('rounded-xl', 'max-w-full', 'h-auto', 'my-3');
-          });
-
-          doc.querySelectorAll('a').forEach(a => {
-            const href = a.getAttribute('href');
-            if (href && !href.startsWith('http://') && !href.startsWith('https://') && !href.startsWith('#') && !href.startsWith('mailto:')) {
-              let cleanHref = href.replace(/^(\.\/|\.\.\/|\/)+/, '');
-              if (cleanHref.startsWith(`${owner}/${repo}/`)) {
-                cleanHref = cleanHref.replace(`${owner}/${repo}/`, '');
-              }
-              a.setAttribute('href', githubBaseUrl + cleanHref);
-            }
-            a.setAttribute('target', '_blank');
-            a.setAttribute('rel', 'noopener noreferrer');
-          });
-
-          setReadmeHtml(doc.body.innerHTML);
+          const processed = processReadmeHtml(html, owner, repo, defaultBranch);
+          setReadmeCache({ [initialLang]: processed });
+          setReadmeHtml(processed);
         }
 
         // 4. Fetch Pure AI Summary dari Antigravity Watcher
@@ -399,6 +434,35 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
     loadData();
   }, [isOpen, repoFullName]);
 
+  const handleSwitchReadmeLang = async (targetLang: 'id' | 'en') => {
+    if (targetLang === readmeLang && readmeHtml) return;
+    setReadmeLang(targetLang);
+    if (readmeCache[targetLang]) {
+      setReadmeHtml(readmeCache[targetLang]!);
+      return;
+    }
+    if (!repoFullName) return;
+    const parts = repoFullName.split('/');
+    const owner = parts[0];
+    const repo = parts[1] || parts[0];
+    const defaultBranch = repoData?.default_branch || repoData?.defaultBranch || 'main';
+
+    setReadmeLoading(true);
+    try {
+      const res = await fetch(`/api/github/readme?owner=${owner}&repo=${repo}&lang=${targetLang}`);
+      if (res.ok) {
+        const text = await res.text();
+        const processed = processReadmeHtml(text, owner, repo, defaultBranch);
+        setReadmeCache(prev => ({ ...prev, [targetLang]: processed }));
+        setReadmeHtml(processed);
+      }
+    } catch (err) {
+      console.error('Failed to switch README language:', err);
+    } finally {
+      setReadmeLoading(false);
+    }
+  };
+
   useEffect(() => {
     setIsSummaryDrawerOpen(false);
     setIsSummaryExpanded(false);
@@ -407,6 +471,12 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
     setCopiedClone(false);
     setCopiedSnippet(null);
   }, [isOpen, repoFullName]);
+
+  useEffect(() => {
+    if (isOpen && repoFullName && readmeLang !== language) {
+      handleSwitchReadmeLang(language);
+    }
+  }, [language]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -494,7 +564,9 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
                 <span className="text-slate-400">/</span>
                 <span className="font-bold text-white hover:underline cursor-pointer text-base">{repo}</span>
                 <span className="text-[11px] font-mono px-2 py-0.5 rounded-full border border-white/20 text-slate-300 bg-white/10">
-                  {repoData?.visibility || 'Public'}
+                  {language === 'en' 
+                    ? (repoData?.visibility || 'Public') 
+                    : (repoData?.visibility === 'Private' ? 'Privat' : 'Publik')}
                 </span>
               </div>
             </div>
@@ -502,12 +574,12 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
             <div className="flex items-center space-x-2">
               <button className="px-2.5 py-1 rounded-md glass-modal-btn text-xs text-pink-400 flex items-center space-x-1.5">
                 <Heart className="w-3.5 h-3.5 fill-pink-500/20" />
-                <span>Sponsor</span>
+                <span>{t.repoDetailModal.sponsor}</span>
               </button>
               <div className="flex items-center rounded-md overflow-hidden glass-modal-btn text-xs p-0 divide-x divide-white/10">
                 <span className="px-2.5 py-1 text-slate-300 flex items-center space-x-1">
                   <Eye className="w-3.5 h-3.5" />
-                  <span>Watch</span>
+                  <span>{t.repoDetailModal.watch}</span>
                 </span>
                 <span className="px-2 py-1 text-slate-400 font-semibold font-mono">
                   {formatCompactNumber(repoData?.subscribers_count ?? repoData?.watcherCount ?? 0)}
@@ -516,7 +588,7 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
               <div className="flex items-center rounded-md overflow-hidden glass-modal-btn text-xs p-0 divide-x divide-white/10">
                 <span className="px-2.5 py-1 text-slate-300 flex items-center space-x-1">
                   <GitFork className="w-3.5 h-3.5" />
-                  <span>Fork</span>
+                  <span>{t.repoDetailModal.fork}</span>
                 </span>
                 <span className="px-2 py-1 text-slate-400 font-semibold font-mono">
                   {formatCompactNumber(repoData?.forks_count ?? repoData?.forksCount ?? 0)}
@@ -525,7 +597,7 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
               <div className="flex items-center rounded-md overflow-hidden glass-modal-btn text-xs p-0 divide-x divide-white/10">
                 <span className="px-2.5 py-1 text-slate-200 flex items-center space-x-1">
                   <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                  <span>Star</span>
+                  <span>{t.repoDetailModal.star}</span>
                 </span>
                 <span className="px-2 py-1 text-slate-100 font-bold font-mono">
                   {formatCompactNumber(repoData?.stargazers_count ?? repoData?.starsCount ?? 0)}
@@ -533,6 +605,7 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
               </div>
               <button
                 onClick={onClose}
+                title={language === 'en' ? 'Close modal' : 'Tutup jendela'}
                 className="p-1.5 rounded-lg glass-modal-btn text-slate-400 hover:text-white transition-colors ml-2"
               >
                 <X className="w-4 h-4" />
@@ -544,7 +617,7 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
           <div className="flex items-center space-x-1 overflow-x-auto text-xs text-slate-400 font-medium border-t border-white/10 pt-1 -mb-[1px]">
             <button className="flex items-center space-x-2 px-3 py-2 text-slate-100 border-b-2 border-indigo-500 font-semibold">
               <Code2 className="w-4 h-4" />
-              <span>Code</span>
+              <span>{t.repoDetailModal.codeTab}</span>
             </button>
           </div>
         </div>
@@ -566,7 +639,7 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
               className="px-3 py-1.5 rounded-lg bg-emerald-600/90 hover:bg-emerald-500 font-semibold text-white flex items-center space-x-1.5 shadow-md border border-emerald-400/40"
             >
               <Code2 className="w-3.5 h-3.5" />
-              <span>Buka di GitHub</span>
+              <span>{t.repoDetailModal.openInGithub}</span>
               <ExternalLink className="w-3 h-3 ml-1" />
             </a>
           </div>
@@ -591,7 +664,7 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
             <div className="border border-white/15 rounded-2xl overflow-hidden glass-inner-panel">
               <div className="bg-white/10 px-4 py-2.5 border-b border-white/10 flex items-center justify-between text-xs text-slate-200">
                 <span className="font-semibold">{owner}</span>
-                <span className="text-slate-400 font-mono text-[11px]">Latest commit files</span>
+                <span className="text-slate-400 font-mono text-[11px]">{t.repoDetailModal.latestFiles}</span>
               </div>
 
               <div className="divide-y divide-white/10 text-xs">
@@ -613,27 +686,66 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
                       </a>
                     </div>
                     <span className="text-slate-500 font-mono text-[11px]">
-                      {item.type === 'dir' ? 'Directory' : `${Math.round((item.size || 0) / 1024)} KB`}
+                      {item.type === 'dir' ? (language === 'en' ? 'Directory' : 'Direktori') : `${Math.round((item.size || 0) / 1024)} KB`}
                     </span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* README Container */}
+            {/* README Container with Native Language Translation Toggle */}
             <div className="border border-white/15 rounded-2xl overflow-hidden glass-inner-panel">
-              <div className="bg-white/10 px-4 py-2.5 border-b border-white/10 flex items-center justify-between text-xs">
-                <div className="flex items-center space-x-2 text-slate-200 font-semibold">
-                  <BookOpen className="w-4 h-4 text-slate-300" />
-                  <span>README.md</span>
+              <div className="bg-white/10 px-4 py-2.5 border-b border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex items-center space-x-2">
+                  <BookOpen className="w-4 h-4 text-sky-400" />
+                  <span className="font-semibold text-white font-mono text-xs">README.md</span>
+                  {readmeLoading && (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-sky-400 ml-1" />
+                  )}
+                </div>
+
+                {/* Switcher Terjemahan: [🇮🇩 Bahasa Indonesia] & [🌐 Original (EN)] */}
+                <div className="flex items-center space-x-1 p-0.5 bg-black/40 rounded-xl border border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchReadmeLang('id')}
+                    className={cn(
+                      "flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                      readmeLang === 'id'
+                        ? "bg-sky-500/25 text-sky-200 border border-sky-400/30 shadow-sm"
+                        : "text-slate-400 hover:text-white"
+                    )}
+                    title={language === 'en' ? 'Translate README to Indonesian' : 'Terjemahkan README ke Bahasa Indonesia'}
+                  >
+                    <span>🇮🇩</span>
+                    <span>Bahasa Indonesia</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchReadmeLang('en')}
+                    className={cn(
+                      "flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                      readmeLang === 'en'
+                        ? "bg-white/20 text-white border border-white/30 shadow-sm"
+                        : "text-slate-400 hover:text-white"
+                    )}
+                    title={language === 'en' ? 'Show Original English README' : 'Tampilkan README Asli Bahasa Inggris'}
+                  >
+                    <span>🌐</span>
+                    <span>Original (EN)</span>
+                  </button>
                 </div>
               </div>
 
               <div className="p-6 sm:p-8 space-y-6 text-slate-100 text-sm leading-relaxed">
-                {loading ? (
+                {loading || readmeLoading ? (
                   <div className="flex flex-col items-center justify-center py-16 space-y-3 text-slate-400">
                     <Loader2 className="w-8 h-8 animate-spin text-sky-400" />
-                    <span className="text-xs font-mono">Mengambil data README langsung dari GitHub...</span>
+                    <span className="text-xs font-mono">
+                      {readmeLang === 'id'
+                        ? 'Menerjemahkan README ke Bahasa Indonesia...'
+                        : 'Mengambil README langsung dari GitHub...'}
+                    </span>
                   </div>
                 ) : readmeHtml ? (
                   <div
@@ -642,7 +754,9 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
                     dangerouslySetInnerHTML={{ __html: readmeHtml }}
                   />
                 ) : (
-                  <p className="text-slate-400 italic">README.md tidak tersedia.</p>
+                  <p className="text-slate-400 italic">
+                    {language === 'en' ? 'README.md is not available.' : 'README.md tidak tersedia.'}
+                  </p>
                 )}
               </div>
             </div>
@@ -651,8 +765,10 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
           {/* Right Column: About & Languages */}
           <div className="lg:col-span-4 space-y-5 text-xs">
             <div className="space-y-3 border-b border-white/10 pb-5">
-              <h4 className="font-bold text-slate-100 text-sm">About</h4>
-              <p className="text-slate-300 leading-relaxed">{repoData?.description || 'Tidak ada deskripsi.'}</p>
+              <h4 className="font-bold text-slate-100 text-sm">{language === 'en' ? 'About' : 'Tentang'}</h4>
+              <p className="text-slate-300 leading-relaxed">
+                {translateRepoDescription(repoFullName, repoData?.description) || (language === 'en' ? 'No description provided.' : 'Tidak ada deskripsi.')}
+              </p>
               {repoData?.homepage && (
                 <div className="flex items-center space-x-2 text-sky-400 text-xs">
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -677,19 +793,21 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
               <div className="flex items-center space-x-2">
                 <Scale className="w-4 h-4 text-slate-400" />
                 <span className="text-slate-300">
-                  {repoData?.license?.spdx_id || repoData?.license?.name || (typeof repoData?.license === 'string' ? repoData.license : null) || 'License tidak tertera'}
+                  {repoData?.license?.spdx_id || repoData?.license?.name || (typeof repoData?.license === 'string' ? repoData.license : null) || (language === 'en' ? 'No license specified' : 'License tidak tertera')}
                 </span>
               </div>
               <div className="flex items-center space-x-2">
                 <Activity className="w-4 h-4 text-slate-400" />
-                <span className="text-slate-300">Default branch: {repoData?.default_branch || repoData?.defaultBranch || 'main'}</span>
+                <span className="text-slate-300">
+                  {language === 'en' ? 'Default branch:' : 'Branch utama:'} {repoData?.default_branch || repoData?.defaultBranch || 'main'}
+                </span>
               </div>
             </div>
 
             {/* Languages breakdown */}
             {totalBytes > 0 && (
               <div className="space-y-2.5">
-                <h5 className="font-bold text-slate-200">Languages</h5>
+                <h5 className="font-bold text-slate-200">{language === 'en' ? 'Languages' : 'Bahasa'}</h5>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
                   {Object.entries(languages).map(([lang, bytes]) => (
                     <div key={lang} className="flex items-center space-x-1.5">
@@ -708,7 +826,7 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
         <button
           type="button"
           onClick={() => setIsSummaryDrawerOpen(prev => !prev)}
-          title="Klik untuk membuka summary fungsi repositori"
+          title={language === 'en' ? 'Click to open repository function summary' : 'Klik untuk membuka summary fungsi repositori'}
           className="absolute right-0 top-1/2 -translate-y-1/2 z-30 bg-gradient-to-l from-indigo-600 via-purple-600 to-pink-600 hover:opacity-95 text-white py-4 px-2.5 rounded-l-2xl shadow-2xl border-l border-y border-white/30 flex flex-col items-center space-y-2 cursor-pointer transition-all group animate-pulse"
         >
           <Sparkles className="w-4 h-4 text-amber-300 group-hover:scale-125 transition-transform" />
@@ -716,7 +834,7 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
             className="tracking-wider text-[11px] font-bold select-none"
             style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
           >
-            SLIDE SUMMARY →
+            {language === 'en' ? 'SLIDE SUMMARY →' : 'RINGKASAN FITUR →'}
           </span>
           <ChevronLeft className="w-3.5 h-3.5 text-white/90 group-hover:-translate-x-1 transition-transform" />
         </button>
@@ -739,9 +857,13 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
               </div>
               <div className="truncate">
                 <h3 className="text-sm font-bold text-white truncate">
-                  Summary Analisis Repositori
+                  {language === 'en' ? 'Repository Analysis Summary' : 'Summary Analisis Repositori'}
                 </h3>
-                <p className="text-[11px] text-slate-300 truncate">Panduan penggunaan, kapabilitas & analisis before vs after</p>
+                <p className="text-[11px] text-slate-300 truncate">
+                  {language === 'en'
+                    ? 'Usage guide, capabilities & before vs after analysis'
+                    : 'Panduan penggunaan, kapabilitas & analisis before vs after'}
+                </p>
               </div>
             </div>
 
@@ -750,8 +872,8 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
               <button
                 type="button"
                 onClick={() => setIsSummaryExpanded(prev => !prev)}
-                title={isSummaryExpanded ? "Perkecil (Normal)" : "Perlebar (Expand)"}
-                aria-label={isSummaryExpanded ? "Perkecil Tampilan" : "Perlebar Tampilan"}
+                title={isSummaryExpanded ? (language === 'en' ? 'Collapse (Normal)' : 'Perkecil (Normal)') : (language === 'en' ? 'Expand' : 'Perlebar (Expand)')}
+                aria-label={isSummaryExpanded ? 'Collapse' : 'Expand'}
                 className="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-slate-300 hover:text-white transition-all cursor-pointer"
               >
                 {isSummaryExpanded ? (
@@ -766,8 +888,8 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
                   setIsSummaryDrawerOpen(false);
                   setIsSummaryExpanded(false);
                 }}
-                title="Tutup"
-                aria-label="Tutup"
+                title={language === 'en' ? 'Close' : 'Tutup'}
+                aria-label={language === 'en' ? 'Close' : 'Tutup'}
                 className="p-2 rounded-xl bg-white/10 hover:bg-rose-500/20 border border-white/15 text-slate-300 hover:text-rose-300 transition-all cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -781,7 +903,7 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
             <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
               <div className="flex items-center space-x-2 text-sky-400 font-mono font-semibold text-[11px] uppercase tracking-wider">
                 <Terminal className="w-3.5 h-3.5" />
-                <span>Fungsi & Nilai Utama</span>
+                <span>{language === 'en' ? 'Core Purpose & Value' : 'Fungsi & Nilai Utama'}</span>
               </div>
               <p className="text-slate-200 text-xs leading-relaxed font-normal">
                 {summary.corePurpose}
@@ -793,7 +915,7 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
               <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
                 <div className="flex items-center space-x-2 text-sky-400 font-mono font-semibold text-[11px] uppercase tracking-wider">
                   <BookOpen className="w-3.5 h-3.5" />
-                  <span>Cara Penggunaan / Panduan Cepat</span>
+                  <span>{language === 'en' ? 'Usage Guide / Quick Start' : 'Cara Penggunaan / Panduan Cepat'}</span>
                 </div>
                 <div className="space-y-2.5">
                   {summary.howToUse.map((stepItem, idx) => (
@@ -814,7 +936,7 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
                             type="button"
                             onClick={() => handleCopySnippet(stepItem.command!)}
                             className="text-slate-400 hover:text-white p-1 hover:bg-white/10 rounded transition-colors shrink-0 cursor-pointer"
-                            title="Salin Perintah"
+                            title={language === 'en' ? 'Copy Command' : 'Salin Perintah'}
                           >
                             {copiedSnippet === stepItem.command ? (
                               <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -836,10 +958,10 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
                 <div className="flex items-center justify-between text-emerald-400 font-mono font-semibold text-[11px] uppercase tracking-wider">
                   <div className="flex items-center space-x-2">
                     <Terminal className="w-3.5 h-3.5" />
-                    <span>Command & Fungsinya</span>
+                    <span>{language === 'en' ? 'Commands & Usage' : 'Command & Fungsinya'}</span>
                   </div>
                   <span className="text-[10px] font-normal text-slate-400">
-                    {summary.commands.length} Commands
+                    {summary.commands.length} {language === 'en' ? 'Commands' : 'Perintah'}
                   </span>
                 </div>
                 <div className="space-y-2">
@@ -853,7 +975,7 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
                           type="button"
                           onClick={() => handleCopySnippet(cmd.example || cmd.command)}
                           className="text-slate-400 hover:text-white p-1 hover:bg-white/10 rounded transition-colors cursor-pointer shrink-0"
-                          title="Salin Perintah"
+                          title={language === 'en' ? 'Copy Command' : 'Salin Perintah'}
                         >
                           {copiedSnippet === (cmd.example || cmd.command) ? (
                             <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -867,7 +989,9 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
                       </p>
                       {cmd.example && cmd.example !== cmd.command && (
                         <div className="text-[10px] font-mono text-slate-400 bg-black/50 px-2.5 py-1.5 rounded border border-white/5 flex items-start">
-                          <span className="text-slate-500 font-semibold mr-1.5 shrink-0">Contoh:</span>
+                          <span className="text-slate-500 font-semibold mr-1.5 shrink-0">
+                            {language === 'en' ? 'Example:' : 'Contoh:'}
+                          </span>
                           <span className="text-slate-300 whitespace-pre-wrap break-all flex-1">{cmd.example}</span>
                         </div>
                       )}
@@ -883,7 +1007,7 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2 text-amber-300 font-mono font-bold text-[11px] uppercase tracking-wider">
                     <GitCompare className="w-4 h-4 text-amber-400" />
-                    <span>Contoh Output: Before vs After</span>
+                    <span>{language === 'en' ? 'Output Example: Before vs After' : 'Contoh Output: Sebelum vs Sesudah'}</span>
                   </div>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-semibold">
                     {Array.isArray(activeCase.metrics) 
@@ -922,7 +1046,12 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
                   )}
                   <div className="px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-[11px] text-slate-300 flex items-start space-x-2">
                     <Terminal className="w-3.5 h-3.5 text-sky-400 shrink-0 mt-0.5" />
-                    <span className="whitespace-pre-wrap break-words"><strong className="text-white">Skenario / Prompt:</strong> {activeCase.prompt}</span>
+                    <span className="whitespace-pre-wrap break-words">
+                      <strong className="text-white">
+                        {language === 'en' ? 'Scenario / Prompt:' : 'Skenario / Prompt:'}
+                      </strong>{' '}
+                      {activeCase.prompt}
+                    </span>
                   </div>
                 </div>
 
@@ -931,7 +1060,7 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
                   <div className="flex items-center justify-between p-1.5 bg-black/50 rounded-xl border border-white/10 text-[11px] font-mono">
                     <div className="flex items-center space-x-1.5 px-2 text-slate-300 font-semibold">
                       <Layers className="w-3.5 h-3.5 text-sky-400" />
-                      <span>Mode Output:</span>
+                      <span>{language === 'en' ? 'Output Mode:' : 'Mode Output:'}</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <button
@@ -944,7 +1073,7 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
                         }`}
                       >
                         <Eye className="w-3.5 h-3.5" />
-                        <span>Visual UI (.html)</span>
+                        <span>{language === 'en' ? 'Visual UI (.html)' : 'Pratinjau Visual (.html)'}</span>
                       </button>
                       <button
                         type="button"
@@ -956,7 +1085,7 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
                         }`}
                       >
                         <Code2 className="w-3.5 h-3.5" />
-                        <span>Kode Source</span>
+                        <span>{language === 'en' ? 'Source Code' : 'Kode Sumber'}</span>
                       </button>
                     </div>
                   </div>
@@ -977,14 +1106,14 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
                     <div className="p-3 bg-black/70 border-b border-rose-500/20 space-y-2">
                       <div className="flex items-center justify-between px-1 text-[10px] font-mono text-slate-400">
                         <span className="flex items-center gap-1.5 text-rose-300 font-bold">
-                          <Eye className="w-3 h-3 text-rose-400" /> Live Render (.html)
+                          <Eye className="w-3 h-3 text-rose-400" /> {language === 'en' ? 'Live Render (.html)' : 'Render Langsung (.html)'}
                         </span>
-                        <span className="text-slate-500">Iframe Sandboxed</span>
+                        <span className="text-slate-500">{language === 'en' ? 'Iframe Sandboxed' : 'Sandbox Iframe'}</span>
                       </div>
                       <div className="w-full h-[265px] rounded-lg overflow-hidden border border-rose-500/30 bg-[#0b0f19]">
                         <iframe
-                          srcDoc={activeCase.beforeHtml || getFallbackHtml(activeCase.beforeCode, false)}
-                          title="Before UI Output"
+                          srcDoc={activeCase.beforeHtml || getFallbackHtml(activeCase.beforeCode, false, language === 'en')}
+                          title={language === 'en' ? 'Before UI Output' : 'Output UI Sebelum'}
                           sandbox="allow-scripts"
                           className="w-full h-full border-0"
                         />
@@ -1011,7 +1140,9 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
                           <span className="text-rose-200/90 break-words">{(activeCase.beforeNotes as any)?.token}</span>
                         </div>
                         <div className="grid grid-cols-[85px_1fr] items-start gap-2.5 leading-relaxed">
-                          <span className="text-rose-400 font-bold">Dependensi:</span>
+                          <span className="text-rose-400 font-bold">
+                            {language === 'en' ? 'Dependencies:' : 'Dependensi:'}
+                          </span>
                           <span className="text-rose-200/90 break-words">{(activeCase.beforeNotes as any)?.dep}</span>
                         </div>
                       </div>
@@ -1043,14 +1174,14 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
                     <div className="p-3 bg-black/70 border-b border-emerald-500/20 space-y-2">
                       <div className="flex items-center justify-between px-1 text-[10px] font-mono text-slate-400">
                         <span className="flex items-center gap-1.5 text-emerald-300 font-bold">
-                          <Eye className="w-3 h-3 text-emerald-400" /> Live Render (.html)
+                          <Eye className="w-3 h-3 text-emerald-400" /> {language === 'en' ? 'Live Render (.html)' : 'Render Langsung (.html)'}
                         </span>
-                        <span className="text-slate-500">Iframe Sandboxed</span>
+                        <span className="text-slate-500">{language === 'en' ? 'Iframe Sandboxed' : 'Sandbox Iframe'}</span>
                       </div>
                       <div className="w-full h-[265px] rounded-lg overflow-hidden border border-emerald-500/30 bg-[#0b0f19]">
                         <iframe
-                          srcDoc={activeCase.afterHtml || getFallbackHtml(activeCase.afterCode, true)}
-                          title="After UI Output"
+                          srcDoc={activeCase.afterHtml || getFallbackHtml(activeCase.afterCode, true, language === 'en')}
+                          title={language === 'en' ? 'After UI Output' : 'Output UI Sesudah'}
                           sandbox="allow-scripts"
                           className="w-full h-full border-0"
                         />
@@ -1076,7 +1207,9 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
                           <span className="text-emerald-200/90 break-words">{(activeCase.afterNotes as any)?.token}</span>
                         </div>
                         <div className="grid grid-cols-[85px_1fr] items-start gap-2.5 leading-relaxed">
-                          <span className="text-emerald-400 font-bold">Dependensi:</span>
+                          <span className="text-emerald-400 font-bold">
+                            {language === 'en' ? 'Dependencies:' : 'Dependensi:'}
+                          </span>
                           <span className="text-emerald-200/90 break-words">{(activeCase.afterNotes as any)?.dep}</span>
                         </div>
                       </div>
@@ -1106,15 +1239,21 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
                   ) : (
                     <>
                       <div className="p-2 rounded-xl bg-white/5 border border-white/10">
-                        <p className="text-[9px] text-slate-400 uppercase">Baris Kode</p>
+                        <p className="text-[9px] text-slate-400 uppercase">
+                          {language === 'en' ? 'Code Lines' : 'Baris Kode'}
+                        </p>
                         <p className="text-xs font-bold text-emerald-400 mt-0.5">{(activeCase.metrics as any)?.lines}</p>
                       </div>
                       <div className="p-2 rounded-xl bg-white/5 border border-white/10">
-                        <p className="text-[9px] text-slate-400 uppercase">Dependensi</p>
+                        <p className="text-[9px] text-slate-400 uppercase">
+                          {language === 'en' ? 'Dependencies' : 'Dependensi'}
+                        </p>
                         <p className="text-xs font-bold text-sky-400 mt-0.5">{(activeCase.metrics as any)?.deps}</p>
                       </div>
                       <div className="p-2 rounded-xl bg-white/5 border border-white/10">
-                        <p className="text-[9px] text-slate-400 uppercase">Token / Nilai</p>
+                        <p className="text-[9px] text-slate-400 uppercase">
+                          {language === 'en' ? 'Token / Value' : 'Token / Nilai'}
+                        </p>
                         <p className="text-xs font-bold text-amber-300 mt-0.5">{(activeCase.metrics as any)?.tokenSaving}</p>
                       </div>
                     </>
@@ -1127,7 +1266,7 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
             <div className="space-y-2">
               <h4 className="font-bold text-white text-xs uppercase tracking-wider font-mono text-slate-200 flex items-center space-x-1.5">
                 <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
-                <span>Masalah yang Dipecahkan</span>
+                <span>{language === 'en' ? 'Problems Solved' : 'Masalah yang Dipecahkan'}</span>
               </h4>
               <div className="space-y-2">
                 {summary.problemsSolved.map((prob: any, idx: number) => (
@@ -1148,7 +1287,7 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
                 <div className="flex items-center justify-between text-indigo-300 font-semibold text-[11px]">
                   <span className="flex items-center space-x-1.5">
                     <Layers className="w-3.5 h-3.5" />
-                    <span>Prinsip / Metodologi Inti</span>
+                    <span>{language === 'en' ? 'Core Principles / Methodology' : 'Prinsip / Metodologi Inti'}</span>
                   </span>
                   <span className="text-[10px] bg-indigo-500/20 px-2 py-0.5 rounded-full border border-indigo-500/30">
                     Best Practice
@@ -1166,7 +1305,7 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
             <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
               <h4 className="font-bold text-white text-xs uppercase tracking-wider font-mono text-slate-200 flex items-center space-x-1.5">
                 <HelpCircle className="w-3.5 h-3.5 text-sky-400" />
-                <span>Kapan Harus Digunakan?</span>
+                <span>{language === 'en' ? 'When to Use?' : 'Kapan Harus Digunakan?'}</span>
               </h4>
               <ul className="space-y-1 text-slate-300 text-[11px] list-disc list-inside leading-relaxed">
                 {summary.useCases.map((uc: any, idx: number) => (
@@ -1178,7 +1317,7 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
             {/* 8. Quick Clone Command */}
             <div className="space-y-2 pt-1">
               <div className="flex items-center justify-between text-[11px] font-mono text-slate-300">
-                <span>Quick Clone URL</span>
+                <span>{language === 'en' ? 'Quick Clone URL' : 'URL Kloning Cepat'}</span>
                 <span className="text-sky-400 font-semibold">HTTPS</span>
               </div>
               <div className="flex items-center space-x-2">
@@ -1194,12 +1333,12 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
                     {copiedClone ? (
                       <>
                         <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="text-emerald-300">Copied</span>
+                        <span className="text-emerald-300">{t.content.copied}</span>
                       </>
                     ) : (
                       <>
                         <Copy className="w-3.5 h-3.5 text-sky-400" />
-                        <span>Copy</span>
+                        <span>{language === 'en' ? 'Copy' : 'Salin'}</span>
                       </>
                     )}
                   </button>
@@ -1211,12 +1350,12 @@ export function RepoDetailModal({ isOpen, repoFullName, onClose }: RepoDetailMod
           {/* Drawer Footer */}
           <div className="p-4 border-t border-white/10 bg-white/[0.02] flex items-center justify-between text-xs text-slate-300 font-mono shrink-0">
             <span className="flex items-center space-x-2">
-              <span>Stars: <strong className="text-amber-300">{formatCompactNumber(repoData?.stargazers_count ?? 0)}</strong></span>
+              <span>{language === 'en' ? 'Stars:' : 'Bintang:'} <strong className="text-amber-300">{formatCompactNumber(repoData?.stargazers_count ?? 0)}</strong></span>
               <span className="text-slate-500">•</span>
-              <span>Forks: <strong className="text-sky-300">{formatCompactNumber(repoData?.forks_count ?? 0)}</strong></span>
+              <span>{language === 'en' ? 'Forks:' : 'Fork:'} <strong className="text-sky-300">{formatCompactNumber(repoData?.forks_count ?? 0)}</strong></span>
             </span>
             <span className="text-[11px] text-slate-400">
-              {repoData?.license?.spdx_id || repoData?.license?.name || 'Open Source'}
+              {repoData?.license?.spdx_id || repoData?.license?.name || (language === 'en' ? 'Open Source' : 'Sumber Terbuka')}
             </span>
           </div>
         </aside>

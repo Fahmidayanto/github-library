@@ -5,9 +5,11 @@ import {
   Search, 
   PlusCircle, 
   Folder, 
-  Star,
-  Play,
-  Pause
+  Star, 
+  Play, 
+  Pause,
+  LayoutGrid,
+  Orbit
 } from 'lucide-react';
 import { ThreeBackdrop } from '@/components/ThreeBackdrop';
 import { Sidebar, Category } from '@/components/Sidebar';
@@ -15,11 +17,17 @@ import { RepoCard, RepoCardData } from '@/components/RepoCard';
 import { RepoDetailModal } from '@/components/RepoDetailModal';
 import { AddRepoModal } from '@/components/AddRepoModal';
 import { AddCategoryModal } from '@/components/AddCategoryModal';
+import { ChatbotWidget } from '@/components/ChatbotWidget';
 import { ThemeAndSortDropdowns } from '@/components/ThemeAndSortDropdowns';
+import { LanguageSwitch } from '@/components/LanguageSwitch';
+import { GalaxyGraphView } from '@/components/GalaxyGraphView';
+import { useLanguage } from '@/lib/i18n';
+import { resolveCategoryIcon } from '@/lib/category-icons';
 import { getCategoriesTree, getRepositories, updateSubCategoryAction, deleteSubCategoryAction, moveRepositoryAction, updateRepositoryAction, deleteRepositoryAction } from '@/app/actions';
 import { cn, formatCompactNumber } from '@/lib/utils';
 
 export default function HomePage() {
+  const { t, language, translateCategory, translateSubCategory } = useLanguage();
   const [theme, setTheme] = useState<'aurora' | 'sunset' | 'frost'>('aurora');
   const [isVideoPlaying, setIsVideoPlaying] = useState<boolean>(true);
   const [sortKey, setSortKey] = useState<string>('stars');
@@ -30,6 +38,9 @@ export default function HomePage() {
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
+  // View Mode: 'grid' or 'graph' (3D Galaxy Graph)
+  const [viewMode, setViewMode] = useState<'grid' | 'graph'>('grid');
+
   // Modals state
   const [activeRepoModal, setActiveRepoModal] = useState<string | null>(null);
   const [isAddRepoOpen, setIsAddRepoOpen] = useState(false);
@@ -283,7 +294,7 @@ export default function HomePage() {
             {!isSidebarCollapsed && (
               <div className="sidebar-text truncate">
                 <h1 className="text-sm font-bold text-slate-100 tracking-tight leading-none">GitLibrary</h1>
-                <span className="text-[10px] text-indigo-400 font-mono font-medium tracking-wide">Curated AI Repos</span>
+                <span className="text-[10px] text-indigo-400 font-mono font-medium tracking-wide">{t.header.brandSubtitle}</span>
               </div>
             )}
           </div>
@@ -304,7 +315,7 @@ export default function HomePage() {
               type="text" 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Cari repo, topik, atau bahasa (Ctrl+K)..." 
+              placeholder={t.header.searchPlaceholder} 
               className="w-full pl-9 pr-12 py-2 rounded-xl glass-input text-xs text-slate-100 placeholder-slate-400 focus:outline-none transition-all"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 border border-white/10 bg-white/5 px-1.5 py-0.5 rounded">
@@ -313,13 +324,13 @@ export default function HomePage() {
           </div>
 
           {/* Right Action Tools */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2.5">
             {/* Play / Pause Background Video Control */}
             <button
               type="button"
               onClick={() => setIsVideoPlaying(prev => !prev)}
-              title={isVideoPlaying ? 'Jeda Video Latar' : 'Putar Video Latar'}
-              aria-label={isVideoPlaying ? 'Jeda Video Latar' : 'Putar Video Latar'}
+              title={isVideoPlaying ? t.header.pauseVideo : t.header.playVideo}
+              aria-label={isVideoPlaying ? t.header.pauseVideo : t.header.playVideo}
               className="pressable-btn flex items-center justify-center p-2 rounded-xl glass-panel hover:bg-white/10 text-slate-300 border border-white/10 hover:border-white/20 transition-all active:scale-95 group cursor-pointer"
             >
               {isVideoPlaying ? (
@@ -328,6 +339,9 @@ export default function HomePage() {
                 <Play className="w-4 h-4 text-emerald-400 fill-emerald-400/20 group-hover:scale-110 transition-transform ml-0.5" />
               )}
             </button>
+
+            {/* Emil Design Eng: Language Switcher ID | ENG */}
+            <LanguageSwitch />
 
             <ThemeAndSortDropdowns
               currentTheme={theme}
@@ -342,8 +356,8 @@ export default function HomePage() {
               className="pressable-btn flex items-center space-x-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:opacity-90 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-lg shadow-purple-500/25 border border-white/25 active:scale-95 transition-all cursor-pointer shrink-0"
             >
               <PlusCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">Tambah Repository</span>
-              <span className="sm:hidden">Tambah</span>
+              <span className="hidden sm:inline">{t.header.addRepo}</span>
+              <span className="sm:hidden">{t.header.addShort}</span>
             </button>
           </div>
         </div>
@@ -375,68 +389,125 @@ export default function HomePage() {
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 flex flex-col min-w-0 relative z-10 overflow-y-auto h-full">
+        <main className={cn(
+          "flex-1 flex flex-col min-w-0 relative z-10 h-full",
+          viewMode === 'graph' ? "overflow-hidden" : "overflow-y-auto"
+        )}>
           {/* Content Viewport */}
-          <div className="p-6 flex-1 space-y-6">
+          <div className={cn(
+            "p-6 flex-1 space-y-6 flex flex-col",
+            viewMode === 'graph' ? "h-full min-h-0 overflow-hidden" : ""
+          )}>
           {/* Stats / Headline Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4 shrink-0">
             <div>
               <h2 className="text-base font-bold text-slate-100 flex items-center space-x-2">
                 <span>
                   {selectedCategory === 'all'
-                    ? 'Semua Repositori AI'
-                    : currentCategoryObj?.name || 'Katalog Repositori'}
+                    ? t.content.allRepos
+                    : translateCategory(currentCategoryObj?.name) || t.content.repoCatalog}
                 </span>
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">
                 {selectedCategory === 'all'
-                  ? 'Koleksi terkurasi model, frameworks, tools, dan skill AI pilihan.'
-                  : `Menampilkan daftar repositori dalam filter kategori ${currentCategoryObj?.name || ''}${selectedSubCategory ? ' > ' + (currentCategoryObj?.subCategories?.find(s => s.id === selectedSubCategory)?.name || '') : ''}.`}
+                  ? t.content.allReposDesc
+                  : `${t.content.showingReposIn} ${translateCategory(currentCategoryObj?.name) || ''}${selectedSubCategory ? ' > ' + (translateSubCategory(currentCategoryObj?.subCategories?.find(s => s.id === selectedSubCategory)?.name) || '') : ''}.`}
               </p>
             </div>
-            <div className="flex items-center space-x-4 text-xs font-mono">
-              <div className="flex items-center space-x-1.5 text-slate-300 px-3 py-1 rounded-lg glass-panel text-[11px]">
-                <Folder className="w-3.5 h-3.5 text-indigo-400" />
-                <span>{categories.length} Kategori</span>
+
+            {/* View Switcher and Stats */}
+            <div className="flex items-center space-x-3">
+              {/* Mode Switcher: Grid View vs 3D Galaxy Graph */}
+              <div className="flex items-center space-x-1 p-1 rounded-xl bg-white/5 border border-white/10 text-xs font-medium">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('grid')}
+                  className={cn(
+                    "flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer",
+                    viewMode === 'grid'
+                      ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/25 font-semibold"
+                      : "text-slate-400 hover:text-white hover:bg-white/5"
+                  )}
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>Grid View</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('graph')}
+                  className={cn(
+                    "flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer",
+                    viewMode === 'graph'
+                      ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/25 font-semibold"
+                      : "text-slate-400 hover:text-white hover:bg-white/5"
+                  )}
+                >
+                  <Orbit className="w-3.5 h-3.5 text-purple-400" />
+                  <span className="flex items-center gap-1.5">
+                    <span>3D Galaxy Graph</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-ping" />
+                  </span>
+                </button>
               </div>
-              <div className="flex items-center space-x-1.5 text-slate-300 px-3 py-1 rounded-lg glass-panel text-[11px]">
-                <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                <span>{formatCompactNumber(totalStars)} Stars</span>
+
+              {/* Stats Badges */}
+              <div className="hidden sm:flex items-center space-x-2 text-xs font-mono">
+                <div className="flex items-center space-x-1.5 text-slate-300 px-3 py-1.5 rounded-lg glass-panel text-[11px]">
+                  <Folder className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>{categories.length} {t.content.categories}</span>
+                </div>
+                <div className="flex items-center space-x-1.5 text-slate-300 px-3 py-1.5 rounded-lg glass-panel text-[11px]">
+                  <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                  <span>{formatCompactNumber(totalStars)} {t.content.stars}</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Repository Cards Grid */}
-          {filteredAndSortedRepos.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" id="repoGrid">
-              {filteredAndSortedRepos.map(repo => (
-                <RepoCard
-                  key={repo.id}
-                  repo={repo}
-                  onClick={fullName => setActiveRepoModal(fullName)}
-                />
-              ))}
+          {/* Conditional View: 3D Galaxy Graph or Card Grid */}
+          {viewMode === 'graph' ? (
+            <div className="flex-1 min-h-[640px] w-full relative">
+              <GalaxyGraphView
+                categories={categories}
+                repositories={repositories}
+                onSelectRepo={fullName => setActiveRepoModal(fullName)}
+              />
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl glass-panel border border-white/10 space-y-4 my-8">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg shadow-indigo-500/10">
-                <Folder className="w-6 h-6" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-sm font-bold text-slate-100">Belum ada repositori di filter ini</h3>
-                <p className="text-xs text-slate-400 max-w-sm">
-                  Tambahkan repositori GitHub pertama ke dalam sub-kategori ini atau sesuaikan kata kunci pencarian.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsAddRepoOpen(true)}
-                className="pressable-btn flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-lg shadow-indigo-600/30 border border-indigo-400/30 transition-all cursor-pointer"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>Tambah Repository Sekarang</span>
-              </button>
-            </div>
+            <>
+              {/* Repository Cards Grid */}
+              {filteredAndSortedRepos.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" id="repoGrid">
+                  {filteredAndSortedRepos.map(repo => (
+                    <RepoCard
+                      key={repo.id}
+                      repo={repo}
+                      onClick={fullName => setActiveRepoModal(fullName)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl glass-panel border border-white/10 space-y-4 my-8">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg shadow-indigo-500/10">
+                    <Folder className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-bold text-slate-100">{t.content.emptyTitle}</h3>
+                    <p className="text-xs text-slate-400 max-w-sm">
+                      {t.content.emptyDesc}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddRepoOpen(true)}
+                    className="pressable-btn flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-lg shadow-indigo-600/30 border border-indigo-400/30 transition-all cursor-pointer"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    <span>{t.content.addFirstRepo}</span>
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>
@@ -453,6 +524,7 @@ export default function HomePage() {
       <AddRepoModal
         isOpen={isAddRepoOpen}
         categories={categories}
+        existingRepos={repositories}
         defaultCategoryId={selectedCategory !== 'all' ? selectedCategory : undefined}
         onClose={() => setIsAddRepoOpen(false)}
         onRepoAdded={(newRepo, createdSub, createdCat) => {
@@ -467,7 +539,7 @@ export default function HomePage() {
                   id: createdCat.id,
                   name: createdCat.name,
                   slug: createdCat.slug,
-                  icon: createdCat.icon || 'folder',
+                  icon: createdCat.icon && createdCat.icon !== 'folder' ? createdCat.icon : resolveCategoryIcon(createdCat.name),
                   description: createdCat.description || '',
                   subCategories: createdSub ? [{ id: createdSub.id, name: createdSub.name, slug: createdSub.slug }] : [],
                 },
@@ -513,6 +585,9 @@ export default function HomePage() {
           });
         }}
       />
+
+      {/* Floating Minimalist AI Library Advisor */}
+      <ChatbotWidget onOpenRepoDetail={(fullName) => setActiveRepoModal(fullName)} />
     </div>
   );
 }

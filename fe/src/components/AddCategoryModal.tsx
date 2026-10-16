@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 import { Category } from './Sidebar';
 import { createCategoryAction } from '@/app/actions';
+import { useLanguage } from '@/lib/i18n';
+import { resolveCategoryIcon, CategoryIcon } from '@/lib/category-icons';
 
 interface AddCategoryModalProps {
   isOpen: boolean;
@@ -16,6 +18,7 @@ export function AddCategoryModal({
   onClose,
   onCategoryAdded,
 }: AddCategoryModalProps) {
+  const { t, language } = useLanguage();
   const [name, setName] = useState('');
   const [subNamesText, setSubNamesText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,7 +28,7 @@ export function AddCategoryModal({
 
   const handleSubmit = async () => {
     if (!name.trim()) {
-      setError('Nama kategori utama tidak boleh kosong.');
+      setError(language === 'en' ? 'Primary category name cannot be empty.' : 'Nama kategori utama tidak boleh kosong.');
       return;
     }
 
@@ -43,7 +46,7 @@ export function AddCategoryModal({
         id: res?.category?.id || `cat-${Date.now()}`,
         name: name.trim(),
         slug: name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        icon: 'folder',
+        icon: res?.category?.icon || resolveCategoryIcon(name.trim()),
         subCategories: subList.map((s, idx) => ({
           id: `sub-${Date.now()}-${idx}`,
           name: s,
@@ -56,7 +59,7 @@ export function AddCategoryModal({
       setName('');
       setSubNamesText('');
     } catch (err: any) {
-      setError(err.message || 'Gagal menambahkan kategori.');
+      setError(err.message || (language === 'en' ? 'Failed to add category.' : 'Gagal menambahkan kategori.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -66,7 +69,7 @@ export function AddCategoryModal({
     <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
       <div className="glass-panel-elevated w-full max-w-md rounded-2xl p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between border-b border-white/10 pb-3">
-          <h3 className="text-sm font-bold text-slate-100">Tambah Custom Kategori</h3>
+          <h3 className="text-sm font-bold text-slate-100">{t.addCategoryModal.title}</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-200">
             <X className="w-4 h-4" />
           </button>
@@ -81,17 +84,24 @@ export function AddCategoryModal({
 
         <div className="space-y-3 text-xs">
           <div>
-            <label className="block font-medium text-slate-300 mb-1">Nama Kategori Utama</label>
-            <input 
-              type="text" 
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="Contoh: Audio AI, Robotics, Vision" 
-              className="w-full px-3 py-2 rounded-xl glass-input text-slate-100 focus:outline-none"
-            />
+            <label className="block font-medium text-slate-300 mb-1">{t.addCategoryModal.nameLabel}</label>
+            <div className="relative flex items-center">
+              <input 
+                type="text" 
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder={t.addCategoryModal.namePlaceholder} 
+                className="w-full px-3 py-2 pr-10 rounded-xl glass-input text-slate-100 focus:outline-none"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center" title="Icon Terdeteksi">
+                <CategoryIcon name={name || 'Category'} size="sm" />
+              </div>
+            </div>
           </div>
           <div>
-            <label className="block font-medium text-slate-300 mb-1">Sub-kategori Awal (Pisahkan dengan koma)</label>
+            <label className="block font-medium text-slate-300 mb-1">
+              {language === 'en' ? 'Initial Sub-categories (comma-separated)' : 'Sub-kategori Awal (Pisahkan dengan koma)'}
+            </label>
             <input 
               type="text" 
               value={subNamesText}
@@ -105,16 +115,16 @@ export function AddCategoryModal({
         <div className="flex items-center justify-end space-x-2 border-t border-white/10 pt-3">
           <button 
             onClick={onClose} 
-            className="px-4 py-1.5 rounded-xl text-xs text-slate-400 hover:text-slate-200"
+            className="px-4 py-1.5 rounded-xl text-xs text-slate-400 hover:text-slate-200 cursor-pointer"
           >
-            Batal
+            {t.addCategoryModal.cancelBtn}
           </button>
           <button 
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="px-4 py-1.5 rounded-xl text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/30 disabled:opacity-50"
+            className="px-4 py-1.5 rounded-xl text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/30 disabled:opacity-50 cursor-pointer"
           >
-            {isSubmitting ? 'Menambahkan...' : 'Tambah'}
+            {isSubmitting ? t.addCategoryModal.savingBtn : t.addCategoryModal.submitBtn}
           </button>
         </div>
       </div>

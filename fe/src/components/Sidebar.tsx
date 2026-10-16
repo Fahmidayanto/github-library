@@ -21,6 +21,8 @@ import {
   GripVertical
 } from 'lucide-react';
 import { cn, formatCompactNumber } from '@/lib/utils';
+import { useLanguage } from '@/lib/i18n';
+import { CategoryIcon } from '@/lib/category-icons';
 
 export interface SubCategory {
   id: string;
@@ -100,6 +102,7 @@ export function Sidebar({
   isCollapsed: propIsCollapsed,
   onToggleCollapse,
 }: SidebarProps) {
+  const { t, translateCategory, translateSubCategory } = useLanguage();
   const [internalCollapsed, setInternalCollapsed] = useState(false);
   const isCollapsed = propIsCollapsed !== undefined ? propIsCollapsed : internalCollapsed;
   const toggleCollapse = () => {
@@ -180,7 +183,7 @@ export function Sidebar({
       <div className="p-3 border-b border-white/10 shrink-0" id="quickFilterContainer">
         <button
           onClick={() => onSelectCategory('all', null)}
-          title="Semua Repositori"
+          title={t.sidebar.allCategories}
           className={cn(
             "w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition-all",
             selectedCategory === 'all'
@@ -190,7 +193,7 @@ export function Sidebar({
         >
           <div className="flex items-center space-x-2.5">
             <Layers className="w-4 h-4 shrink-0 text-indigo-400" />
-            <span className="sidebar-text">Semua Repositori</span>
+            <span className="sidebar-text">{t.sidebar.allCategories}</span>
           </div>
           <span className="sidebar-badge px-1.5 py-0.5 text-[10px] bg-indigo-500/30 rounded font-mono text-indigo-300">
             {totalCount}
@@ -204,19 +207,19 @@ export function Sidebar({
           <button
             key={cat.id}
             onClick={() => onSelectCategory(cat.id, null)}
-            title={cat.name}
+            title={translateCategory(cat.name)}
             className={cn(
               "w-10 h-10 rounded-xl hover:bg-white/10 flex items-center justify-center transition-colors",
               selectedCategory === cat.id ? "bg-white/10 border border-white/20" : ""
             )}
           >
-            {ICON_MAP_LARGE[cat.icon] || <Cpu className="w-5 h-5 text-indigo-400" />}
+            <CategoryIcon icon={cat.icon} name={cat.name} size="md" />
           </button>
         ))}
         <div className="w-6 h-[1px] bg-white/10 my-2" />
         <button
           onClick={onOpenAddCategory}
-          title="Tambah Kategori"
+          title={t.sidebar.addCategory}
           className="w-10 h-10 rounded-xl border border-dashed border-slate-700 hover:border-indigo-500 text-slate-400 hover:text-indigo-400 flex items-center justify-center transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -243,10 +246,10 @@ export function Sidebar({
                   type="button"
                   onClick={() => onSelectCategory(cat.id, null)}
                   className="flex items-center space-x-2 truncate min-w-0 flex-1 py-1 text-left cursor-pointer"
-                  title={`Filter: ${cat.name}`}
+                  title={`Filter: ${translateCategory(cat.name)}`}
                 >
-                  {ICON_MAP[cat.icon] || <Cpu className="w-4 h-4 text-indigo-400 shrink-0" />}
-                  <span className="truncate">{cat.name}</span>
+                  <CategoryIcon icon={cat.icon} name={cat.name} size="sm" />
+                  <span className="truncate">{translateCategory(cat.name)}</span>
                 </button>
 
                 {/* Area Kanan: Badge Jumlah & Tombol Dropdown Accordion */}
@@ -341,7 +344,7 @@ export function Sidebar({
                               onClick={() => onSelectCategory(cat.id, sub.id)}
                               className="flex-1 text-left truncate cursor-pointer py-0.5"
                             >
-                              <span className="truncate">{sub.name}</span>
+                              <span className="truncate">{translateSubCategory(sub.name)}</span>
                             </button>
                           </div>
 
@@ -500,7 +503,7 @@ export function Sidebar({
           className="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-lg border border-dashed border-slate-700 hover:border-indigo-500 text-slate-400 hover:text-indigo-400 text-xs font-medium transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>Tambah Kategori Baru</span>
+          <span>{t.sidebar.addCategory}</span>
         </button>
       </div>
 
@@ -520,8 +523,8 @@ export function Sidebar({
                   <Pencil className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-white">Edit Sub-kategori</h3>
-                  <p className="text-[11px] text-slate-400">Ubah nama sub-kategori terpilih</p>
+                  <h3 className="text-sm font-semibold text-white">{t.sidebar.editSubTitle}</h3>
+                  <p className="text-[11px] text-slate-400">{t.sidebar.editSubSubtitle}</p>
                 </div>
               </div>
               <button
@@ -534,7 +537,7 @@ export function Sidebar({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-300">Nama Sub-kategori</label>
+              <label className="text-xs font-medium text-slate-300">{t.sidebar.subNameLabel}</label>
               <input
                 type="text"
                 value={editNameInput}
@@ -550,7 +553,7 @@ export function Sidebar({
                 }}
                 autoFocus
                 className="w-full px-3 py-2 rounded-xl glass-input text-xs text-white placeholder-slate-400 focus:outline-none"
-                placeholder="Nama sub-kategori..."
+                placeholder="Name..."
               />
             </div>
 
@@ -560,7 +563,7 @@ export function Sidebar({
                 onClick={() => setEditModalData(null)}
                 className="px-3 py-1.5 rounded-xl text-xs text-slate-300 hover:bg-white/10 transition-colors cursor-pointer"
               >
-                Batal
+                {t.sidebar.cancel}
               </button>
               <button
                 type="button"
@@ -574,7 +577,7 @@ export function Sidebar({
                 className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 hover:opacity-90 text-white text-xs font-semibold shadow-lg shadow-sky-500/25 transition-all flex items-center space-x-1.5 disabled:opacity-50 cursor-pointer"
               >
                 <Check className="w-3.5 h-3.5" />
-                <span>Simpan</span>
+                <span>{t.sidebar.save}</span>
               </button>
             </div>
           </div>
@@ -597,8 +600,8 @@ export function Sidebar({
                   <Trash2 className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-white">Hapus Sub-kategori</h3>
-                  <p className="text-[11px] text-slate-400">Konfirmasi tindakan penghapusan</p>
+                  <h3 className="text-sm font-semibold text-white">{t.sidebar.deleteSubTitle}</h3>
+                  <p className="text-[11px] text-slate-400">Confirmation</p>
                 </div>
               </div>
               <button
@@ -611,7 +614,7 @@ export function Sidebar({
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed">
-              Apakah Anda yakin ingin menghapus sub-kategori <span className="font-semibold text-white">"{deleteModalData.name}"</span>?
+              {t.sidebar.deleteSubConfirm} <span className="font-semibold text-white">"{translateSubCategory(deleteModalData.name)}"</span>?
             </p>
 
             <div className="flex items-center justify-end space-x-2 pt-2">
@@ -620,7 +623,7 @@ export function Sidebar({
                 onClick={() => setDeleteModalData(null)}
                 className="px-3 py-1.5 rounded-xl text-xs text-slate-300 hover:bg-white/10 transition-colors cursor-pointer"
               >
-                Batal
+                {t.sidebar.cancel}
               </button>
               <button
                 type="button"
@@ -633,7 +636,7 @@ export function Sidebar({
                 className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-lg shadow-rose-600/30 transition-all flex items-center space-x-1.5 cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>Hapus Sekarang</span>
+                <span>{t.sidebar.deleteNow}</span>
               </button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   X, 
   Plus, 
@@ -17,11 +17,13 @@ import { cn, formatCompactNumber, parseGitHubUrl } from '@/lib/utils';
 import { Category } from './Sidebar';
 import { RepoCardData } from './RepoCard';
 import { createRepositoryAction } from '@/app/actions';
-
+import { useLanguage, translateCategory, translateSubCategory } from '@/lib/i18n';
+import { CategoryIcon, resolveCategoryIcon } from '@/lib/category-icons';
 
 interface AddRepoModalProps {
   isOpen: boolean;
   categories: Category[];
+  existingRepos?: RepoCardData[];
   defaultCategoryId?: string;
   onClose: () => void;
   onRepoAdded: (
@@ -49,15 +51,52 @@ interface RepoPreviewData {
 export function AddRepoModal({
   isOpen,
   categories,
+  existingRepos,
   defaultCategoryId,
   onClose,
   onRepoAdded,
 }: AddRepoModalProps) {
+  const { t, language } = useLanguage();
   const [url, setUrl] = useState('');
   const [isFetching, setIsFetching] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<RepoPreviewData | null>(null);
   const [repoName, setRepoName] = useState('');
+
+  // Deteksi duplikasi repositori secara realtime
+  const duplicateRepo = useMemo(() => {
+    if (!existingRepos || existingRepos.length === 0 || !url.trim()) return null;
+    const cleanInputUrl = url.trim().toLowerCase().replace(/\/+$/, '').replace(/\.git$/, '');
+    const parsed = parseGitHubUrl(url);
+
+    return existingRepos.find(r => {
+      // 1. Cek exact match githubUrl
+      const rUrl = (r.githubUrl || '').trim().toLowerCase().replace(/\/+$/, '').replace(/\.git$/, '');
+      if (cleanInputUrl && rUrl === cleanInputUrl) return true;
+
+      // 2. Cek owner/repo jika input URL valid
+      if (parsed) {
+        const rParsed = parseGitHubUrl(r.githubUrl || '');
+        if (rParsed && rParsed.owner.toLowerCase() === parsed.owner.toLowerCase() && rParsed.repo.toLowerCase() === parsed.repo.toLowerCase()) {
+          return true;
+        }
+        if (r.owner?.toLowerCase() === parsed.owner.toLowerCase() && r.name?.toLowerCase() === parsed.repo.toLowerCase()) {
+          return true;
+        }
+        if (r.fullName?.toLowerCase() === `${parsed.owner}/${parsed.repo}`.toLowerCase()) {
+          return true;
+        }
+      }
+
+      // 3. Cek previewData jika metadata GitHub sudah ditarik
+      if (previewData) {
+        if (r.fullName?.toLowerCase() === previewData.fullName.toLowerCase()) return true;
+        if (r.owner?.toLowerCase() === previewData.owner.toLowerCase() && r.name?.toLowerCase() === previewData.name.toLowerCase()) return true;
+      }
+
+      return false;
+    }) || null;
+  }, [url, existingRepos, previewData]);
 
   const [selectedCatId, setSelectedCatId] = useState<string>(categories[0]?.id || 'cat-5');
   const [customCatName, setCustomCatName] = useState<string>('');
@@ -317,6 +356,11 @@ function generateClientHeuristicSuggestion(
       return;
     }
 
+    if (duplicateRepo) {
+      setFetchError(language === 'en' ? 'This repository is already in your library.' : 'Repositori ini sudah terdaftar di dalam library.');
+      return;
+    }
+
     if (selectedCatId === 'create_new' && !customCatName.trim()) {
       setFetchError('Nama kategori utama baru wajib diisi.');
       return;
@@ -395,14 +439,22 @@ function generateClientHeuristicSuggestion(
     };
 
     try {
+      const resolvedCatIcon = selectedCatId === 'create_new' ? resolveCategoryIcon(customCatName.trim()) : undefined;
       const saveRes = await createRepositoryAction({
         ...newRepoItem,
+        icon: resolvedCatIcon,
         customCategoryName: selectedCatId === 'create_new' ? customCatName.trim() : undefined,
         subCategoryName: selectedSubId === 'create_new' ? customSubName.trim() : undefined,
         notes: notes.trim(),
         license: finalPreview.license,
         homepage: finalPreview.homepage,
       });
+
+      if (!saveRes?.success) {
+        setFetchError(saveRes?.message || 'Gagal menyimpan repositori.');
+        setIsSaving(false);
+        return;
+      }
 
       const createdCat = saveRes?.createdCategory;
       const createdSub = saveRes?.createdSubCategory
@@ -460,8 +512,8 @@ function generateClientHeuristicSuggestion(
               <Plus className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-100">Tambah Repository Baru</h3>
-              <p className="text-[11px] text-slate-400">Paste link GitHub untuk auto-fetch detail</p>
+              <h3 className="text-sm font-bold text-slate-100">{t.addRepoModal.title}</h3>
+              <p className="text-[11px] text-slate-400">{t.addRepoModal.subtitle}</p>
             </div>
           </div>
           <button 
@@ -477,7 +529,7 @@ function generateClientHeuristicSuggestion(
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 text-xs premium-scrollbar">
           {/* URL Input & Auto-fetch Button */}
           <div>
-            <label className="block font-medium text-slate-300 mb-1">GitHub URL</label>
+            <label className="block font-medium text-slate-300 mb-1">{t.addRepoModal.urlLabel}</label>
             <div className="flex space-x-2">
               <input 
                 type="url" 
@@ -519,24 +571,49 @@ function generateClientHeuristicSuggestion(
                 {isFetching ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
-                    <span>Fetching...</span>
+                    <span>{t.addRepoModal.fetchingBtn}</span>
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Auto Fetch</span>
+                    <span>{t.addRepoModal.autoFetchBtn}</span>
                   </>
                 )}
               </button>
             </div>
+
+            {/* Peringatan Duplikasi Repositori */}
+            {duplicateRepo && (
+              <div className="mt-2.5 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 space-y-1 animate-in fade-in duration-150">
+                <div className="flex items-center space-x-2 font-semibold text-xs text-amber-200">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+                  <span>{t.addRepoModal.duplicateWarning}</span>
+                </div>
+                <p className="text-[11px] text-amber-300/80 pl-6 leading-relaxed">
+                  {language === 'en' ? (
+                    <>
+                      <strong>{duplicateRepo.fullName || duplicateRepo.name}</strong> is already in your library under category{' '}
+                      <span className="text-amber-200 font-medium">{duplicateRepo.categoryName}</span>
+                      {duplicateRepo.subCategoryName ? ` > ${duplicateRepo.subCategoryName}` : ''}.
+                    </>
+                  ) : (
+                    <>
+                      <strong>{duplicateRepo.fullName || duplicateRepo.name}</strong> sudah tersimpan di kategori{' '}
+                      <span className="text-amber-200 font-medium">{duplicateRepo.categoryName}</span>
+                      {duplicateRepo.subCategoryName ? ` > ${duplicateRepo.subCategoryName}` : ''}.
+                    </>
+                  )}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Form Nama Repository (Auto-detect dari GitHub & Bisa diedit langsung) */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="font-medium text-slate-300">Nama Repository</label>
+              <label className="font-medium text-slate-300">{t.addRepoModal.repoNameLabel}</label>
               <span className="text-[10px] text-indigo-400 font-mono">
-                Auto-sync GitHub • Bisa diedit
+                {language === 'en' ? 'Auto-sync GitHub • Editable' : 'Auto-sync GitHub • Bisa diedit'}
               </span>
             </div>
             <div className="relative">
@@ -544,19 +621,21 @@ function generateClientHeuristicSuggestion(
                 type="text" 
                 value={repoName}
                 onChange={e => setRepoName(e.target.value)}
-                placeholder="Contoh: superpowers (otomatis terisi saat URL dimasukkan)" 
+                placeholder={language === 'en' ? 'E.g. superpowers (auto-filled on URL paste)' : 'Contoh: superpowers (otomatis terisi saat URL dimasukkan)'} 
                 className="w-full px-3 py-2 rounded-xl glass-input text-slate-100 placeholder-slate-500 focus:outline-none font-medium text-xs border border-white/10 focus:border-indigo-500/50 transition-all"
               />
               {repoName && (
                 <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center space-x-1 pointer-events-none">
                   <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                    Nama Aktif
+                    {language === 'en' ? 'Active Name' : 'Nama Aktif'}
                   </span>
                 </div>
               )}
             </div>
             <p className="text-[10px] text-slate-400 mt-1">
-              Nama ini akan ditampilkan sebagai judul kartu dan nama di menu sidebar sub-group.
+              {language === 'en'
+                ? 'This name will be displayed as the card title and sidebar sub-group name.'
+                : 'Nama ini akan ditampilkan sebagai judul kartu dan nama di menu sidebar sub-group.'}
             </p>
           </div>
 
@@ -579,12 +658,12 @@ function generateClientHeuristicSuggestion(
                 {previewData.isFallback ? (
                   <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded flex items-center space-x-1">
                     <Sparkles className="w-3 h-3" />
-                    <span>Mode Dasar (Offline/Rate-Limit)</span>
+                    <span>{language === 'en' ? 'Basic Mode (Offline/Rate-Limit)' : 'Mode Dasar (Offline/Rate-Limit)'}</span>
                   </span>
                 ) : (
                   <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded flex items-center space-x-1">
                     <Check className="w-3 h-3" />
-                    <span>Metadata Terverifikasi</span>
+                    <span>{language === 'en' ? 'Verified Metadata' : 'Metadata Terverifikasi'}</span>
                   </span>
                 )}
               </div>
@@ -609,12 +688,12 @@ function generateClientHeuristicSuggestion(
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-1.5 text-indigo-300 font-semibold text-xs">
                   <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-                  <span>Rekomendasi Klasifikasi AI</span>
+                  <span>{t.addRepoModal.aiSuggestionTitle}</span>
                 </div>
                 {isSuggesting ? (
                   <span className="flex items-center space-x-1 text-[10px] text-indigo-300 font-mono">
                     <Loader2 className="w-3 h-3 animate-spin" />
-                    <span>Menganalisis repositori...</span>
+                    <span>{t.addRepoModal.analyzingRepo}</span>
                   </span>
                 ) : (
                   <span className={cn(
@@ -623,9 +702,9 @@ function generateClientHeuristicSuggestion(
                     aiSuggestion?.scenario === 'existing_group_new_sub' && "bg-sky-500/10 border-sky-500/30 text-sky-400",
                     aiSuggestion?.scenario === 'new_all' && "bg-purple-500/10 border-purple-500/30 text-purple-400"
                   )}>
-                    {aiSuggestion?.scenario === 'existing_all' && 'Grup & Sub-Grup Sesuai'}
-                    {aiSuggestion?.scenario === 'existing_group_new_sub' && 'Grup Ada + Buat Sub-Grup Baru'}
-                    {aiSuggestion?.scenario === 'new_all' && 'Buat Grup & Sub-Grup Baru'}
+                    {aiSuggestion?.scenario === 'existing_all' && (language === 'en' ? 'Category & Subcategory Match' : 'Grup & Sub-Grup Sesuai')}
+                    {aiSuggestion?.scenario === 'existing_group_new_sub' && (language === 'en' ? 'Existing Category + New Subcategory' : 'Grup Ada + Buat Sub-Grup Baru')}
+                    {aiSuggestion?.scenario === 'new_all' && (language === 'en' ? 'Create New Category & Subcategory' : 'Buat Grup & Sub-Grup Baru')}
                   </span>
                 )}
               </div>
@@ -634,21 +713,25 @@ function generateClientHeuristicSuggestion(
                 <>
                   <div className="grid grid-cols-2 gap-2 text-[11px] bg-black/30 p-2.5 rounded-lg border border-white/5">
                     <div>
-                      <span className="text-[10px] text-slate-400 block mb-0.5">Kategori Utama:</span>
+                      <span className="text-[10px] text-slate-400 block mb-0.5">
+                        {language === 'en' ? 'Primary Category:' : 'Kategori Utama:'}
+                      </span>
                       <span className="font-semibold text-slate-200">
-                        {aiSuggestion.categoryName}
+                        {translateCategory(aiSuggestion.categoryName, language)}
                       </span>
                       <span className="text-[9px] text-indigo-400 ml-1.5 font-mono">
-                        {aiSuggestion.scenario === 'new_all' ? '(Baru)' : '(Existing)'}
+                        {aiSuggestion.scenario === 'new_all' ? (language === 'en' ? '(New)' : '(Baru)') : '(Existing)'}
                       </span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 block mb-0.5">Sub-Kategori:</span>
+                      <span className="text-[10px] text-slate-400 block mb-0.5">
+                        {language === 'en' ? 'Sub-Category:' : 'Sub-Kategori:'}
+                      </span>
                       <span className="font-semibold text-slate-200">
-                        {aiSuggestion.subCategoryName}
+                        {translateSubCategory(aiSuggestion.subCategoryName, language)}
                       </span>
                       <span className="text-[9px] text-indigo-400 ml-1.5 font-mono">
-                        {aiSuggestion.scenario === 'existing_all' ? '(Existing)' : '(Baru)'}
+                        {aiSuggestion.scenario === 'existing_all' ? '(Existing)' : (language === 'en' ? '(New)' : '(Baru)')}
                       </span>
                     </div>
                   </div>
@@ -662,7 +745,13 @@ function generateClientHeuristicSuggestion(
                   {aiSuggestion.isFallback && (
                     <div className="flex items-center space-x-1.5 text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg">
                       <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
-                      <span>Mode Cepat (Heuristik) • Pasang <code className="text-amber-200 font-mono">GROQ_API_KEY</code> di Vercel untuk reasoning AI penuh</span>
+                      <span>
+                        {language === 'en' ? (
+                          <>Fast Mode (Heuristics) • Set <code className="text-amber-200 font-mono">GROQ_API_KEY</code> on Vercel for full AI reasoning</>
+                        ) : (
+                          <>Mode Cepat (Heuristik) • Pasang <code className="text-amber-200 font-mono">GROQ_API_KEY</code> di Vercel untuk reasoning AI penuh</>
+                        )}
+                      </span>
                     </div>
                   )}
 
@@ -680,12 +769,12 @@ function generateClientHeuristicSuggestion(
                       {isSuggestionApplied ? (
                         <>
                           <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>Rekomendasi Diterapkan</span>
+                          <span>{t.addRepoModal.suggestionApplied}</span>
                         </>
                       ) : (
                         <>
                           <Sparkles className="w-3.5 h-3.5" />
-                          <span>Terapkan Rekomendasi</span>
+                          <span>{t.addRepoModal.applySuggestion}</span>
                         </>
                       )}
                     </button>
@@ -700,7 +789,7 @@ function generateClientHeuristicSuggestion(
             <div className="grid grid-cols-2 gap-3">
               {/* Custom Glass Dropdown: Kategori Utama */}
               <div className="relative custom-category-dropdown">
-                <label className="block font-medium text-slate-300 mb-1">Kategori Utama</label>
+                <label className="block font-medium text-slate-300 mb-1">{t.addRepoModal.primaryCatLabel}</label>
                 <button
                   type="button"
                   onClick={() => {
@@ -709,11 +798,18 @@ function generateClientHeuristicSuggestion(
                   }}
                   className="w-full px-3 py-2 rounded-xl glass-input text-slate-200 focus:outline-none flex items-center justify-between text-left cursor-pointer border border-white/10 hover:border-white/20 transition-all"
                 >
-                  <span className="truncate">
-                    {selectedCatId === 'create_new'
-                      ? (customCatName.trim() ? customCatName.trim() : '+ Buat Kategori Baru...')
-                      : (currentCat?.name || 'Pilih Kategori')}
-                  </span>
+                  <div className="flex items-center space-x-2 truncate min-w-0">
+                    <CategoryIcon
+                      icon={selectedCatId === 'create_new' ? undefined : currentCat?.icon}
+                      name={selectedCatId === 'create_new' ? customCatName : currentCat?.name}
+                      size="sm"
+                    />
+                    <span className="truncate">
+                      {selectedCatId === 'create_new'
+                        ? (customCatName.trim() ? customCatName.trim() : t.addRepoModal.createNewCat)
+                        : (translateCategory(currentCat?.name, language) || (language === 'en' ? 'Select Category' : 'Pilih Kategori'))}
+                    </span>
+                  </div>
                   <ChevronDown
                     className={cn(
                       "w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0",
@@ -725,7 +821,7 @@ function generateClientHeuristicSuggestion(
                 {isCatDropdownOpen && (
                   <div className="absolute left-0 right-0 top-full mt-1.5 rounded-2xl glass-dropdown-surface p-1.5 shadow-2xl z-50 border border-white/10 dropdown-airfall max-h-56 overflow-y-auto space-y-0.5">
                     <div className="px-2.5 py-1 text-[10px] font-mono tracking-wider uppercase text-slate-400 border-b border-white/10 mb-1">
-                      Kategori Utama
+                      {t.addRepoModal.primaryCatLabel}
                     </div>
                     {categories.map(cat => (
                       <button
@@ -743,7 +839,10 @@ function generateClientHeuristicSuggestion(
                           selectedCatId === cat.id && "bg-white/10 font-semibold text-white"
                         )}
                       >
-                        <span className="truncate">{cat.name}</span>
+                        <div className="flex items-center space-x-2 truncate min-w-0">
+                          <CategoryIcon icon={cat.icon} name={cat.name} size="sm" />
+                          <span className="truncate">{translateCategory(cat.name, language)}</span>
+                        </div>
                         {selectedCatId === cat.id && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-1.5" />}
                       </button>
                     ))}
@@ -762,7 +861,7 @@ function generateClientHeuristicSuggestion(
                         selectedCatId === 'create_new' && "bg-indigo-500/20 text-white"
                       )}
                     >
-                      <span className="truncate">+ Buat Kategori Baru...</span>
+                      <span className="truncate">{t.addRepoModal.createNewCat}</span>
                       {selectedCatId === 'create_new' && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-1.5" />}
                     </button>
                   </div>
@@ -771,7 +870,7 @@ function generateClientHeuristicSuggestion(
 
               {/* Custom Glass Dropdown: Sub Kategori */}
               <div className="relative custom-category-dropdown">
-                <label className="block font-medium text-slate-300 mb-1">Sub Kategori</label>
+                <label className="block font-medium text-slate-300 mb-1">{t.addRepoModal.subCatLabel}</label>
                 <button
                   type="button"
                   onClick={() => {
@@ -782,10 +881,10 @@ function generateClientHeuristicSuggestion(
                 >
                   <span className="truncate">
                     {selectedSubId === 'create_new'
-                      ? (customSubName.trim() ? customSubName.trim() : '+ Buat Sub-kategori Baru...')
+                      ? (customSubName.trim() ? customSubName.trim() : t.addRepoModal.createNewSub)
                       : selectedSubId === 'none'
-                      ? '-- Tanpa Sub-kategori --'
-                      : (currentCat?.subCategories?.find(s => s.id === selectedSubId)?.name || '-- Tanpa Sub-kategori --')}
+                      ? `-- ${t.addRepoModal.noSubCategory} --`
+                      : (translateSubCategory(currentCat?.subCategories?.find(s => s.id === selectedSubId)?.name, language) || `-- ${t.addRepoModal.noSubCategory} --`)}
                   </span>
                   <ChevronDown
                     className={cn(
@@ -798,7 +897,7 @@ function generateClientHeuristicSuggestion(
                 {isSubDropdownOpen && (
                   <div className="absolute left-0 right-0 top-full mt-1.5 rounded-2xl glass-dropdown-surface p-1.5 shadow-2xl z-50 border border-white/10 dropdown-airfall max-h-56 overflow-y-auto space-y-0.5">
                     <div className="px-2.5 py-1 text-[10px] font-mono tracking-wider uppercase text-slate-400 border-b border-white/10 mb-1">
-                      Sub-Kategori
+                      {t.addRepoModal.subCatLabel}
                     </div>
                     <button
                       type="button"
@@ -812,7 +911,7 @@ function generateClientHeuristicSuggestion(
                         selectedSubId === 'none' && "bg-white/10 font-semibold text-white"
                       )}
                     >
-                      <span className="truncate">-- Tanpa Sub-kategori --</span>
+                      <span className="truncate">-- {t.addRepoModal.noSubCategory} --</span>
                       {selectedSubId === 'none' && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-1.5" />}
                     </button>
 
@@ -830,7 +929,7 @@ function generateClientHeuristicSuggestion(
                           selectedSubId === sub.id && "bg-white/10 font-semibold text-white"
                         )}
                       >
-                        <span className="truncate">{sub.name}</span>
+                        <span className="truncate">{translateSubCategory(sub.name, language)}</span>
                         {selectedSubId === sub.id && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-1.5" />}
                       </button>
                     ))}
@@ -848,7 +947,7 @@ function generateClientHeuristicSuggestion(
                         selectedSubId === 'create_new' && "bg-indigo-500/20 text-white"
                       )}
                     >
-                      <span className="truncate">+ Buat Sub-kategori Baru...</span>
+                      <span className="truncate">{t.addRepoModal.createNewSub}</span>
                       {selectedSubId === 'create_new' && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-1.5" />}
                     </button>
                   </div>
@@ -859,44 +958,61 @@ function generateClientHeuristicSuggestion(
             {/* Input Nama Kategori Utama Baru */}
             {selectedCatId === 'create_new' && (
               <div className="p-3 bg-purple-500/10 border border-purple-500/25 rounded-xl space-y-1.5 animate-in fade-in duration-150">
-                <label className="block font-medium text-purple-300 text-[11px]">Nama Kategori Utama Baru</label>
-                <input 
-                  type="text" 
-                  value={customCatName}
-                  onChange={e => setCustomCatName(e.target.value)}
-                  placeholder="Contoh: AI Frameworks & Tools, Data Engineering" 
-                  className="w-full px-3 py-1.5 rounded-lg glass-input text-slate-200 focus:outline-none font-medium text-xs border border-purple-400/40"
-                  autoFocus
-                />
-                <p className="text-[10px] text-slate-400">Kategori utama baru ini akan otomatis dibuat dan langsung muncul di menu Sidebar.</p>
+                <label className="block font-medium text-purple-300 text-[11px]">
+                  {language === 'en' ? 'New Primary Category Name' : 'Nama Kategori Utama Baru'}
+                </label>
+                <div className="relative flex items-center">
+                  <input 
+                    type="text" 
+                    value={customCatName}
+                    onChange={e => setCustomCatName(e.target.value)}
+                    placeholder={language === 'en' ? 'E.g. AI Frameworks & Tools, Data Engineering' : 'Contoh: AI Frameworks & Tools, Data Engineering'} 
+                    className="w-full px-3 py-1.5 pr-9 rounded-lg glass-input text-slate-200 focus:outline-none font-medium text-xs border border-purple-400/40"
+                    autoFocus
+                  />
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none flex items-center" title="Icon Terdeteksi">
+                    <CategoryIcon name={customCatName || 'Category'} size="sm" />
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  {language === 'en'
+                    ? 'This new category will be created and displayed in the Sidebar.'
+                    : 'Kategori utama baru ini akan otomatis dibuat dan langsung muncul di menu Sidebar.'}
+                </p>
               </div>
             )}
 
             {/* Input Nama Sub-kategori Baru */}
             {selectedSubId === 'create_new' && (
               <div className="p-3 bg-indigo-500/10 border border-indigo-500/25 rounded-xl space-y-1.5 animate-in fade-in duration-150">
-                <label className="block font-medium text-indigo-300 text-[11px]">Nama Sub-kategori Baru</label>
+                <label className="block font-medium text-indigo-300 text-[11px]">
+                  {language === 'en' ? 'New Sub-Category Name' : 'Nama Sub-kategori Baru'}
+                </label>
                 <input 
                   type="text" 
                   value={customSubName}
                   onChange={e => setCustomSubName(e.target.value)}
-                  placeholder="Contoh: Prompt Optimization, Code Reviewers, Token Analytics" 
+                  placeholder={language === 'en' ? 'E.g. Prompt Optimization, Code Reviewers' : 'Contoh: Prompt Optimization, Code Reviewers, Token Analytics'} 
                   className="w-full px-3 py-1.5 rounded-lg glass-input text-slate-200 focus:outline-none font-medium text-xs border border-indigo-400/40"
                   autoFocus={selectedCatId !== 'create_new'}
                 />
-                <p className="text-[10px] text-slate-400">Sub-kategori ini akan otomatis dibuat dan langsung muncul di menu Sidebar.</p>
+                <p className="text-[10px] text-slate-400">
+                  {language === 'en'
+                    ? 'This new sub-category will be created and displayed in the Sidebar.'
+                    : 'Sub-kategori ini akan otomatis dibuat dan langsung muncul di menu Sidebar.'}
+                </p>
               </div>
             )}
           </div>
 
           {/* Custom Notes */}
           <div>
-            <label className="block font-medium text-slate-300 mb-1">Catatan Pribadi (Opsional)</label>
+            <label className="block font-medium text-slate-300 mb-1">{t.addRepoModal.notesLabel}</label>
             <textarea 
               rows={2} 
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              placeholder="Alasan menyimpan atau usecase repo ini..." 
+              placeholder={t.addRepoModal.notesPlaceholder} 
               className="w-full px-3 py-2 rounded-xl glass-input text-slate-200 focus:outline-none text-xs"
             />
           </div>
@@ -909,21 +1025,31 @@ function generateClientHeuristicSuggestion(
             onClick={onClose} 
             className="px-4 py-2 rounded-xl text-xs text-slate-400 hover:text-slate-200 cursor-pointer transition-colors"
           >
-            Batal
+            {t.addRepoModal.cancelBtn}
           </button>
           <button 
             type="button"
             onClick={handleSave}
-            disabled={isSaving || !url.trim()}
-            className="px-4 py-2 rounded-xl text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/30 border border-indigo-400/30 active:scale-95 transition-all disabled:opacity-50 flex items-center space-x-1.5 cursor-pointer"
+            disabled={isSaving || !url.trim() || !!duplicateRepo}
+            className={cn(
+              "px-4 py-2 rounded-xl text-xs font-semibold shadow-lg transition-all flex items-center space-x-1.5 cursor-pointer",
+              duplicateRepo
+                ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 cursor-not-allowed opacity-90"
+                : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30 border border-indigo-400/30 active:scale-95 disabled:opacity-50"
+            )}
           >
             {isSaving ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Menyimpan...</span>
+                <span>{t.addRepoModal.savingBtn}</span>
+              </>
+            ) : duplicateRepo ? (
+              <>
+                <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
+                <span>{t.addRepoModal.alreadyInLibraryBtn}</span>
               </>
             ) : (
-              <span>Simpan ke Library</span>
+              <span>{t.addRepoModal.submitBtn}</span>
             )}
           </button>
         </div>

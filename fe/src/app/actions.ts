@@ -5,8 +5,9 @@ import fs from 'fs';
 import path from 'path';
 import { db, isDbConfigured } from '@/db';
 import { categories, subCategories, repositories } from '@/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, sql, or } from 'drizzle-orm';
 import { getOrGenerateSummary } from '@/lib/ai-summarizer';
+import { resolveCategoryIcon } from '@/lib/category-icons';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000';
 
@@ -307,8 +308,29 @@ export async function getRepositories(filter?: { categoryId?: string; subCategor
 }
 
 export async function createRepositoryAction(data: any) {
+  const targetUrl = (data.githubUrl || '').trim().toLowerCase().replace(/\/+$/, '').replace(/\.git$/, '');
+  const targetFullName = (data.fullName || `${data.owner}/${data.name}` || '').trim().toLowerCase();
+
   if (db && isDbConfigured) {
     try {
+      // 1. Cek apakah repositori sudah ada di Database
+      const existingInDb = await db.query.repositories.findFirst({
+        where: (r, { or, sql }) =>
+          or(
+            sql`lower(regexp_replace(regexp_replace(${r.githubUrl}, '/+$', ''), '\\.git$', '')) = ${targetUrl}`,
+            sql`lower(${r.fullName}) = ${targetFullName}`
+          ),
+      });
+
+      if (existingInDb) {
+        return {
+          success: false,
+          error: 'duplicate',
+          message: `Repositori "${data.fullName || data.name}" sudah terdaftar di library.`,
+          repository: existingInDb,
+        };
+      }
+
       let categoryId = data.categoryId;
       let categoryName = data.categoryName || '';
       let subCategoryId = data.subCategoryId;
@@ -318,10 +340,11 @@ export async function createRepositoryAction(data: any) {
       if ((categoryId === 'create_new' || !categoryId) && data.customCategoryName?.trim()) {
         const cleanCat = data.customCategoryName.trim();
         const catSlug = cleanCat.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        const resolvedIcon = resolveCategoryIcon(cleanCat, data.icon);
         const [newCat] = await db.insert(categories).values({
           name: cleanCat,
           slug: catSlug,
-          icon: 'folder',
+          icon: resolvedIcon,
         }).returning();
         if (newCat) {
           categoryId = newCat.id;
@@ -364,7 +387,14 @@ export async function createRepositoryAction(data: any) {
 
       revalidatePath('/');
       return { success: true, repository: newRepo, createdCategory, createdSubCategory };
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.code === '23505' || err?.message?.includes('duplicate key') || err?.message?.includes('unique constraint')) {
+        return {
+          success: false,
+          error: 'duplicate',
+          message: `Repositori "${data.fullName || data.name}" sudah terdaftar di library.`,
+        };
+      }
       console.warn('Gagal insert repo ke DB, beralih ke fallback:', err);
     }
   }
@@ -375,6 +405,16 @@ export async function createRepositoryAction(data: any) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
+    if (res.status === 409 || !res.ok) {
+      const json = await res.json().catch(() => ({}));
+      if (res.status === 409 || json.error === 'duplicate') {
+        return {
+          success: false,
+          error: 'duplicate',
+          message: json.message || `Repositori "${data.fullName || data.name}" sudah terdaftar di library.`,
+        };
+      }
+    }
     if (res.ok) {
       const json = await res.json();
       revalidatePath('/');
@@ -386,6 +426,20 @@ export async function createRepositoryAction(data: any) {
 
   // Fallback disk store
   const store = loadLocalStore();
+  const isDuplicateInStore = store.repositories.some((r: any) => {
+    const rUrl = (r.githubUrl || '').trim().toLowerCase().replace(/\/+$/, '').replace(/\.git$/, '');
+    const rFullName = (r.fullName || `${r.owner}/${r.name}` || '').trim().toLowerCase();
+    return (targetUrl && rUrl === targetUrl) || (targetFullName && rFullName === targetFullName);
+  });
+
+  if (isDuplicateInStore) {
+    return {
+      success: false,
+      error: 'duplicate',
+      message: `Repositori "${data.fullName || data.name}" sudah terdaftar di library.`,
+    };
+  }
+
   let categoryId = data.categoryId;
   let categoryName = data.categoryName || '';
   let subCategoryId = data.subCategoryId;
@@ -395,11 +449,12 @@ export async function createRepositoryAction(data: any) {
 
   if ((categoryId === 'create_new' || !categoryId) && data.customCategoryName?.trim()) {
     const cleanCat = data.customCategoryName.trim();
+    const resolvedIcon = resolveCategoryIcon(cleanCat, data.icon);
     const newCat = {
       id: `cat-${Date.now()}`,
       name: cleanCat,
       slug: cleanCat.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      icon: 'folder',
+      icon: resolvedIcon,
       description: '',
       subCategories: [],
     };
@@ -457,10 +512,11 @@ export async function createCategoryAction(name: string, subCategoryNames: strin
   if (db && isDbConfigured) {
     try {
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const resolvedIcon = resolveCategoryIcon(name);
       const [newCat] = await db.insert(categories).values({
         name,
         slug,
-        icon: 'folder',
+        icon: resolvedIcon,
       }).returning();
 
       const createdSubs: any[] = [];
@@ -499,11 +555,12 @@ export async function createCategoryAction(name: string, subCategoryNames: strin
   }
 
   const store = loadLocalStore();
+  const resolvedIcon = resolveCategoryIcon(name);
   const newCat = {
     id: `cat-${Date.now()}`,
     name,
     slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-    icon: 'folder',
+    icon: resolvedIcon,
     description: '',
     subCategories: Array.isArray(subCategoryNames)
       ? subCategoryNames.map((s, idx) => ({
@@ -743,4 +800,23 @@ export async function deleteRepositoryAction(id: string) {
 
   revalidatePath('/');
   return { success: true, message: 'Repositori berhasil dihapus.' };
+}
+
+export async function chatWithLibraryAdvisor(messages: Array<{ role: 'user' | 'assistant'; content: string }>) {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages }),
+      cache: 'no-store',
+    });
+
+    if (res.ok) {
+      return await res.json();
+    }
+    const err = await res.json().catch(() => ({}));
+    return { success: false, error: err.error || 'Gagal menghubungi server chatbot.' };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Koneksi backend gagal.' };
+  }
 }

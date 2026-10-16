@@ -9,6 +9,7 @@ import {
   ArrowDownAZ, 
   Check 
 } from 'lucide-react';
+import { useLanguage } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 interface DropdownProps {
@@ -24,6 +25,7 @@ export function ThemeAndSortDropdowns({
   currentSort,
   onSortChange,
 }: DropdownProps) {
+  const { t, language } = useLanguage();
   const [themeOpen, setThemeOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
 
@@ -31,22 +33,22 @@ export function ThemeAndSortDropdowns({
     {
       key: 'aurora',
       label: 'Aurora',
-      title: 'Aurora Borealis',
-      subtitle: 'Deep Teal • Cyan • Indigo',
+      title: t.theme.auroraTitle,
+      subtitle: t.theme.auroraSubtitle,
       dotClass: 'bg-gradient-to-r from-teal-400 via-cyan-400 to-indigo-500 shadow-teal-500/50',
     },
     {
       key: 'sunset',
       label: 'Sunset',
-      title: 'Sunset Velvet',
-      subtitle: 'Rose • Coral • Violet',
+      title: t.theme.sunsetTitle,
+      subtitle: t.theme.sunsetSubtitle,
       dotClass: 'bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 shadow-rose-500/50',
     },
     {
       key: 'frost',
       label: 'Frost',
-      title: 'Ethereal Frost',
-      subtitle: 'Light Glass • Iridescent',
+      title: t.theme.frostTitle,
+      subtitle: t.theme.frostSubtitle,
       dotClass: 'bg-gradient-to-r from-sky-200 via-teal-100 to-pink-200 shadow-sky-300/50',
     },
   ];
@@ -54,17 +56,17 @@ export function ThemeAndSortDropdowns({
   const SORTS = [
     { 
       key: 'stars', 
-      name: 'Bintang Terbanyak', 
+      name: t.sort.stars, 
       icon: <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20" /> 
     },
     { 
       key: 'recent', 
-      name: 'Terbaru Ditambahkan', 
+      name: t.sort.recent, 
       icon: <Clock className="w-3.5 h-3.5 text-sky-400" /> 
     },
     { 
       key: 'name', 
-      name: 'Nama Repo (A-Z)', 
+      name: t.sort.name, 
       icon: <ArrowDownAZ className="w-3.5 h-3.5 text-emerald-400" /> 
     },
   ];
@@ -82,7 +84,7 @@ export function ThemeAndSortDropdowns({
             setSortOpen(false);
           }}
           className="pressable-btn glass-panel border border-white/20 px-3 py-2 rounded-xl text-xs font-medium flex items-center space-x-2 text-slate-200 hover:text-white"
-          title="Pilih Tema Gradasi Glassmorphism"
+          title={language === 'en' ? 'Select Glassmorphism Gradient Theme' : 'Pilih Tema Gradasi Glassmorphism'}
         >
           <span className={cn("w-2.5 h-2.5 rounded-full shadow-sm", activeTheme.dotClass)} />
           <span>{activeTheme.label}</span>
@@ -92,7 +94,7 @@ export function ThemeAndSortDropdowns({
         {themeOpen && (
           <div className="absolute right-0 mt-2 w-56 rounded-2xl glass-dropdown-surface p-2 shadow-2xl z-50 dropdown-airfall border border-white/10">
             <div className="px-2.5 py-1.5 text-[10px] font-mono tracking-wider uppercase text-slate-400 border-b border-white/10 mb-1">
-              Gradasi & Glass Preset
+              {language === 'en' ? 'Gradients & Glass Preset' : 'Gradasi & Glass Preset'}
             </div>
             {THEMES.map(t => (
               <button

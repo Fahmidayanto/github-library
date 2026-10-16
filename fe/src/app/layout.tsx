@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { LanguageProvider } from '@/lib/i18n';
+
 export default function RootLayout({
   children,
 }: {
@@ -29,7 +31,9 @@ export default function RootLayout({
         />
       </head>
       <body className="h-screen overflow-hidden flex flex-col antialiased select-none relative font-sans">
-        {children}
+        <LanguageProvider>
+          {children}
+        </LanguageProvider>
       </body>
     </html>
   );

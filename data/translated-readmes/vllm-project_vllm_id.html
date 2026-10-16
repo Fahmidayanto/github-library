@@ -1,0 +1,99 @@
+<div id="readme" class="md" data-path="README.md"><article class="markdown-body entry-content container-lg" itemprop="text">
+<p align="center" dir="auto">
+  <themed-picture data-catalyst-inline="true"><picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vllm-project/vllm/main/docs/assets/logos/vllm-logo-text-dark.png">
+    <img alt="vLLM" src="https://raw.githubusercontent.com/vllm-project/vllm/main/docs/assets/logos/vllm-logo-text-light.png" width="55%">
+  </picture></themed-picture>
+</p>
+<div class="markdown-heading" dir="auto"><h3 align="center" class="heading-element" dir="auto">
+Pelayanan LLM yang mudah, cepat, dan murah untuk semua orang
+</h3><a id="user-content-easy-fast-and-cheap-llm-serving-for-everyone" class="anchor" aria-label="Permalink: 
+Easy, fast, and cheap LLM serving for everyone
+" href="#easy-fast-and-cheap-llm-serving-for-everyone"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<p align="center" dir="auto">
+| <a href="https://docs.vllm.ai" rel="nofollow"><b>Dokumentasi</b></a> | <a href="https://blog.vllm.ai/" rel="nofollow"><b>blog</b></a> | <a href="https://arxiv.org/abs/2309.06180" rel="nofollow"><b>Kertas</b></a> | <a href="https://x.com/vllm_project" rel="nofollow"><b>Twitter/X</b></a> | <a href="https://discuss.vllm.ai" rel="nofollow"><b>Forum Pengguna</b></a> | <a href="https://slack.vllm.ai" rel="nofollow"><b>Pengembang Slack</b></a> |
+</p>
+<p dir="auto">🔥 Kami telah membangun situs web vLLM untuk membantu Anda memulai vLLM. Silakan kunjungi <a href="https://vllm.ai" rel="nofollow">vllm.ai</a> untuk mempelajari lebih lanjut.
+Untuk acara, silakan kunjungi <a href="https://vllm.ai/events" rel="nofollow">vllm.ai/events</a> untuk bergabung dengan kami.</p>
+<hr>
+<div class="markdown-heading" dir="auto"><h2 class="heading-element" dir="auto">Tentang</h2><a id="user-content-about" class="anchor" aria-label="Permalink: About" href="#about"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<p dir="auto">vLLM adalah perpustakaan yang cepat dan mudah digunakan untuk inferensi dan penyajian LLM.</p>
+<p dir="auto">Awalnya dikembangkan di <a href="https://sky.cs.berkeley.edu" rel="nofollow">Lab Komputasi Langit</a> di UC Berkeley, vLLM telah berkembang menjadi salah satu proyek AI sumber terbuka paling aktif yang dibangun dan dikelola oleh beragam komunitas yang terdiri dari lusinan institusi akademis dan perusahaan dari lebih dari 2000 kontributor.</p>
+<p dir="auto">vLLM cepat dengan:</p>
+<ul dir="auto">
+<li>Throughput penyajian yang canggih</li>
+<li>Manajemen kunci perhatian dan memori nilai yang efisien dengan <a href="https://blog.vllm.ai/2023/06/20/vllm.html" rel="nofollow"><strong>PagedPerhatian</strong></a></li>
+<li>Pengelompokan permintaan masuk yang berkelanjutan, pengisian awal yang terpotong, cache awalan</li>
+<li>Eksekusi model yang cepat dan fleksibel dengan grafik CUDA/HIP sepotong-sepotong dan penuh</li>
+<li>Kuantisasi: FP8, MXFP8/MXFP4, NVFP4, INT8, INT4, GPTQ/AWQ, GGUF, tensor terkompresi, ModelOpt, TorchAO, dan <a href="https://docs.vllm.ai/en/latest/features/quantization/index.html" rel="nofollow">lebih</a></li>
+<li>Kernel perhatian yang dioptimalkan termasuk FlashAttention, FlashInfer, TRTLLM-GEN, FlashMLA, dan Triton</li>
+<li>Kernel GEMM/MoE yang dioptimalkan untuk berbagai presisi menggunakan CUTLASS, TRTLLM-GEN, CuTeDSL</li>
+<li>Decoding spekulatif termasuk n-gram, suffix, EAGLE, DFlash</li>
+<li>Pembuatan kernel otomatis dan transformasi tingkat grafik menggunakan torch.compile</li>
+<li>Pra-pengisian, dekode, dan enkode terpilah</li>
+</ul>
+<p dir="auto">vLLM fleksibel dan mudah digunakan dengan:</p>
+<ul dir="auto">
+<li>Integrasi yang mulus dengan model Hugging Face yang populer</li>
+<li>Penyajian throughput tinggi dengan berbagai algoritma decoding, termasuk <em>pengambilan sampel paralel</em>, <em>pencarian sinar</em>, dan banyak lagi</li>
+<li>Tensor, pipeline, data, pakar, dan paralelisme konteks untuk inferensi terdistribusi</li>
+<li>Keluaran streaming</li>
+<li>Pembuatan keluaran terstruktur menggunakan xgrammar atau panduan</li>
+<li>Pemanggilan alat dan parser penalaran</li>
+<li>Server API yang kompatibel dengan OpenAI, ditambah API Pesan Antropik dan dukungan gRPC</li>
+<li>Dukungan multi-LoRA yang efisien untuk lapisan padat dan MoE</li>
+<li>Dukungan untuk GPU NVIDIA, GPU AMD, GPU Intel, dan CPU x86/ARM/PowerPC. Selain itu, beragam plugin perangkat keras seperti Google TPU, Intel Gaudi, IBM Spyre, Huawei Ascend, Rebellions NPU, Apple Silicon, MetaX GPU, dan banyak lagi.</li>
+</ul>
+<p dir="auto">vLLM dengan lancar mendukung 200+ arsitektur model di Hugging Face, termasuk:</p>
+<ul dir="auto">
+<li>LLM khusus decoder (misalnya, Llama, Qwen, Gemma)</li>
+<li>LLM Campuran Pakar (misalnya, Mixtral, DeepSeek-V3, Qwen-MoE, GPT-OSS)</li>
+<li>Model perhatian hibrida dan ruang negara (misalnya, Mamba, Qwen3.5)</li>
+<li>Model multi-modal (misalnya, LLaVA, Qwen-VL, Pixtral)</li>
+<li>Model penyematan dan pengambilan (misalnya, E5-Mistral, GTE, ColBERT)</li>
+<li>Model penghargaan dan klasifikasi (misalnya, Qwen-Math)</li>
+</ul>
+<p dir="auto">Temukan daftar lengkap model yang didukung <a href="https://docs.vllm.ai/en/latest/models/supported_models.html" rel="nofollow">di sini</a>.</p>
+<div class="markdown-heading" dir="auto"><h2 class="heading-element" dir="auto">Memulai</h2><a id="user-content-getting-started" class="anchor" aria-label="Permalink: Getting Started" href="#getting-started"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<p dir="auto">Instal vLLM dengan <a href="https://docs.astral.sh/uv/" rel="nofollow"><code>uv</code></a> (disarankan) atau <code>pip</code>:</p>
+<div class="highlight highlight-source-shell notranslate position-relative overflow-auto" dir="auto" data-snippet-clipboard-copy-content="uv pip install vllm
+vllm download-kernels  # precompiled kernels for faster startup"><pre>uv pip install vllm
+vllm download-kernels  <span class="pl-c"><span class="pl-c">#</span> precompiled kernels for faster startup</span></pre></div>
+<p dir="auto">Atau <a href="https://docs.vllm.ai/en/latest/getting_started/installation/gpu/index.html#build-wheel-from-source" rel="nofollow">membangun dari sumber</a> untuk pengembangan.</p>
+<p dir="auto">Kunjungi kami <a href="https://docs.vllm.ai/en/latest/" rel="nofollow">dokumentasi</a> untuk mempelajari lebih lanjut.</p>
+<ul dir="auto">
+<li><a href="https://docs.vllm.ai/en/latest/getting_started/installation.html" rel="nofollow">Instalasi</a></li>
+<li><a href="https://docs.vllm.ai/en/latest/getting_started/quickstart.html" rel="nofollow">Mulai cepat</a></li>
+<li><a href="https://docs.vllm.ai/en/latest/models/supported_models.html" rel="nofollow">Daftar Model yang Didukung</a></li>
+</ul>
+<div class="markdown-heading" dir="auto"><h2 class="heading-element" dir="auto">Berkontribusi</h2><a id="user-content-contributing" class="anchor" aria-label="Permalink: Contributing" href="#contributing"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<p dir="auto">Kami menyambut dan menghargai setiap kontribusi dan kolaborasi.
+Silakan periksa <a href="https://docs.vllm.ai/en/latest/contributing/index.html" rel="nofollow">Berkontribusi pada vLLM</a> tentang cara terlibat.</p>
+<div class="markdown-heading" dir="auto"><h2 class="heading-element" dir="auto">Kutipan</h2><a id="user-content-citation" class="anchor" aria-label="Permalink: Citation" href="#citation"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<p dir="auto">Jika Anda menggunakan vLLM untuk penelitian Anda, harap mengutip milik kami <a href="https://arxiv.org/abs/2309.06180" rel="nofollow">kertas</a>:</p>
+<div class="highlight highlight-text-bibtex notranslate position-relative overflow-auto" dir="auto" data-snippet-clipboard-copy-content="@inproceedings{kwon2023efficient,
+  title={Efficient Memory Management for Large Language Model Serving with PagedAttention},
+  author={Woosuk Kwon and Zhuohan Li and Siyuan Zhuang and Ying Sheng and Lianmin Zheng and Cody Hao Yu and Joseph E. Gonzalez and Hao Zhang and Ion Stoica},
+  booktitle={Proceedings of the ACM SIGOPS 29th Symposium on Operating Systems Principles},
+  year={2023}
+}"><pre><span class="pl-k">@inproceedings</span>{<span class="pl-en">kwon2023efficient</span>,
+  <span class="pl-s">title</span>=<span class="pl-s"><span class="pl-pds">{</span>Efficient Memory Management for Large Language Model Serving with PagedAttention<span class="pl-pds">}</span></span>,
+  <span class="pl-s">author</span>=<span class="pl-s"><span class="pl-pds">{</span>Woosuk Kwon and Zhuohan Li and Siyuan Zhuang and Ying Sheng and Lianmin Zheng and Cody Hao Yu and Joseph E. Gonzalez and Hao Zhang and Ion Stoica<span class="pl-pds">}</span></span>,
+  <span class="pl-s">booktitle</span>=<span class="pl-s"><span class="pl-pds">{</span>Proceedings of the ACM SIGOPS 29th Symposium on Operating Systems Principles<span class="pl-pds">}</span></span>,
+  <span class="pl-s">year</span>=<span class="pl-s"><span class="pl-pds">{</span>2023<span class="pl-pds">}</span></span>
+}</pre></div>
+<div class="markdown-heading" dir="auto"><h2 class="heading-element" dir="auto">Hubungi Kami</h2><a id="user-content-contact-us" class="anchor" aria-label="Permalink: Contact Us" href="#contact-us"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+
+<ul dir="auto">
+<li>Untuk pertanyaan teknis dan permintaan fitur, silakan gunakan GitHub <a href="https://github.com/vllm-project/vllm/issues">Masalah</a></li>
+<li>Untuk berdiskusi dengan sesama pengguna, silakan gunakan <a href="https://discuss.vllm.ai" rel="nofollow">Forum vLLM</a></li>
+<li>Untuk mengoordinasikan kontribusi dan pengembangan, silakan gunakan <a href="https://slack.vllm.ai" rel="nofollow">Kendur</a></li>
+<li>Untuk pengungkapan keamanan, silakan gunakan GitHub <a href="https://github.com/vllm-project/vllm/security/advisories">Saran Keamanan</a> fitur</li>
+<li>Untuk kerjasama dan kemitraan, silahkan menghubungi kami di <a href="mailto:collaboration@vllm.ai">kolaborasi@vllm.ai</a></li>
+</ul>
+
+<div class="markdown-heading" dir="auto"><h2 class="heading-element" dir="auto">Perangkat Media</h2><a id="user-content-media-kit" class="anchor" aria-label="Permalink: Media Kit" href="#media-kit"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<ul dir="auto">
+<li>Jika Anda ingin menggunakan logo vLLM, silakan merujuk ke <a href="https://github.com/vllm-project/media-kit">repo kit media kami</a></li>
+</ul>
+</article></div>

@@ -138,6 +138,38 @@
   ],
   "repositories": [
     {
+      "id": "repo-1792140345966",
+      "categoryId": "d80f5a31-bfe8-4a28-ba85-c93e0a437529",
+      "categoryName": "AI/ML Learning & Education",
+      "subCategoryName": "Courseware & Tutorials",
+      "githubUrl": "https://github.com/microsoft/AI-For-Beginners",
+      "owner": "microsoft",
+      "name": "AI-For-Beginners",
+      "fullName": "microsoft/AI-For-Beginners",
+      "description": "12 Weeks, 24 Lessons, AI for All!",
+      "starsCount": 69844,
+      "forksCount": 13547,
+      "primaryLanguage": "Jupyter Notebook",
+      "topics": [
+        "ai",
+        "artificial-intelligence",
+        "cnn",
+        "computer-vision",
+        "deep-learning",
+        "gan",
+        "machine-learning",
+        "microsoft-for-beginners",
+        "nlp",
+        "rnn"
+      ],
+      "notes": "",
+      "license": {
+        "spdx_id": "MIT",
+        "name": "MIT"
+      },
+      "homepage": ""
+    },
+    {
       "id": "repo-1792065059079",
       "categoryId": "cat-5",
       "subCategoryId": "sub-uiux",

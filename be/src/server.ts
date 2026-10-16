@@ -6,7 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { db, isDbConfigured } from './db/index.js';
 import { categories, subCategories, repositories } from './db/schema.js';
-import { desc, eq, sql } from 'drizzle-orm';
+import { desc, eq, sql, or } from 'drizzle-orm';
 
 dotenv.config();
 
@@ -228,7 +228,44 @@ function saveLocalStore(cats: any[], repos: any[]) {
 const storeData = loadLocalStore();
 let fallbackCategories: any[] = storeData.categories;
 let fallbackRepositories: any[] = storeData.repositories;
+const DYNAMIC_CATEGORY_ICONS = [
+  'trending-up', 'graduation-cap', 'scan-text', 'hard-drive', 'mic',
+  'file-text', 'circuit-board', 'wrench', 'shield', 'globe',
+  'code', 'smartphone', 'cloud', 'brain', 'zap', 'compass', 'flame', 'layers'
+];
 
+function resolveCategoryIcon(categoryName?: string | null, explicitIcon?: string | null): string {
+  if (explicitIcon && explicitIcon !== 'folder') return explicitIcon;
+  if (!categoryName) return 'box';
+  const name = categoryName.toLowerCase().trim();
+
+  if (name.includes('trading') || name.includes('finance') || name.includes('stock') || name.includes('crypto') || name.includes('quant')) return 'trending-up';
+  if (name.includes('learn') || name.includes('education') || name.includes('course') || name.includes('tutorial') || name.includes('study') || name.includes('pembelajaran') || name.includes('edukasi')) return 'graduation-cap';
+  if (name.includes('ocr') || name.includes('detect') || name.includes('vision') || name.includes('scan') || name.includes('document')) return 'scan-text';
+  if (name.includes('database') || name.includes('data management') || name.includes('basis data') || name.includes('storage') || name.includes('warehouse')) return 'hard-drive';
+  if (name.includes('speech') || name.includes('audio') || name.includes('voice') || name.includes('sound') || name.includes('suara') || name.includes('tts')) return 'mic';
+  if (name.includes('productivity') || name.includes('note') || name.includes('catatan') || name.includes('memo') || name.includes('task') || name.includes('todo')) return 'file-text';
+  if (name.includes('iot') || name.includes('embedded') || name.includes('hardware') || name.includes('sensor') || name.includes('arduino') || name.includes('raspberry')) return 'circuit-board';
+  if (name.includes('utilit') || name.includes('maintenance') || name.includes('tool') || name.includes('system') || name.includes('devops') || name.includes('cli')) return 'wrench';
+  if (name.includes('large language model') || name.includes('llm') || name.includes('inference')) return 'cpu';
+  if (name.includes('rag') || name.includes('vector') || name.includes('retrieval')) return 'database';
+  if (name.includes('video') || name.includes('multimodal') || name.includes('motion')) return 'video';
+  if (name.includes('agent') || name.includes('agen') || name.includes('framework')) return 'bot';
+  if (name.includes('skill') || name.includes('prompt')) return 'sparkles';
+  if (name.includes('security') || name.includes('shield')) return 'shield';
+  if (name.includes('browser') || name.includes('web')) return 'globe';
+  if (name.includes('code') || name.includes('programming')) return 'code';
+  if (name.includes('mobile') || name.includes('android') || name.includes('ios')) return 'smartphone';
+  if (name.includes('cloud') || name.includes('docker') || name.includes('k8s')) return 'cloud';
+  if (name.includes('brain') || name.includes('neural')) return 'brain';
+
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash << 5) - hash + name.charCodeAt(i);
+    hash |= 0;
+  }
+  return DYNAMIC_CATEGORY_ICONS[Math.abs(hash) % DYNAMIC_CATEGORY_ICONS.length];
+}
 
 // Helper parse Metric Number (111.1k -> 111100)
 function parseMetricNumber(val: string | number | null | undefined): number {
@@ -436,13 +473,15 @@ app.post('/api/categories', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Nama kategori wajib diisi.' });
   }
 
+  const resolvedIcon = resolveCategoryIcon(name, req.body.icon);
+
   if (!db || !isDbConfigured) {
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     const newCat = {
       id: `cat-${Date.now()}`,
       name,
       slug,
-      icon: 'folder',
+      icon: resolvedIcon,
       description: '',
       subCategories: Array.isArray(subNames)
         ? subNames.map((s: string, idx: number) => ({
@@ -462,7 +501,7 @@ app.post('/api/categories', async (req: Request, res: Response) => {
     const [newCat] = await db.insert(categories).values({
       name,
       slug,
-      icon: 'folder',
+      icon: resolvedIcon,
     }).returning();
 
     if (Array.isArray(subNames) && subNames.length > 0) {
@@ -629,12 +668,30 @@ app.post('/api/repositories', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Data repositori tidak lengkap.' });
   }
 
+  const targetUrl = (repoData.githubUrl || '').trim().toLowerCase().replace(/\/+$/, '').replace(/\.git$/, '');
+  const targetFullName = (repoData.fullName || `${repoData.owner}/${repoData.name}` || '').trim().toLowerCase();
+
   const categoryId = repoData.categoryId || 'cat-5';
   let subCategoryId = repoData.subCategoryId || null;
   let subCategoryName = repoData.subCategoryName || '';
   let createdSubCategory: any = null;
 
   if (!db || !isDbConfigured) {
+    // Cek duplikasi di fallback local repositories
+    const existingFallback = fallbackRepositories.find(r => {
+      const rUrl = (r.githubUrl || '').trim().toLowerCase().replace(/\/+$/, '').replace(/\.git$/, '');
+      const rFullName = (r.fullName || `${r.owner}/${r.name}` || '').trim().toLowerCase();
+      return (targetUrl && rUrl === targetUrl) || (targetFullName && rFullName === targetFullName);
+    });
+
+    if (existingFallback) {
+      return res.status(409).json({
+        error: 'duplicate',
+        message: `Repositori "${repoData.fullName || repoData.name}" sudah terdaftar di library.`,
+        existingRepo: existingFallback,
+      });
+    }
+
     const parentCategory = fallbackCategories.find(c => c.id === categoryId);
     
     // Auto-create atau cari subCategory jika subCategoryName diisi
@@ -687,6 +744,23 @@ app.post('/api/repositories', async (req: Request, res: Response) => {
   }
 
   try {
+    // Cek duplikasi di DB
+    const existingDbRepo = await db.query.repositories.findFirst({
+      where: (r, { or, sql }) =>
+        or(
+          sql`lower(regexp_replace(regexp_replace(${r.githubUrl}, '/+$', ''), '\\.git$', '')) = ${targetUrl}`,
+          sql`lower(${r.fullName}) = ${targetFullName}`
+        ),
+    });
+
+    if (existingDbRepo) {
+      return res.status(409).json({
+        error: 'duplicate',
+        message: `Repositori "${repoData.fullName || repoData.name}" sudah terdaftar di database.`,
+        existingRepo: existingDbRepo,
+      });
+    }
+
     if (subCategoryName && subCategoryName.trim() && !subCategoryId) {
       const cleanSubName = subCategoryName.trim();
       const subSlug = cleanSubName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
@@ -715,6 +789,12 @@ app.post('/api/repositories', async (req: Request, res: Response) => {
     }).returning();
     return res.json({ success: true, repository: savedRepo, createdSubCategory });
   } catch (err: any) {
+    if (err?.code === '23505' || err?.message?.includes('duplicate key') || err?.message?.includes('unique constraint')) {
+      return res.status(409).json({
+        error: 'duplicate',
+        message: `Repositori "${repoData.fullName || repoData.name}" sudah terdaftar di database.`,
+      });
+    }
     return res.status(500).json({ error: err.message });
   }
 });
@@ -1004,6 +1084,209 @@ app.delete('/api/repositories/:id', async (req: Request, res: Response) => {
   }
 
   return res.json({ success: true, message: 'Repositori berhasil dihapus.' });
+});
+
+// Helper call Gemini API
+async function callGeminiChat(systemPrompt: string, history: Array<{ role: string; content: string }>): Promise<string | null> {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (!geminiKey) return null;
+
+  const models = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash'];
+  for (const model of models) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+      const contents = history.map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      }));
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents,
+          generationConfig: {
+            temperature: 0.25,
+            maxOutputTokens: 2048,
+          },
+        }),
+        signal: AbortSignal.timeout(20000),
+      });
+
+      if (res.ok) {
+        const json = (await res.json()) as any;
+        const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text && text.trim()) return text.trim();
+      }
+    } catch (err: any) {
+      console.warn(`Gemini (${model}) chat error:`, err.message);
+    }
+  }
+  return null;
+}
+
+// Helper call Groq API Fallback
+async function callGroqChat(systemPrompt: string, history: Array<{ role: string; content: string }>): Promise<string | null> {
+  const groqKey = process.env.GROQ_API_KEY;
+  if (!groqKey) return null;
+
+  const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+  for (const model of models) {
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${groqKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          temperature: 0.25,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...history.map(m => ({ role: m.role, content: m.content })),
+          ],
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+
+      if (res.ok) {
+        const json = (await res.json()) as any;
+        const text = json.choices?.[0]?.message?.content;
+        if (text && text.trim()) return text.trim();
+      }
+    } catch (err: any) {
+      console.warn(`Groq (${model}) chat error:`, err.message);
+    }
+  }
+  return null;
+}
+
+// AI Library Advisor Chatbot Endpoint (Ingests Groups, Subgroups, and All Repositories)
+app.post('/api/chat', async (req: Request, res: Response) => {
+  try {
+    const { messages } = req.body;
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: 'Array messages wajib diisi.' });
+    }
+
+    // 1. Ambil data katalog grup, subgrup, dan repositori secara real-time
+    let cats = fallbackCategories;
+    let repos = fallbackRepositories;
+
+    if (db && isDbConfigured) {
+      try {
+        const dbCats = await db.query.categories.findMany({
+          with: { subCategories: true },
+        });
+        if (dbCats && dbCats.length > 0) cats = dbCats;
+
+        const dbRepos = await db.query.repositories.findMany({
+          with: { category: true, subCategory: true },
+        });
+        if (dbRepos && dbRepos.length > 0) {
+          repos = dbRepos.map((r: any) => ({
+            ...r,
+            categoryName: r.category?.name || '',
+            subCategoryName: r.subCategory?.name || '',
+          }));
+        }
+      } catch (err: any) {
+        console.warn('DB read error for chat context, using fallback store:', err.message);
+      }
+    }
+
+    // 2. Susun ringkasan struktur katalog ringkas & padat
+    const catalogStructure = cats.map(c => {
+      const subs = (c.subCategories || []).map((s: any) => s.name).join(', ');
+      return `Group: ${c.name} (Subgroups: ${subs || 'General'})`;
+    }).join('\n');
+
+    const repoCatalog = repos.map((r, i) => {
+      const topicsStr = Array.isArray(r.topics) ? r.topics.slice(0, 8).join(', ') : '';
+      return `${i + 1}. [${r.fullName || `${r.owner}/${r.name}`}]
+- Group: ${r.categoryName || 'General'} | Subgroup: ${r.subCategoryName || 'General'}
+- Language: ${r.primaryLanguage || 'Unknown'} | Stars: ${r.starsCount || 0}
+- Deskripsi: ${r.description || ''}
+- Topics: ${topicsStr}
+- Clone: git clone ${r.githubUrl || `https://github.com/${r.fullName}`}.git`;
+    }).join('\n\n');
+
+    // 3. System Prompt Anti-Slop & Skills Aware
+    const systemPrompt = `Anda adalah "AI Library Advisor" untuk platform GitHub Library Hub.
+Anda memiliki akses langsung dan membaca seluruh data grup (kategori), subgrup, dan repositori yang terdaftar di bawah ini:
+
+=== STRUKTUR GRUP & SUBGRUP KATALOG ===
+${catalogStructure}
+
+=== DAFTAR SELURUH REPOSITORI AKTIF (${repos.length} REPO) ===
+${repoCatalog}
+
+=== ATURAN ANTI-SLOP & PROTOKOL OUTPUT (MUTLAK) ===
+1. JANGAN PERNAH gunakan kalimat pembuka/penutup klise AI generik atau basa-basi (DILARANG: "Tentu!", "Tentu saja!", "Halo!", "Di era digital yang serba cepat ini", "Pilihan yang sangat bagus!", "Semoga membantu!").
+2. DILARANG MENGGUNAKAN EMOJI APAPUN. Gunakan teks markdown murni dan rapi.
+3. Selalu rekomendasikan repositori yang NYATA ada pada daftar katalog di atas. Jika ada kecocokan, sebutkan:
+   - Nama repo: [owner/repo]
+   - Kategori & Subkategori (Group & Subgroup)
+   - Mengapa repositori tersebut memecahkan masalah teknis pengguna
+   - Skill agent relevan (misal: antislop, caveman, ponytail, threejs, browser-qa, iterative-retrieval, dll)
+   - Perintah clone: git clone https://github.com/[owner/repo].git
+4. Gunakan Bahasa Indonesia yang lugas, presisi, teknis, dan hemat kata (gaya smart senior engineer).`;
+
+    // 4. Eksekusi LLM: Gemini -> Groq -> Heuristic Fallback
+    let assistantReply = await callGeminiChat(systemPrompt, messages);
+    let provider = 'gemini';
+
+    if (!assistantReply) {
+      assistantReply = await callGroqChat(systemPrompt, messages);
+      provider = 'groq';
+    }
+
+    // Heuristic Fallback jika koneksi AI offline
+    if (!assistantReply) {
+      provider = 'heuristic';
+      const lastUserQuery = (messages[messages.length - 1]?.content || '').toLowerCase();
+      const matchedRepos = repos.filter(r => {
+        const text = `${r.name} ${r.fullName} ${r.description} ${r.categoryName} ${r.subCategoryName} ${(r.topics || []).join(' ')}`.toLowerCase();
+        return text.split(/\s+/).some(word => word.length > 3 && lastUserQuery.includes(word));
+      }).slice(0, 3);
+
+      if (matchedRepos.length > 0) {
+        assistantReply = `Berdasarkan katalog grup dan subgrup aktif, repositori berikut sesuai dengan kebutuhan teknis Anda:\n\n` +
+          matchedRepos.map(r => `### ${r.fullName}\n- Group: ${r.categoryName} / ${r.subCategoryName}\n- Stars: ${r.starsCount} | Bahasa: ${r.primaryLanguage}\n- Deskripsi: ${r.description}\n- Perintah Clone:\n\`\`\`bash\ngit clone ${r.githubUrl || `https://github.com/${r.fullName}`}.git\n\`\`\``).join('\n\n');
+      } else {
+        assistantReply = `Katalog mencakup 5 grup utama: Large Language Models, RAG & Vector Search, Video & Multimodal, AI Agent Frameworks, dan AI Agent Skills & Tools. Mohon sebutkan spesifikasi masalah teknis Anda (contoh: hemat token, browser automation, atau vector retrieval) agar dapat direkomendasikan repositori yang tepat.`;
+      }
+    }
+
+    // Ekstrak nama repositori yang terdeteksi dalam jawaban untuk kartu interaktif frontend
+    const detectedRepos = repos.filter(r => {
+      const fn = (r.fullName || `${r.owner}/${r.name}`).toLowerCase();
+      const n = (r.name || '').toLowerCase();
+      const repLower = assistantReply!.toLowerCase();
+      return repLower.includes(fn) || (n.length > 2 && repLower.includes(n));
+    }).map(r => ({
+      id: r.id,
+      name: r.name,
+      fullName: r.fullName || `${r.owner}/${r.name}`,
+      categoryName: r.categoryName,
+      subCategoryName: r.subCategoryName,
+      starsCount: r.starsCount,
+      githubUrl: r.githubUrl,
+      description: r.description,
+    }));
+
+    return res.json({
+      success: true,
+      message: assistantReply,
+      provider,
+      detectedRepos,
+    });
+  } catch (err: any) {
+    console.error('Error in /api/chat endpoint:', err);
+    return res.status(500).json({ error: 'Gagal memproses rekomendasi chatbot: ' + err.message });
+  }
 });
 
 app.listen(PORT, () => {
