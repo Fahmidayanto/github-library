@@ -382,8 +382,9 @@ export async function createRepositoryAction(data: any) {
         isFeatured: Boolean(data.isFeatured),
       }).returning();
 
-      // Trigger AI summary generation di background (fire-and-forget)
+      // Trigger AI summary & README fetch di background (fire-and-forget)
       getOrGenerateSummary(newRepo.fullName, { meta: newRepo }).catch(() => {});
+      fetch(`${BACKEND_URL}/api/repositories/${newRepo.id}/readme`, { method: 'PATCH' }).catch(() => {});
 
       revalidatePath('/');
       return { success: true, repository: newRepo, createdCategory, createdSubCategory };

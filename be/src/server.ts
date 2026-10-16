@@ -284,6 +284,51 @@ function parseMetricNumber(val: string | number | null | undefined): number {
   return isNaN(parsed) ? 0 : parsed;
 }
 
+// Helper fetch README dari GitHub API — disimpan ke DB saat repo ditambahkan
+async function fetchGitHubReadme(owner: string, repo: string): Promise<string | null> {
+  try {
+    const headers: Record<string, string> = {
+      'Accept': 'application/vnd.github.raw+json',
+      'User-Agent': 'GitHub-Library-Hub-BE',
+    };
+    if (process.env.GITHUB_TOKEN) {
+      headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+    }
+
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/readme`, {
+      headers,
+      signal: AbortSignal.timeout(6000),
+    });
+
+    if (!res.ok) return null;
+
+    let content = await res.text();
+
+    // Decode base64 jika response bukan raw (JSON format)
+    if (content.trim().startsWith('{')) {
+      try {
+        const json = JSON.parse(content);
+        if (json.content && json.encoding === 'base64') {
+          content = Buffer.from(json.content.replace(/\n/g, ''), 'base64').toString('utf-8');
+        }
+      } catch { /* biarkan content apa adanya */ }
+    }
+
+    // Strip badge images, HTML tags, dan truncate ke 4000 char
+    const cleaned = content
+      .replace(/!\[.*?\]\(https:\/\/.*?\)/g, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\r\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+      .slice(0, 4000);
+
+    return cleaned || null;
+  } catch {
+    return null;
+  }
+}
+
 // Helper parse GitHub URL multi-format & sub-path safe
 function parseGitHubUrl(url: string): { owner: string; repo: string } | null {
   if (!url || typeof url !== 'string') return null;
@@ -782,11 +827,27 @@ app.post('/api/repositories', async (req: Request, res: Response) => {
       }
     }
 
+    // Fetch README async (fire-and-forget) — tidak memblokir response
     const [savedRepo] = await db.insert(repositories).values({
       ...repoData,
       categoryId,
       subCategoryId,
     }).returning();
+
+    // Background: fetch README dari GitHub dan simpan ke DB
+    fetchGitHubReadme(repoData.owner, repoData.name).then(async (readme) => {
+      if (readme && savedRepo?.id) {
+        try {
+          await (db as any).update(repositories)
+            .set({ readmeContent: readme })
+            .where(eq(repositories.id, savedRepo.id));
+          console.log(`README saved for ${repoData.fullName}`);
+        } catch (e: any) {
+          console.warn(`Gagal simpan README ${repoData.fullName}:`, e.message);
+        }
+      }
+    }).catch(() => {});
+
     return res.json({ success: true, repository: savedRepo, createdSubCategory });
   } catch (err: any) {
     if (err?.code === '23505' || err?.message?.includes('duplicate key') || err?.message?.includes('unique constraint')) {
@@ -1086,12 +1147,64 @@ app.delete('/api/repositories/:id', async (req: Request, res: Response) => {
   return res.json({ success: true, message: 'Repositori berhasil dihapus.' });
 });
 
-// Helper call Gemini API
+// README Backfill — fetch & simpan README untuk repo yang belum punya readmeContent
+app.patch('/api/repositories/:id/readme', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  // Cari repo
+  let owner = '';
+  let name = '';
+
+  if (db && isDbConfigured) {
+    try {
+      const found = await (db.query as any).repositories.findFirst({
+        where: (r: any, { eq: eqFn }: any) => eqFn(r.id, id),
+      });
+      if (!found) return res.status(404).json({ error: 'Repo tidak ditemukan.' });
+      if (found.readmeContent) {
+        return res.json({ success: true, cached: true, message: 'README sudah ada.' });
+      }
+      owner = found.owner;
+      name = found.name;
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  } else {
+    const found = fallbackRepositories.find(r => r.id === id);
+    if (!found) return res.status(404).json({ error: 'Repo tidak ditemukan.' });
+    owner = found.owner;
+    name = found.name;
+  }
+
+  const readme = await fetchGitHubReadme(owner, name);
+  if (!readme) {
+    return res.json({ success: false, message: 'README tidak tersedia di GitHub untuk repo ini.' });
+  }
+
+  if (db && isDbConfigured) {
+    try {
+      await (db as any).update(repositories)
+        .set({ readmeContent: readme })
+        .where(eq(repositories.id as any, id));
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  } else {
+    fallbackRepositories = fallbackRepositories.map(r =>
+      r.id === id ? { ...r, readmeContent: readme } : r
+    );
+    saveLocalStore(fallbackCategories, fallbackRepositories);
+  }
+
+  return res.json({ success: true, message: 'README berhasil disimpan.', length: readme.length });
+});
+
+
 async function callGeminiChat(systemPrompt: string, history: Array<{ role: string; content: string }>): Promise<string | null> {
   const geminiKey = process.env.GEMINI_API_KEY;
   if (!geminiKey) return null;
 
-  const models = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash'];
+  const models = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-2.0-flash'];
   for (const model of models) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
@@ -1131,7 +1244,7 @@ async function callGroqChat(systemPrompt: string, history: Array<{ role: string;
   const groqKey = process.env.GROQ_API_KEY;
   if (!groqKey) return null;
 
-  const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+  const models = ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b', 'qwen/qwen3.6-27b'];
   for (const model of models) {
     try {
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -1163,7 +1276,7 @@ async function callGroqChat(systemPrompt: string, history: Array<{ role: string;
   return null;
 }
 
-// AI Library Advisor Chatbot Endpoint (Ingests Groups, Subgroups, and All Repositories)
+// AI Library Advisor Chatbot Endpoint (Ingests Groups, Subgroups, Repos + README)
 app.post('/api/chat', async (req: Request, res: Response) => {
   try {
     const { messages } = req.body;
@@ -1171,7 +1284,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Array messages wajib diisi.' });
     }
 
-    // 1. Ambil data katalog grup, subgrup, dan repositori secara real-time
+    // 1. Ambil data katalog + repositori (dengan readmeContent) secara real-time
     let cats = fallbackCategories;
     let repos = fallbackRepositories;
 
@@ -1193,48 +1306,70 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           }));
         }
       } catch (err: any) {
-        console.warn('DB read error for chat context, using fallback store:', err.message);
+        console.warn('DB read error for chat context, fallback store:', err.message);
       }
     }
 
-    // 2. Susun ringkasan struktur katalog ringkas & padat
+    // 2. Susun struktur katalog (grup & subgrup) untuk LLM
     const catalogStructure = cats.map(c => {
-      const subs = (c.subCategories || []).map((s: any) => s.name).join(', ');
-      return `Group: ${c.name} (Subgroups: ${subs || 'General'})`;
+      const subs = (c.subCategories || []).map((s: any) => `"${s.name}"`).join(', ');
+      return `- Group: "${c.name}"\n  Subgroups: ${subs || '"General"'}`;
     }).join('\n');
 
+    // 3. Bangun catalog repo dengan README snippet / AI Summary / Description
     const repoCatalog = repos.map((r, i) => {
-      const topicsStr = Array.isArray(r.topics) ? r.topics.slice(0, 8).join(', ') : '';
-      return `${i + 1}. [${r.fullName || `${r.owner}/${r.name}`}]
-- Group: ${r.categoryName || 'General'} | Subgroup: ${r.subCategoryName || 'General'}
-- Language: ${r.primaryLanguage || 'Unknown'} | Stars: ${r.starsCount || 0}
-- Deskripsi: ${r.description || ''}
-- Topics: ${topicsStr}
-- Clone: git clone ${r.githubUrl || `https://github.com/${r.fullName}`}.git`;
+      const topicsStr = Array.isArray(r.topics) ? r.topics.slice(0, 10).join(', ') : '';
+      const summaryText = typeof r.aiSummary === 'object' && r.aiSummary !== null
+        ? ((r.aiSummary as any).corePurpose || (r.aiSummary as any).summary || '')
+        : (typeof r.aiSummary === 'string' ? r.aiSummary : '');
+
+      const contextSnippet = r.readmeContent
+        ? r.readmeContent.slice(0, 1000)
+        : (summaryText || r.description || '');
+
+      return `--- REPO #${i + 1} ---
+fullName: ${r.fullName || `${r.owner}/${r.name}`}
+group: ${r.categoryName || 'General'}
+subgroup: ${r.subCategoryName || 'General'}
+language: ${r.primaryLanguage || 'Unknown'} | stars: ${r.starsCount || 0}
+description: ${r.description || ''}
+topics: ${topicsStr}
+context_knowledge: ${contextSnippet}
+clone: git clone ${r.githubUrl || `https://github.com/${r.fullName}`}.git`;
     }).join('\n\n');
 
-    // 3. System Prompt Anti-Slop & Skills Aware
-    const systemPrompt = `Anda adalah "AI Library Advisor" untuk platform GitHub Library Hub.
-Anda memiliki akses langsung dan membaca seluruh data grup (kategori), subgrup, dan repositori yang terdaftar di bawah ini:
+    // 4. System Prompt — powerful, grounded, anti-hallucination, structured
+    const systemPrompt = `Kamu adalah "AI Library Advisor" untuk platform GitHub Library Hub.
+Tugasmu: Merekomendasikan repositori yang TEPAT SASARAN berdasarkan katalog resmi di bawah ini.
 
-=== STRUKTUR GRUP & SUBGRUP KATALOG ===
+=== STRUKTUR GRUP & SUBGRUP AKTIF ===
 ${catalogStructure}
 
-=== DAFTAR SELURUH REPOSITORI AKTIF (${repos.length} REPO) ===
+=== KATALOG REPOSITORI LENGKAP (${repos.length} repo) ===
 ${repoCatalog}
 
-=== ATURAN ANTI-SLOP & PROTOKOL OUTPUT (MUTLAK) ===
-1. JANGAN PERNAH gunakan kalimat pembuka/penutup klise AI generik atau basa-basi (DILARANG: "Tentu!", "Tentu saja!", "Halo!", "Di era digital yang serba cepat ini", "Pilihan yang sangat bagus!", "Semoga membantu!").
-2. DILARANG MENGGUNAKAN EMOJI APAPUN. Gunakan teks markdown murni dan rapi.
-3. Selalu rekomendasikan repositori yang NYATA ada pada daftar katalog di atas. Jika ada kecocokan, sebutkan:
-   - Nama repo: [owner/repo]
-   - Kategori & Subkategori (Group & Subgroup)
-   - Mengapa repositori tersebut memecahkan masalah teknis pengguna
-   - Skill agent relevan (misal: antislop, caveman, ponytail, threejs, browser-qa, iterative-retrieval, dll)
-   - Perintah clone: git clone https://github.com/[owner/repo].git
-4. Gunakan Bahasa Indonesia yang lugas, presisi, teknis, dan hemat kata (gaya smart senior engineer).`;
+=== PROTOKOL JAWABAN (WAJIB DIIKUTI) ===
+1. JANGAN PERNAH mengarang repositori atau merekomendasikan repo yang TIDAK RELEVAN.
+2. Jika kebutuhan pengguna BELUM ADA di dalam katalog (misalnya mencari hal yang tidak berkaitan dengan AI Agent, LLM, RAG, Video, Tools):
+   - Nyatakan secara jujur dan tegas bahwa katalog saat ini belum memiliki repositori untuk domain tersebut.
+   - Jangan pernah memaksakan repo seperti codegraph, ponytail, rtk, dll jika tidak ada sangkut pautnya dengan pertanyaan.
+   - Tawarkan alternatif grup/subgrup yang tersedia di katalog jika ada yang mendekati.
+3. Jika ADA repositori yang relevan:
+   - Pilih HANYA repositori yang benar-benar memecahkan masalah pengguna.
+   - Jelaskan kecocokan teknisnya berdasarkan deskripsi, cuplikan README, atau context_knowledge yang tersedia.
+4. Format Jawaban:
+   Gunakan struktur markdown yang rapi:
+   - **Analisis Kebutuhan:** (1 kalimat ringkas mengenai apa yang dicari user)
+   - **Rekomendasi:**
+     ### [fullName]
+     - **Grup / Subgrup:** [Group] / [Subgroup]
+     - **Mengapa Relevan:** (poin teknis konkret solusi yang ditawarkan repo ini)
+     - **Spesifikasi:** [Language] | [Stars] Stars
+     - **Clone:** \`git clone https://github.com/[fullName].git\`
+5. DILARANG: kalimat pembuka/penutup klise AI ("Tentu!", "Halo!", "Semoga membantu!"), emoji, basa-basi.
+6. Bahasa: Bahasa Indonesia yang lugas, presisi, dan padat (gaya smart senior developer).`;
 
-    // 4. Eksekusi LLM: Gemini -> Groq -> Heuristic Fallback
+    // 5. Eksekusi LLM: Gemini -> Groq -> Heuristic Fallback
     let assistantReply = await callGeminiChat(systemPrompt, messages);
     let provider = 'gemini';
 
@@ -1243,29 +1378,64 @@ ${repoCatalog}
       provider = 'groq';
     }
 
-    // Heuristic Fallback jika koneksi AI offline
+    // 6. Heuristic Fallback (FIXED: filter stopwords & hindari false positive)
     if (!assistantReply) {
       provider = 'heuristic';
       const lastUserQuery = (messages[messages.length - 1]?.content || '').toLowerCase();
-      const matchedRepos = repos.filter(r => {
-        const text = `${r.name} ${r.fullName} ${r.description} ${r.categoryName} ${r.subCategoryName} ${(r.topics || []).join(' ')}`.toLowerCase();
-        return text.split(/\s+/).some(word => word.length > 3 && lastUserQuery.includes(word));
-      }).slice(0, 3);
+
+      // Stopwords umum yang tidak boleh dijadikan keyword pencocokan
+      const stopWords = new Set([
+        'yang', 'untuk', 'dengan', 'dari', 'adalah', 'dalam', 'atau', 'dan', 'pada', 'ke', 'di',
+        'this', 'that', 'with', 'from', 'have', 'will', 'about',
+        'github', 'repo', 'repos', 'repository', 'repositori', 'cari', 'tolong',
+        'rekomendasi', 'rekomendasikan', 'buatkan', 'kasih', 'minta', 'ada', 'bisa', 'tentang'
+      ]);
+
+      const queryWords: string[] = lastUserQuery
+        .split(/[\s,.()\[\]/\\-]+/)
+        .map((w: string) => w.trim())
+        .filter((w: string) => w.length > 2 && !stopWords.has(w));
+
+      const matchedRepos = queryWords.length > 0 ? repos
+        .map(r => {
+          const summaryText = typeof r.aiSummary === 'object' && r.aiSummary !== null
+            ? ((r.aiSummary as any).corePurpose || (r.aiSummary as any).summary || '')
+            : '';
+          const repoText = [
+            r.name, r.fullName, r.description || '',
+            r.categoryName, r.subCategoryName,
+            (r.topics || []).join(' '),
+            summaryText,
+            r.readmeContent ? r.readmeContent.slice(0, 500) : '',
+          ].join(' ').toLowerCase();
+
+          // Hitung berapa kata query yang cocok di teks repo
+          const matchCount = queryWords.filter((word: string) => repoText.includes(word)).length;
+          return { repo: r, score: matchCount };
+        })
+        .filter(({ score }) => score >= 2) // minimal 2 kata substansial match
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3)
+        .map(({ repo }) => repo) : [];
 
       if (matchedRepos.length > 0) {
-        assistantReply = `Berdasarkan katalog grup dan subgrup aktif, repositori berikut sesuai dengan kebutuhan teknis Anda:\n\n` +
-          matchedRepos.map(r => `### ${r.fullName}\n- Group: ${r.categoryName} / ${r.subCategoryName}\n- Stars: ${r.starsCount} | Bahasa: ${r.primaryLanguage}\n- Deskripsi: ${r.description}\n- Perintah Clone:\n\`\`\`bash\ngit clone ${r.githubUrl || `https://github.com/${r.fullName}`}.git\n\`\`\``).join('\n\n');
+        assistantReply = `**Analisis Kebutuhan:** Berdasarkan katalog aktif, ditemukan repositori yang relevan:\n\n` +
+          matchedRepos.map(r => {
+            const cloneUrl = r.githubUrl || `https://github.com/${r.fullName}`;
+            return `### ${r.fullName}\n- **Grup / Subgrup:** ${r.categoryName} / ${r.subCategoryName}\n- **Mengapa Relevan:** ${r.description || 'Repositori terkurasi di katalog'}\n- **Spesifikasi:** ${r.primaryLanguage || 'Unknown'} | ${(r.starsCount || 0).toLocaleString()} Stars\n- **Clone:** \`git clone ${cloneUrl}.git\``;
+          }).join('\n\n');
       } else {
-        assistantReply = `Katalog mencakup 5 grup utama: Large Language Models, RAG & Vector Search, Video & Multimodal, AI Agent Frameworks, dan AI Agent Skills & Tools. Mohon sebutkan spesifikasi masalah teknis Anda (contoh: hemat token, browser automation, atau vector retrieval) agar dapat direkomendasikan repositori yang tepat.`;
+        const groupList = cats.map(c => `- **${c.name}** (${(c.subCategories || []).map((s: any) => s.name).join(', ')})`).join('\n');
+        assistantReply = `**Analisis Kebutuhan:** Permintaan Anda tidak memiliki repositori yang cocok di katalog saat ini.\n\nKatalog platform saat ini berfokus pada grup teknis berikut:\n${groupList}\n\nSilakan ajukan pertanyaan yang berkaitan dengan kategori di atas (misal: inferensi LLM, penghemat token, video synthesis, atau agent tooling).`;
       }
     }
 
-    // Ekstrak nama repositori yang terdeteksi dalam jawaban untuk kartu interaktif frontend
+    // 7. Detect repo cards (FIXED: strict fullName match saja, hindari false positive)
+    const replyLower = assistantReply.toLowerCase();
     const detectedRepos = repos.filter(r => {
       const fn = (r.fullName || `${r.owner}/${r.name}`).toLowerCase();
-      const n = (r.name || '').toLowerCase();
-      const repLower = assistantReply!.toLowerCase();
-      return repLower.includes(fn) || (n.length > 2 && repLower.includes(n));
+      // Hanya match jika fullName (owner/repo) benar-benar ada dalam reply
+      return replyLower.includes(fn);
     }).map(r => ({
       id: r.id,
       name: r.name,

@@ -37,12 +37,13 @@ function lineIntersects(A, B, C, D) {
     const edges = window.__threeGalaxy.edgeObjects;
     const nodeMap = new Map(nodes.map(n => [n.id, n]));
 
-    // Focus on Category-Tree edges (category -> subCategory and subCategory -> repository)
+    // Focus on Category-Tree edges (category -> subCategory, subCategory -> repository, and repo -> repo dendritic root edges)
     const treeEdges = edges.filter(e => {
       const src = nodeMap.get(e.source);
       const tgt = nodeMap.get(e.target);
       return (src?.type === 'category' && tgt?.type === 'subCategory') ||
-             (src?.type === 'subCategory' && tgt?.type === 'repository');
+             (src?.type === 'subCategory' && tgt?.type === 'repository') ||
+             (src?.type === 'repository' && tgt?.type === 'repository');
     });
 
     let totalCrossings = 0;

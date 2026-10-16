@@ -650,9 +650,11 @@ export function GalaxyGraphView({
     });
 
     if (node.type === 'category') {
-      const subIds = threeState.nodeObjects.filter(s => s.type === 'subCategory' && s.catId === node.id).map(s => s.id);
+      const catNodeIds = new Set(
+        threeState.nodeObjects.filter(n => n.id === node.id || n.catId === node.id).map(n => n.id)
+      );
       threeState.edgeObjects.forEach(edge => {
-        if (subIds.includes(edge.source) || subIds.includes(edge.target)) {
+        if (catNodeIds.has(edge.source) && catNodeIds.has(edge.target)) {
           const src = threeState.nodeObjects.find(n => n.id === edge.source);
           const tgt = threeState.nodeObjects.find(n => n.id === edge.target);
           if (src?.group && !src.group.visible) return;
@@ -662,6 +664,36 @@ export function GalaxyGraphView({
           connectedNodeIds.add(edge.target);
         }
       });
+    }
+
+    if (node.type === 'subCategory') {
+      const subNodeIds = new Set(
+        threeState.nodeObjects.filter(n => n.id === node.id || n.subCatId === node.id).map(n => n.id)
+      );
+      threeState.edgeObjects.forEach(edge => {
+        if (subNodeIds.has(edge.source) && subNodeIds.has(edge.target)) {
+          const src = threeState.nodeObjects.find(n => n.id === edge.source);
+          const tgt = threeState.nodeObjects.find(n => n.id === edge.target);
+          if (src?.group && !src.group.visible) return;
+          if (tgt?.group && !tgt.group.visible) return;
+          if (!activeEdges.includes(edge)) activeEdges.push(edge);
+          connectedNodeIds.add(edge.source);
+          connectedNodeIds.add(edge.target);
+        }
+      });
+    }
+
+    if (node.type === 'repository') {
+      // Trace root tree pathway upstream to parent repo and SubCategory
+      let curId = node.id;
+      for (let depth = 0; depth < 8; depth++) {
+        const inEdge = threeState.edgeObjects.find(e => e.target === curId && e.color === 0x38bdf8);
+        if (!inEdge) break;
+        if (!activeEdges.includes(inEdge)) activeEdges.push(inEdge);
+        connectedNodeIds.add(inEdge.source);
+        connectedNodeIds.add(inEdge.target);
+        curId = inEdge.source;
+      }
     }
 
     setConnectedCount(connectedNodeIds.size - 1);
@@ -1017,32 +1049,21 @@ export function GalaxyGraphView({
         const subRepos = catRepos.filter(r => (r as unknown as { assignedSubId: string }).assignedSubId === sub.id);
         const rCount = subRepos.length;
 
-        // Formasi Mekar (Blossom Fan): Repositori mekar menyebar dalam sudut busur agar tidak berupa 1 garis lurus
-        const maxFan = Math.min(0.68, Math.max(0.26, angleStep * 0.65));
+        if (rCount === 0) return;
 
-        subRepos.forEach((repo, rIdx) => {
-          let repoAngle = subAngle;
-          if (rCount > 1) {
-            // Sebar sudut secara simetris dari -maxFan/2 hingga +maxFan/2
-            const t = (rIdx / (rCount - 1)) - 0.5;
-            repoAngle = subAngle + t * maxFan;
-          }
-
-          // Jarak bertingkat (staggered step) menjamin repositori tidak pernah menumpuk satu sama lain
-          const repoDist = 78 + rIdx * 56;
-
-          const rx = sx + Math.cos(repoAngle) * repoDist;
-          const rz = sz + Math.sin(repoAngle) * repoDist;
-          const ry = sy + (rIdx % 2 === 0 ? -22 : 22);
-
+        if (rCount === 1) {
+          const repo = subRepos[0];
+          const rx = sx + Math.cos(subAngle) * 85;
+          const rz = sz + Math.sin(subAngle) * 85;
+          const ry = sy + 15;
           const starSize = Math.max(13, Math.min(25, 12 + ((repo.starsCount || 0) / 10000) * 1.2));
-
           const node: GalaxyNode = {
             id: repo.id,
             name: repo.name || repo.fullName,
             repoFullName: repo.fullName,
             type: 'repository',
             subCatId: sub.id,
+            catId: cat.id,
             langId: repo.primaryLanguage ? `lang-${repo.primaryLanguage.toLowerCase()}` : undefined,
             stars: repo.starsCount || 0,
             topics: repo.topics || [],
@@ -1056,11 +1077,175 @@ export function GalaxyGraphView({
             targetPosition: new THREE.Vector3(rx, ry, rz),
             connections: [sub.id]
           };
-
           state.nodeObjects.push(node);
           state.edgeObjects.push({ source: sub.id, target: repo.id, color: 0x38bdf8 });
           subNode.connections.push(repo.id);
-        });
+          return;
+        }
+
+        if (rCount === 2) {
+          const delta = Math.min(0.24, angleStep * 0.28);
+          const d1 = 80;
+          const d2 = 138;
+          const a0 = subAngle - delta;
+          const a1 = subAngle + delta;
+          const r0 = subRepos[0];
+          const r1 = subRepos[1];
+          const sz0 = Math.max(13, Math.min(25, 12 + ((r0.starsCount || 0) / 10000) * 1.2));
+          const sz1 = Math.max(13, Math.min(25, 12 + ((r1.starsCount || 0) / 10000) * 1.2));
+
+          const n0: GalaxyNode = {
+            id: r0.id,
+            name: r0.name || r0.fullName,
+            repoFullName: r0.fullName,
+            type: 'repository',
+            subCatId: sub.id,
+            catId: cat.id,
+            langId: r0.primaryLanguage ? `lang-${r0.primaryLanguage.toLowerCase()}` : undefined,
+            stars: r0.starsCount || 0,
+            topics: r0.topics || [],
+            desc: r0.description || 'Repositori di ekosistem GitHub Library.',
+            color: '#10b981',
+            baseSize: sz0,
+            collisionRadius: 26,
+            x: sx + Math.cos(a0) * d1,
+            y: sy - 18,
+            z: sz + Math.sin(a0) * d1,
+            targetPosition: new THREE.Vector3(sx + Math.cos(a0) * d1, sy - 18, sz + Math.sin(a0) * d1),
+            connections: [sub.id]
+          };
+          const n1: GalaxyNode = {
+            id: r1.id,
+            name: r1.name || r1.fullName,
+            repoFullName: r1.fullName,
+            type: 'repository',
+            subCatId: sub.id,
+            catId: cat.id,
+            langId: r1.primaryLanguage ? `lang-${r1.primaryLanguage.toLowerCase()}` : undefined,
+            stars: r1.starsCount || 0,
+            topics: r1.topics || [],
+            desc: r1.description || 'Repositori di ekosistem GitHub Library.',
+            color: '#10b981',
+            baseSize: sz1,
+            collisionRadius: 26,
+            x: sx + Math.cos(a1) * d2,
+            y: sy + 18,
+            z: sz + Math.sin(a1) * d2,
+            targetPosition: new THREE.Vector3(sx + Math.cos(a1) * d2, sy + 18, sz + Math.sin(a1) * d2),
+            connections: [sub.id]
+          };
+          state.nodeObjects.push(n0, n1);
+          state.edgeObjects.push({ source: sub.id, target: r0.id, color: 0x38bdf8 });
+          state.edgeObjects.push({ source: sub.id, target: r1.id, color: 0x38bdf8 });
+          subNode.connections.push(r0.id, r1.id);
+          return;
+        }
+
+        // Dendritic Root System (Menjalar Seperti Akar Bercabang untuk rCount >= 3)
+        // Menjamin tidak ada garis sapu lidi, akar mekar bertingkat organik, 0 crossings, dan 0 overlaps
+        const maxSpread = Math.min(0.58, Math.max(0.25, angleStep * 0.44));
+
+        for (let i = 0; i < rCount; i++) {
+          const repo = subRepos[i];
+          let parentId = sub.id;
+          let angle = subAngle;
+          let dist = 80;
+          let yOffset = 0;
+
+          if (i === 0) {
+            // Main Left Root Trunk
+            parentId = sub.id;
+            angle = subAngle - maxSpread * 0.48;
+            dist = 80;
+            yOffset = -22;
+          } else if (i === 1) {
+            // Main Right Root Trunk (Staggered radially by 58px to guarantee 0 overlap with left trunk)
+            parentId = sub.id;
+            angle = subAngle + maxSpread * 0.48;
+            dist = 138;
+            yOffset = 22;
+          } else if (i === 2) {
+            // Outer Left Branch extending from Left Root Trunk (Root 0)
+            parentId = subRepos[0].id;
+            angle = subAngle - maxSpread * 0.88;
+            dist = 160;
+            yOffset = -38;
+          } else if (i === 3) {
+            // Outer Right Branch extending from Right Root Trunk (Root 1)
+            parentId = subRepos[1].id;
+            angle = subAngle + maxSpread * 0.88;
+            dist = 218;
+            yOffset = 38;
+          } else if (i === 4) {
+            // Inner Left Branch extending from Left Root Trunk (Root 0)
+            parentId = subRepos[0].id;
+            angle = subAngle - maxSpread * 0.18;
+            dist = 236;
+            yOffset = 18;
+          } else if (i === 5) {
+            // Inner Right Branch extending from Right Root Trunk (Root 1)
+            parentId = subRepos[1].id;
+            angle = subAngle + maxSpread * 0.18;
+            dist = 295;
+            yOffset = -18;
+          } else if (i === 6) {
+            // Tip of Outer Left Branch (extending from Root 2)
+            parentId = subRepos[2].id;
+            angle = subAngle - maxSpread * 0.98;
+            dist = 310;
+            yOffset = -48;
+          } else if (i === 7) {
+            // Tip of Outer Right Branch (extending from Root 3)
+            parentId = subRepos[3].id;
+            angle = subAngle + maxSpread * 0.98;
+            dist = 370;
+            yOffset = 48;
+          } else {
+            // Further bifurcating root tips
+            const isLeft = (i % 2 === 0);
+            const pIdx = isLeft ? 4 : 5;
+            parentId = subRepos[pIdx % rCount].id;
+            const side = isLeft ? -1 : 1;
+            const spreadFactor = 0.35 + ((i % 4) * 0.18);
+            angle = subAngle + side * maxSpread * spreadFactor;
+            dist = 320 + Math.floor(i / 2) * 58;
+            yOffset = (isLeft ? -1 : 1) * (25 + (i % 3) * 14);
+          }
+
+          const rx = sx + Math.cos(angle) * dist;
+          const rz = sz + Math.sin(angle) * dist;
+          const ry = sy + yOffset;
+
+          const starSize = Math.max(13, Math.min(25, 12 + ((repo.starsCount || 0) / 10000) * 1.2));
+
+          const node: GalaxyNode = {
+            id: repo.id,
+            name: repo.name || repo.fullName,
+            repoFullName: repo.fullName,
+            type: 'repository',
+            subCatId: sub.id,
+            catId: cat.id,
+            langId: repo.primaryLanguage ? `lang-${repo.primaryLanguage.toLowerCase()}` : undefined,
+            stars: repo.starsCount || 0,
+            topics: repo.topics || [],
+            desc: repo.description || 'Repositori di ekosistem GitHub Library.',
+            color: '#10b981',
+            baseSize: starSize,
+            collisionRadius: 26,
+            x: rx,
+            y: ry,
+            z: rz,
+            targetPosition: new THREE.Vector3(rx, ry, rz),
+            connections: [parentId]
+          };
+
+          state.nodeObjects.push(node);
+          state.edgeObjects.push({ source: parentId, target: repo.id, color: 0x38bdf8 });
+          const parentNode = state.nodeObjects.find(n => n.id === parentId);
+          if (parentNode) {
+            parentNode.connections.push(repo.id);
+          }
+        }
       });
     });
 

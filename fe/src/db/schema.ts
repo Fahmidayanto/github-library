@@ -44,6 +44,7 @@ export const repositories = pgTable('repositories', {
   license: text('license'),
   isFeatured: boolean('is_featured').default(false).notNull(),
   aiSummary: jsonb('ai_summary'),
+  readmeContent: text('readme_content'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
