@@ -6,6 +6,7 @@ import path from 'path';
 import { db, isDbConfigured } from '@/db';
 import { categories, subCategories, repositories } from '@/db/schema';
 import { eq, desc } from 'drizzle-orm';
+import { getOrGenerateSummary } from '@/lib/ai-summarizer';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000';
 
@@ -308,9 +309,26 @@ export async function getRepositories(filter?: { categoryId?: string; subCategor
 export async function createRepositoryAction(data: any) {
   if (db && isDbConfigured) {
     try {
-      const categoryId = data.categoryId;
+      let categoryId = data.categoryId;
+      let categoryName = data.categoryName || '';
       let subCategoryId = data.subCategoryId;
+      let createdCategory = null;
       let createdSubCategory = null;
+
+      if ((categoryId === 'create_new' || !categoryId) && data.customCategoryName?.trim()) {
+        const cleanCat = data.customCategoryName.trim();
+        const catSlug = cleanCat.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        const [newCat] = await db.insert(categories).values({
+          name: cleanCat,
+          slug: catSlug,
+          icon: 'folder',
+        }).returning();
+        if (newCat) {
+          categoryId = newCat.id;
+          categoryName = newCat.name;
+          createdCategory = newCat;
+        }
+      }
 
       if (data.subCategoryName && data.subCategoryName.trim() && categoryId) {
         const cleanSub = data.subCategoryName.trim();
@@ -341,8 +359,11 @@ export async function createRepositoryAction(data: any) {
         isFeatured: Boolean(data.isFeatured),
       }).returning();
 
+      // Trigger AI summary generation di background (fire-and-forget)
+      getOrGenerateSummary(newRepo.fullName, { meta: newRepo }).catch(() => {});
+
       revalidatePath('/');
-      return { success: true, repository: newRepo, createdSubCategory };
+      return { success: true, repository: newRepo, createdCategory, createdSubCategory };
     } catch (err) {
       console.warn('Gagal insert repo ke DB, beralih ke fallback:', err);
     }
@@ -365,10 +386,32 @@ export async function createRepositoryAction(data: any) {
 
   // Fallback disk store
   const store = loadLocalStore();
-  const categoryId = data.categoryId || 'cat-5';
+  let categoryId = data.categoryId;
+  let categoryName = data.categoryName || '';
   let subCategoryId = data.subCategoryId;
   let subCategoryName = data.subCategoryName || '';
+  let createdCategory = null;
   let createdSubCategory = null;
+
+  if ((categoryId === 'create_new' || !categoryId) && data.customCategoryName?.trim()) {
+    const cleanCat = data.customCategoryName.trim();
+    const newCat = {
+      id: `cat-${Date.now()}`,
+      name: cleanCat,
+      slug: cleanCat.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      icon: 'folder',
+      description: '',
+      subCategories: [],
+    };
+    store.categories.push(newCat);
+    categoryId = newCat.id;
+    categoryName = newCat.name;
+    createdCategory = newCat;
+  }
+
+  if (!categoryId) {
+    categoryId = 'cat-5';
+  }
 
   const parentCat = store.categories.find(c => c.id === categoryId);
   if (subCategoryName && subCategoryName.trim()) {
@@ -398,13 +441,16 @@ export async function createRepositoryAction(data: any) {
   const newRepo = {
     ...data,
     id: data.id || `repo-${Date.now()}`,
+    categoryId,
+    categoryName: parentCat?.name || categoryName || 'AI General',
     subCategoryId,
     subCategoryName,
   };
   store.repositories.unshift(newRepo);
   saveLocalStore(store.categories, store.repositories);
+  getOrGenerateSummary(newRepo.fullName, { meta: newRepo }).catch(() => {});
   revalidatePath('/');
-  return { success: true, repository: newRepo, createdSubCategory };
+  return { success: true, repository: newRepo, createdCategory, createdSubCategory };
 }
 
 export async function createCategoryAction(name: string, subCategoryNames: string[]) {

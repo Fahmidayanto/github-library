@@ -1,37 +1,78 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { getOrGenerateSummary, loadCachedSummaries } from '@/lib/ai-summarizer';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const repoParam = searchParams.get('repo')?.toLowerCase();
-
-    // Lokasi data/ai-summaries.json di root monorepo
-    const summariesPath = path.resolve(process.cwd(), '../data/ai-summaries.json');
-
-    if (!fs.existsSync(summariesPath)) {
-      return NextResponse.json({ success: false, message: 'Belum ada AI summary yang digenerate.' }, { status: 404 });
-    }
-
-    const raw = fs.readFileSync(summariesPath, 'utf-8');
-    const summaries = JSON.parse(raw);
+    const repoParam = searchParams.get('repo')?.trim();
+    const force = searchParams.get('force') === 'true';
 
     if (repoParam) {
-      const found = summaries[repoParam];
-      if (found) {
+      const result = await getOrGenerateSummary(repoParam, { forceRefresh: force });
+      if (result.summary) {
         return NextResponse.json({
           success: true,
           isAiGenerated: true,
+          source: result.source,
           repo: repoParam,
-          summary: found,
+          summary: result.summary,
         });
       }
-      return NextResponse.json({ success: false, message: `Summary belum tersedia untuk ${repoParam}` }, { status: 404 });
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Tidak dapat menghasilkan AI summary untuk ${repoParam}. Silakan periksa koneksi atau URL repositori.`,
+        },
+        { status: 404 }
+      );
     }
 
-    return NextResponse.json({ success: true, count: Object.keys(summaries).length, summaries });
+    const summaries = loadCachedSummaries();
+    return NextResponse.json({
+      success: true,
+      count: Object.keys(summaries).length,
+      summaries,
+    });
   } catch (error: any) {
+    console.error('Error di /api/github/summary GET:', error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const repoParam = body?.repo?.trim();
+    const force = Boolean(body?.force);
+
+    if (!repoParam) {
+      return NextResponse.json({ success: false, error: 'Parameter repo wajib diisi.' }, { status: 400 });
+    }
+
+    const result = await getOrGenerateSummary(repoParam, {
+      forceRefresh: force,
+      meta: body?.meta,
+    });
+
+    if (result.summary) {
+      return NextResponse.json({
+        success: true,
+        isAiGenerated: true,
+        source: result.source,
+        repo: repoParam,
+        summary: result.summary,
+      });
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: `Gagal menghasilkan AI summary untuk ${repoParam}`,
+      },
+      { status: 500 }
+    );
+  } catch (error: any) {
+    console.error('Error di /api/github/summary POST:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

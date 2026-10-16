@@ -418,8 +418,27 @@ export default function HomePage() {
         categories={categories}
         defaultCategoryId={selectedCategory !== 'all' ? selectedCategory : undefined}
         onClose={() => setIsAddRepoOpen(false)}
-        onRepoAdded={(newRepo, createdSub) => {
-          if (createdSub) {
+        onRepoAdded={(newRepo, createdSub, createdCat) => {
+          if (createdCat) {
+            setCategories(prev => {
+              if (prev.some(c => c.id === createdCat.id || c.name.toLowerCase() === createdCat.name.toLowerCase())) {
+                return prev;
+              }
+              const updated = [
+                ...prev,
+                {
+                  id: createdCat.id,
+                  name: createdCat.name,
+                  slug: createdCat.slug,
+                  icon: createdCat.icon || 'folder',
+                  description: createdCat.description || '',
+                  subCategories: createdSub ? [{ id: createdSub.id, name: createdSub.name, slug: createdSub.slug }] : [],
+                },
+              ];
+              saveToLocalStorage(undefined, updated);
+              return updated;
+            });
+          } else if (createdSub) {
             setCategories(prev => {
               const updated = prev.map(cat => {
                 if (cat.id === createdSub.categoryId) {

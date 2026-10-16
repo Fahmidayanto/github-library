@@ -6,13 +6,14 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { db, isDbConfigured } from './db/index.js';
 import { categories, subCategories, repositories } from './db/schema.js';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_STORE_PATH = path.resolve(__dirname, '../../data/library-store.json');
+const AI_SUMMARIES_PATH = path.resolve(__dirname, '../../data/ai-summaries.json');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -821,6 +822,62 @@ app.get('/api/github/inspect', async (req: Request, res: Response) => {
     default_branch: 'main',
     warning: 'Metadata diambil secara dasar karena GitHub API rate-limited atau offline.',
   });
+});
+
+// AI Summary GET (Dual-layer: Database first, then JSON file cache)
+app.get('/api/github/summary', async (req: Request, res: Response) => {
+  const repoParam = (req.query.repo as string)?.trim().toLowerCase();
+  if (!repoParam) {
+    if (fs.existsSync(AI_SUMMARIES_PATH)) {
+      try {
+        const summaries = JSON.parse(fs.readFileSync(AI_SUMMARIES_PATH, 'utf-8'));
+        return res.json({ success: true, count: Object.keys(summaries).length, summaries });
+      } catch {}
+    }
+    return res.json({ success: true, count: 0, summaries: {} });
+  }
+
+  // 1. Cek Database PostgreSQL Neon
+  if (db && isDbConfigured) {
+    try {
+      const found = await db.query.repositories.findFirst({
+        where: (r, { or }) =>
+          or(
+            sql`lower(${r.fullName}) = ${repoParam}`,
+            sql`lower(${r.githubUrl}) = ${`https://github.com/${repoParam}`}`
+          ),
+      });
+      if (found && found.aiSummary) {
+        return res.json({
+          success: true,
+          isAiGenerated: true,
+          source: 'database',
+          repo: repoParam,
+          summary: found.aiSummary,
+        });
+      }
+    } catch (err: any) {
+      console.warn('BE DB summary fetch error:', err.message);
+    }
+  }
+
+  // 2. Cek Cache File
+  if (fs.existsSync(AI_SUMMARIES_PATH)) {
+    try {
+      const summaries = JSON.parse(fs.readFileSync(AI_SUMMARIES_PATH, 'utf-8'));
+      if (summaries[repoParam]) {
+        return res.json({
+          success: true,
+          isAiGenerated: true,
+          source: 'cache',
+          repo: repoParam,
+          summary: summaries[repoParam],
+        });
+      }
+    } catch {}
+  }
+
+  return res.status(404).json({ success: false, message: `Summary belum tersedia untuk ${repoParam}` });
 });
 
 // Repository Move (Drag & Drop Sub-category reassignment)

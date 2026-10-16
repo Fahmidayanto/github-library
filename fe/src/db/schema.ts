@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, integer, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, integer, boolean, jsonb } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Tabel Kategori Utama (e.g. LLM, RAG, Video, AI Agent, AI Skill)
@@ -43,6 +43,7 @@ export const repositories = pgTable('repositories', {
   homepage: text('homepage'),
   license: text('license'),
   isFeatured: boolean('is_featured').default(false).notNull(),
+  aiSummary: jsonb('ai_summary'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

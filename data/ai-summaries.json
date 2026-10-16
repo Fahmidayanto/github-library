@@ -1735,5 +1735,256 @@
         "example": "/ui-ux-pro-max --stack Flutter Design a settings screen."
       }
     ]
+  },
+  "expressjs/express": {
+    "corePurpose": "Express adalah framework web minimalis dan tidak opinionated untuk Node.js yang menyediakan lapisan abstraksi tipis di atas modul http bawaan Node.js. Arsitekturnya berbasis middleware yang memungkinkan developer membangun pipeline request-response yang modular, cepat, dan fleksibel tanpa memaksakan struktur aplikasi tertentu.",
+    "problemsSolved": [
+      {
+        "title": "Kompleksitas Routing HTTP Manual",
+        "description": "Mengelola routing HTTP secara manual menggunakan modul http bawaan Node.js sangat rumit dan rentan terhadap bug. Express menyediakan sistem routing yang robust dengan dukungan parameter, wildcard, dan method chaining, sehingga developer dapat mendefinisikan endpoint dengan sintaks yang bersih dan mudah dibaca."
+      },
+      {
+        "title": "Fragmentasi Middleware dan Ekosistem",
+        "description": "Tanpa framework standar, developer harus menulis ulang logika umum seperti parsing body, autentikasi, dan logging untuk setiap proyek. Express memperkenalkan pola middleware yang terstandarisasi, memungkinkan komposisi fungsi-fungsi kecil yang dapat digunakan ulang, serta didukung oleh ekosistem middleware pihak ketiga yang sangat luas."
+      },
+      {
+        "title": "Kekakuan Arsitektur Aplikasi Web",
+        "description": "Framework yang terlalu opinionated sering membatasi fleksibilitas developer dalam memilih teknologi pendukung (seperti ORM atau template engine). Express menerapkan filosofi 'unopinionated', memberikan kebebasan penuh kepada developer untuk memilih stack teknologi yang sesuai dengan kebutuhan spesifik proyek, mulai dari SPA hingga API publik."
+      }
+    ],
+    "ladderRules": [
+      "Minimalisme: Menyediakan hanya tooling inti yang robust untuk HTTP server tanpa fitur tambahan yang tidak diperlukan.",
+      "Unopinionated: Tidak memaksakan penggunaan ORM, template engine, atau struktur folder tertentu; mendukung 14+ template engine melalui @ladjs/consolidate.",
+      "Middleware-Driven: Membangun aplikasi melalui komposisi fungsi middleware yang berjalan secara sekuensial dalam pipeline request-response."
+    ],
+    "useCases": [
+      "Membangun RESTful API publik yang membutuhkan performa tinggi dan latensi rendah.",
+      "Menciptakan backend untuk Single Page Applications (SPA) yang membutuhkan endpoint dinamis dan content negotiation.",
+      "Mengembangkan hybrid web apps yang menggabungkan server-side rendering dengan template engine pilihan developer."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Implementasi REST API dengan Content Negotiation",
+        "prompt": "\"Buatkan endpoint API /users yang mengembalikan data dalam format JSON atau XML berdasarkan header Accept client menggunakan Express.\"",
+        "scenarioType": "backend",
+        "scenarioBadge": "🚀 High-Performance HTTP API",
+        "beforeTitle": "BEFORE (Modul http bawaan Node.js)",
+        "beforeMeta": "Parsing manual • Logika routing terfragmentasi • Verbose",
+        "beforeCode": "const http = require('http');\n\nconst server = http.createServer((req, res) => {\n  if (req.url === '/users' && req.method === 'GET') {\n    const accept = req.headers['accept'];\n    if (accept.includes('application/json')) {\n      res.writeHead(200, { 'Content-Type': 'application/json' });\n      res.end(JSON.stringify([{ id: 1, name: 'John' }]));\n    } else if (accept.includes('application/xml')) {\n      res.writeHead(200, { 'Content-Type': 'application/xml' });\n      res.end('<users><user id=\"1\">John</user></users>');\n    } else {\n      res.writeHead(406);\n      res.end();\n    }\n  } else {\n    res.writeHead(404);\n    res.end();\n  }\n});\n\nserver.listen(3000);",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Logika routing dan content negotiation harus ditulis manual untuk setiap endpoint."
+          },
+          {
+            "label": "Beban",
+            "value": "Kode menjadi panjang dan sulit dipelihara saat jumlah endpoint bertambah."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan express)",
+        "afterMeta": "Routing otomatis • Content negotiation bawaan • Modular",
+        "afterCode": "import express from 'express';\nconst app = express();\n\napp.get('/users', (req, res) => {\n  const users = [{ id: 1, name: 'John' }];\n  res.json(users); // Express otomatis menangani content negotiation untuk JSON\n});\n\n// Untuk XML, gunakan middleware atau res.format\napp.get('/users', (req, res) => {\n  res.format({\n    'application/json': () => res.json([{ id: 1, name: 'John' }]),\n    'application/xml': () => res.xml('<users><user id=\"1\">John</user></users>')\n  });\n});\n\napp.listen(3000);",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Metode res.json() dan res.format() menyederhanakan respons berdasarkan tipe konten."
+          },
+          {
+            "label": "Hasil",
+            "value": "Kode lebih ringkas, mudah diuji, dan mendukung ekstensi middleware untuk fitur tambahan."
+          }
+        ],
+        "ruleBadge": "Middleware Pipeline & Content Negotiation",
+        "metrics": [
+          {
+            "label": "Throughput",
+            "value": "Tinggi (Minimalist overhead)",
+            "color": "emerald"
+          },
+          {
+            "label": "Latensi",
+            "value": "Rendah",
+            "color": "sky"
+          },
+          {
+            "label": "Integrasi",
+            "value": "14+ Template Engines",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi Dependensi",
+        "command": "npm install express",
+        "description": "Instal Express melalui npm registry. Pastikan Node.js versi 18 atau lebih tinggi terpasang."
+      },
+      {
+        "step": 2,
+        "title": "Inisialisasi Aplikasi",
+        "command": "import express from 'express'; const app = express();",
+        "description": "Import modul express dan buat instance aplikasi menggunakan express(). Ini adalah titik masuk untuk semua middleware dan route."
+      },
+      {
+        "step": 3,
+        "title": "Definisikan Route dan Jalankan Server",
+        "command": "app.get('/', (req, res) => res.send('Hello World')); app.listen(3000);",
+        "description": "Definisikan handler untuk method HTTP (GET, POST, dll) dan mulai mendengarkan koneksi pada port tertentu."
+      }
+    ],
+    "commands": [
+      {
+        "command": "express(1)",
+        "function": "Executable CLI untuk menghasilkan kerangka aplikasi Express secara cepat. Versi executable akan sesuai dengan versi mayor Express.",
+        "example": "npm install -g express-generator@4 && express /tmp/foo && cd /tmp/foo && npm install && npm start"
+      },
+      {
+        "command": "npm test",
+        "function": "Menjalankan suite pengujian untuk memastikan integritas kode setelah melakukan perubahan atau kontribusi.",
+        "example": "npm install && npm test"
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/expressjs/express.git"
+  },
+  "colbymchenry/codegraph": {
+    "corePurpose": "CodeGraph adalah mesin indeksasi kode berbasis Rust yang membangun graf pengetahuan (knowledge graph) dari seluruh simbol, panggilan fungsi, dan dependensi dalam repositori. Solusi ini menghilangkan kebutuhan AI agent untuk melakukan pencarian file secara manual (grep/glob) dengan menyediakan konteks kode yang presisi dan 'surgical' dalam satu panggilan, sehingga mengurangi drastis jumlah tool calls dan konsumsi token.",
+    "problemsSolved": [
+      {
+        "title": "Inefisiensi Pencarian Kode oleh AI Agent",
+        "description": "Secara default, AI agent seperti Claude Code atau Cursor harus membaca file satu per satu menggunakan grep dan glob untuk memahami struktur kode. Proses ini lambat, boros token, dan sering kali gagal melacak alur eksekusi yang kompleks. CodeGraph menyediakan graf pre-indexed sehingga agent dapat langsung mendapatkan jalur panggilan (call paths) dan dependensi tanpa harus 'merayap' melalui file."
+      },
+      {
+        "title": "Kegagalan Melacak Dispatch Dinamis",
+        "description": "Pencarian teks statis (grep) tidak mampu melacak alur kode yang melibatkan dispatch dinamis (misalnya, polymorphism atau callback) yang melintasi beberapa file. CodeGraph menggunakan analisis semantik untuk memetakan hubungan antar simbol, memungkinkan agent memahami 'blast radius' (dampak perubahan) dari sebuah modifikasi kode secara akurat."
+      },
+      {
+        "title": "Indeks yang Cepat Usang (Stale Index)",
+        "description": "Banyak tool analisis kode memerlukan proses re-indexing manual yang memakan waktu. CodeGraph memiliki fitur auto-sync yang memantau perubahan file secara real-time. Setiap kali kode diubah, graf diperbarui secara otomatis, memastikan agent selalu bekerja dengan data struktur kode yang paling mutakhir tanpa intervensi manual."
+      }
+    ],
+    "ladderRules": [
+      "Pre-indexed Semantic Graph: Membangun peta struktur kode (simbol, edge, dependensi) sekali di awal, bukan mencari saat runtime.",
+      "Surgical Context Delivery: Hanya memberikan potongan kode dan jalur panggilan yang relevan dengan pertanyaan agent, bukan seluruh isi file.",
+      "Local-First & Zero-Dependency: Berjalan 100% lokal dengan kernel Rust, tidak memerlukan Node.js atau layanan cloud, menjamin privasi dan kecepatan."
+    ],
+    "useCases": [
+      "Ketika menggunakan AI coding assistant (Claude Code, Cursor, Copilot) pada repositori besar yang memiliki ribuan file dan kompleksitas dependensi tinggi.",
+      "Saat melakukan refactoring atau debugging di mana pemahaman tentang 'blast radius' (dampak perubahan) dari sebuah fungsi sangat krusial.",
+      "Untuk mengoptimalkan biaya dan kecepatan respons AI agent dengan mengurangi jumlah tool calls (grep/read) yang dilakukan oleh model."
+    ],
+    "cases": [
+      {
+        "id": "case1",
+        "name": "1. Analisis Blast Radius & Navigasi Kode Presisi",
+        "prompt": "\"Jelaskan alur eksekusi dari fungsi 'processPayment' hingga database, dan tampilkan semua fungsi yang memanggil 'processPayment'.\"",
+        "scenarioType": "efficiency",
+        "scenarioBadge": "⚡ Code Intelligence & Blast Radius",
+        "beforeTitle": "BEFORE (Pendekatan Konvensional: Grep & Read)",
+        "beforeMeta": "Brute-force file scan • Boros 3.000+ tokens • Latensi tinggi",
+        "beforeCode": "# Agent melakukan pencarian manual\n1. grep -r \"processPayment\" .\n2. Read file_a.js (baris 100-200)\n3. grep -r \"call processPayment\" .\n4. Read file_b.js (baris 50-150)\n5. ... (berulang-ulang hingga menemukan semua dependensi)\n\n# Masalah: Agent tidak tahu hubungan antar file tanpa membaca semuanya.\n# Biaya: Tinggi karena banyak round-trip tool calls.",
+        "beforeNotes": [
+          {
+            "label": "Kelemahan",
+            "value": "Tidak mampu melacak dispatch dinamis atau dependensi transitive secara otomatis."
+          },
+          {
+            "label": "Beban",
+            "value": "Konsumsi token tinggi karena agent harus 'membaca' banyak file untuk membangun konteks."
+          }
+        ],
+        "afterTitle": "AFTER (Dengan codegraph)",
+        "afterMeta": "Persistent graph mapping • Hemat 62% tokens • Respons instan",
+        "afterCode": "# Agent memanggil tool MCP CodeGraph\nmcp__codegraph__get_call_graph({\n  symbol: \"processPayment\",\n  direction: \"both\" // panggil dan dipanggil\n})\n\n# Hasil: Agent langsung mendapatkan daftar fungsi pemanggil, \n# jalur eksekusi, dan dependensi database tanpa membaca file satu per satu.\n# Biaya: Rendah, hanya 1 tool call.",
+        "afterNotes": [
+          {
+            "label": "Keunggulan",
+            "value": "Menyediakan konteks 'surgical' yang tepat sasaran, bukan seluruh isi file."
+          },
+          {
+            "label": "Hasil",
+            "value": "Agent menjawab dengan akurat dan cepat, memahami dampak perubahan kode secara menyeluruh."
+          }
+        ],
+        "ruleBadge": "Rust Kernel • Semantic Graph",
+        "metrics": [
+          {
+            "label": "Penghematan Token",
+            "value": "62% lebih rendah",
+            "color": "emerald"
+          },
+          {
+            "label": "Efisiensi Biaya",
+            "value": "44% lebih murah",
+            "color": "sky"
+          },
+          {
+            "label": "Akurasi Struktur",
+            "value": "100% Local & Real-time",
+            "color": "amber"
+          }
+        ]
+      }
+    ],
+    "howToUse": [
+      {
+        "step": 1,
+        "title": "Instalasi CLI",
+        "command": "curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh",
+        "description": "Mengunduh dan menginstal binary CodeGraph yang sesuai dengan OS (macOS/Linux). Tidak memerlukan Node.js. Untuk Windows, gunakan PowerShell installer."
+      },
+      {
+        "step": 2,
+        "title": "Konfigurasi Agent",
+        "command": "codegraph install",
+        "description": "Menjalankan installer untuk mendeteksi dan mengkonfigurasi MCP server CodeGraph ke dalam agent yang digunakan (Claude Code, Cursor, Copilot, dll). Langkah ini menghubungkan agent dengan engine CodeGraph."
+      },
+      {
+        "step": 3,
+        "title": "Inisialisasi Proyek",
+        "command": "cd your-project && codegraph init",
+        "description": "Membangun graf pengetahuan awal untuk proyek tersebut. Perintah ini membuat direktori .codegraph/ dan mengindeks seluruh kode. Setelah ini, auto-sync akan aktif secara default."
+      }
+    ],
+    "commands": [
+      {
+        "command": "codegraph install",
+        "function": "Mendeteksi agent AI yang terpasang (Claude, Cursor, dll) dan menginjeksi konfigurasi MCP server CodeGraph ke dalam file konfigurasi agent tersebut.",
+        "example": "codegraph install"
+      },
+      {
+        "command": "codegraph init",
+        "function": "Membangun indeks graf kode untuk proyek saat ini. Membuat folder .codegraph/ dan memindai seluruh file untuk mengekstrak simbol dan dependensi.",
+        "example": "codegraph init"
+      },
+      {
+        "command": "codegraph upgrade",
+        "function": "Memperbarui CLI CodeGraph ke versi terbaru. Mendeteksi metode instalasi (bundle, npm, npx) dan memperbarui di tempat.",
+        "example": "codegraph upgrade --check"
+      },
+      {
+        "command": "codegraph uninstall",
+        "function": "Menghapus konfigurasi CodeGraph dari semua agent yang terhubung dan menghapus CLI itu sendiri (opsional).",
+        "example": "codegraph uninstall --keep-cli"
+      },
+      {
+        "command": "codegraph uninit",
+        "function": "Menghapus indeks graf (.codegraph/) dari proyek saat ini tanpa menghapus CLI atau konfigurasi agent.",
+        "example": "codegraph uninit"
+      },
+      {
+        "command": "add-lang (Skill)",
+        "function": "Skill internal untuk membantu developer menambahkan dukungan bahasa pemrograman baru ke dalam parser CodeGraph.",
+        "example": "Gunakan skill ini saat berkontribusi pada pengembangan parser bahasa baru."
+      },
+      {
+        "command": "agent-eval (Skill)",
+        "function": "Skill untuk mengevaluasi kinerja dan akurasi AI agent yang menggunakan CodeGraph, biasanya untuk benchmarking penghematan token.",
+        "example": "Jalankan evaluasi untuk membandingkan kinerja agent dengan dan tanpa CodeGraph."
+      }
+    ],
+    "cloneCommand": "git clone https://github.com/colbymchenry/codegraph.git"
   }
 }

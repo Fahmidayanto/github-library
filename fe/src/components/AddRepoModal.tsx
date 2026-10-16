@@ -24,7 +24,11 @@ interface AddRepoModalProps {
   categories: Category[];
   defaultCategoryId?: string;
   onClose: () => void;
-  onRepoAdded: (newRepo: RepoCardData, createdSubCategory?: { id: string; name: string; slug: string; categoryId: string }) => void;
+  onRepoAdded: (
+    newRepo: RepoCardData,
+    createdSubCategory?: { id: string; name: string; slug: string; categoryId: string },
+    createdCategory?: { id: string; name: string; slug: string; icon?: string; description?: string }
+  ) => void;
 }
 
 interface RepoPreviewData {
@@ -56,10 +60,16 @@ export function AddRepoModal({
   const [repoName, setRepoName] = useState('');
 
   const [selectedCatId, setSelectedCatId] = useState<string>(categories[0]?.id || 'cat-5');
+  const [customCatName, setCustomCatName] = useState<string>('');
   const [selectedSubId, setSelectedSubId] = useState<string>('none');
   const [customSubName, setCustomSubName] = useState<string>('');
   const [notes, setNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // AI Suggestion State
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState<any | null>(null);
+  const [isSuggestionApplied, setIsSuggestionApplied] = useState(false);
 
   const [isCatDropdownOpen, setIsCatDropdownOpen] = useState(false);
   const [isSubDropdownOpen, setIsSubDropdownOpen] = useState(false);
@@ -89,10 +99,14 @@ export function AddRepoModal({
       }
       setSelectedSubId('none');
       setCustomSubName('');
+      setCustomCatName('');
       setRepoName('');
       setFetchError(null);
       setIsCatDropdownOpen(false);
       setIsSubDropdownOpen(false);
+      setAiSuggestion(null);
+      setIsSuggestionApplied(false);
+      setIsSuggesting(false);
     }
   }, [isOpen, defaultCategoryId, categories]);
 
@@ -177,6 +191,9 @@ export function AddRepoModal({
       if (data?.name) {
         setRepoName(data.name);
       }
+
+      // Otomatis minta rekomendasi klasifikasi dari AI
+      fetchAiCategorySuggestion(data);
     } catch (err: any) {
       setFetchError(err.message || 'Terjadi kesalahan saat memeriksa GitHub URL.');
     } finally {
@@ -184,9 +201,70 @@ export function AddRepoModal({
     }
   };
 
+  const fetchAiCategorySuggestion = async (repoData: RepoPreviewData) => {
+    setIsSuggesting(true);
+    setAiSuggestion(null);
+    setIsSuggestionApplied(false);
+
+    try {
+      const res = await fetch('/api/github/categorize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          repo: repoData,
+          categories,
+        }),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.suggestion) {
+          setAiSuggestion(json.suggestion);
+        }
+      }
+    } catch (err) {
+      console.warn('Gagal memuat saran kategori dari AI:', err);
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
+
+  const handleApplySuggestion = () => {
+    if (!aiSuggestion) return;
+    const { scenario, categoryId, categoryName, subCategoryId, subCategoryName } = aiSuggestion;
+
+    if (scenario === 'existing_all') {
+      if (categoryId) setSelectedCatId(categoryId);
+      setSelectedSubId(subCategoryId || 'none');
+      setCustomCatName('');
+      setCustomSubName('');
+    } else if (scenario === 'existing_group_new_sub') {
+      if (categoryId) setSelectedCatId(categoryId);
+      setSelectedSubId('create_new');
+      setCustomSubName(subCategoryName || '');
+      setCustomCatName('');
+    } else if (scenario === 'new_all') {
+      setSelectedCatId('create_new');
+      setCustomCatName(categoryName || '');
+      setSelectedSubId('create_new');
+      setCustomSubName(subCategoryName || '');
+    }
+    setIsSuggestionApplied(true);
+  };
+
   const handleSave = async () => {
     if (!url.trim()) {
       setFetchError('URL GitHub wajib diisi.');
+      return;
+    }
+
+    if (selectedCatId === 'create_new' && !customCatName.trim()) {
+      setFetchError('Nama kategori utama baru wajib diisi.');
+      return;
+    }
+
+    if (selectedSubId === 'create_new' && !customSubName.trim()) {
+      setFetchError('Nama sub-kategori baru wajib diisi.');
       return;
     }
 
@@ -223,12 +301,14 @@ export function AddRepoModal({
       return;
     }
 
+    let finalCatId = selectedCatId;
+    let finalCatName = selectedCatId === 'create_new' ? customCatName.trim() : (currentCat?.name || 'AI General');
     let finalSubId: string | undefined = undefined;
     let finalSubName: string | undefined = undefined;
 
     if (selectedSubId === 'create_new' && customSubName.trim()) {
       finalSubName = customSubName.trim();
-    } else if (selectedSubId !== 'none') {
+    } else if (selectedSubId !== 'none' && selectedSubId !== 'create_new') {
       const foundSub = currentCat?.subCategories?.find(s => s.id === selectedSubId);
       if (foundSub) {
         finalSubId = foundSub.id;
@@ -240,9 +320,9 @@ export function AddRepoModal({
 
     const newRepoItem: RepoCardData = {
       id: `repo-${Date.now()}`,
-      categoryId: selectedCatId,
+      categoryId: finalCatId,
       subCategoryId: finalSubId,
-      categoryName: currentCat?.name || 'AI General',
+      categoryName: finalCatName,
       subCategoryName: finalSubName,
       githubUrl: url.trim(),
       owner: finalPreview.owner,
@@ -258,25 +338,33 @@ export function AddRepoModal({
     try {
       const saveRes = await createRepositoryAction({
         ...newRepoItem,
+        customCategoryName: selectedCatId === 'create_new' ? customCatName.trim() : undefined,
+        subCategoryName: selectedSubId === 'create_new' ? customSubName.trim() : undefined,
         notes: notes.trim(),
         license: finalPreview.license,
         homepage: finalPreview.homepage,
       });
 
+      const createdCat = saveRes?.createdCategory;
       const createdSub = saveRes?.createdSubCategory
-        ? { ...saveRes.createdSubCategory, categoryId: selectedCatId }
+        ? { ...saveRes.createdSubCategory, categoryId: createdCat?.id || finalCatId }
         : (selectedSubId === 'create_new' && finalSubName ? {
             id: saveRes?.repository?.subCategoryId || `sub-${Date.now()}`,
             name: finalSubName,
             slug: finalSubName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-            categoryId: selectedCatId,
+            categoryId: createdCat?.id || finalCatId,
           } : undefined);
 
+      if (createdCat) {
+        newRepoItem.categoryId = createdCat.id;
+        newRepoItem.categoryName = createdCat.name;
+      }
       if (createdSub) {
         newRepoItem.subCategoryId = createdSub.id;
+        newRepoItem.subCategoryName = createdSub.name;
       }
 
-      onRepoAdded(newRepoItem, createdSub);
+      onRepoAdded(newRepoItem, createdSub, createdCat);
       onClose();
       // Reset form
       setUrl('');
@@ -284,7 +372,10 @@ export function AddRepoModal({
       setRepoName('');
       setSelectedSubId('none');
       setCustomSubName('');
+      setCustomCatName('');
       setNotes('');
+      setAiSuggestion(null);
+      setIsSuggestionApplied(false);
     } catch (err: any) {
       setFetchError(err.message || 'Gagal menyimpan repositori ke database.');
     } finally {
@@ -440,6 +531,91 @@ export function AddRepoModal({
             </div>
           )}
 
+          {/* AI Category Suggestion Card */}
+          {(isSuggesting || aiSuggestion) && (
+            <div className="p-3.5 rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-black/40 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5 text-indigo-300 font-semibold text-xs">
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+                  <span>Rekomendasi Klasifikasi AI</span>
+                </div>
+                {isSuggesting ? (
+                  <span className="flex items-center space-x-1 text-[10px] text-indigo-300 font-mono">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <span>Menganalisis repositori...</span>
+                  </span>
+                ) : (
+                  <span className={cn(
+                    "text-[10px] font-mono px-2 py-0.5 rounded border",
+                    aiSuggestion?.scenario === 'existing_all' && "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
+                    aiSuggestion?.scenario === 'existing_group_new_sub' && "bg-sky-500/10 border-sky-500/30 text-sky-400",
+                    aiSuggestion?.scenario === 'new_all' && "bg-purple-500/10 border-purple-500/30 text-purple-400"
+                  )}>
+                    {aiSuggestion?.scenario === 'existing_all' && 'Grup & Sub-Grup Sesuai'}
+                    {aiSuggestion?.scenario === 'existing_group_new_sub' && 'Grup Ada + Buat Sub-Grup Baru'}
+                    {aiSuggestion?.scenario === 'new_all' && 'Buat Grup & Sub-Grup Baru'}
+                  </span>
+                )}
+              </div>
+
+              {aiSuggestion && (
+                <>
+                  <div className="grid grid-cols-2 gap-2 text-[11px] bg-black/30 p-2.5 rounded-lg border border-white/5">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block mb-0.5">Kategori Utama:</span>
+                      <span className="font-semibold text-slate-200">
+                        {aiSuggestion.categoryName}
+                      </span>
+                      <span className="text-[9px] text-indigo-400 ml-1.5 font-mono">
+                        {aiSuggestion.scenario === 'new_all' ? '(Baru)' : '(Existing)'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block mb-0.5">Sub-Kategori:</span>
+                      <span className="font-semibold text-slate-200">
+                        {aiSuggestion.subCategoryName}
+                      </span>
+                      <span className="text-[9px] text-indigo-400 ml-1.5 font-mono">
+                        {aiSuggestion.scenario === 'existing_all' ? '(Existing)' : '(Baru)'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {aiSuggestion.reason && (
+                    <p className="text-[11px] text-slate-300 italic">
+                      "{aiSuggestion.reason}"
+                    </p>
+                  )}
+
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="button"
+                      onClick={handleApplySuggestion}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-medium flex items-center space-x-1.5 transition-all cursor-pointer",
+                        isSuggestionApplied
+                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                          : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30"
+                      )}
+                    >
+                      {isSuggestionApplied ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Rekomendasi Diterapkan</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Terapkan Rekomendasi</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           {/* Category & Sub Category Selection */}
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
@@ -454,7 +630,11 @@ export function AddRepoModal({
                   }}
                   className="w-full px-3 py-2 rounded-xl glass-input text-slate-200 focus:outline-none flex items-center justify-between text-left cursor-pointer border border-white/10 hover:border-white/20 transition-all"
                 >
-                  <span className="truncate">{currentCat?.name || 'Pilih Kategori'}</span>
+                  <span className="truncate">
+                    {selectedCatId === 'create_new'
+                      ? (customCatName.trim() ? customCatName.trim() : '+ Buat Kategori Baru...')
+                      : (currentCat?.name || 'Pilih Kategori')}
+                  </span>
                   <ChevronDown
                     className={cn(
                       "w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0",
@@ -476,6 +656,7 @@ export function AddRepoModal({
                           setSelectedCatId(cat.id);
                           setSelectedSubId('none');
                           setCustomSubName('');
+                          setCustomCatName('');
                           setIsCatDropdownOpen(false);
                         }}
                         className={cn(
@@ -487,6 +668,24 @@ export function AddRepoModal({
                         {selectedCatId === cat.id && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-1.5" />}
                       </button>
                     ))}
+
+                    <div className="border-t border-white/10 my-1" />
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCatId('create_new');
+                        setSelectedSubId('create_new');
+                        setIsCatDropdownOpen(false);
+                      }}
+                      className={cn(
+                        "w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 transition-all cursor-pointer font-semibold",
+                        selectedCatId === 'create_new' && "bg-indigo-500/20 text-white"
+                      )}
+                    >
+                      <span className="truncate">+ Buat Kategori Baru...</span>
+                      {selectedCatId === 'create_new' && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-1.5" />}
+                    </button>
                   </div>
                 )}
               </div>
@@ -504,7 +703,7 @@ export function AddRepoModal({
                 >
                   <span className="truncate">
                     {selectedSubId === 'create_new'
-                      ? '+ Buat Sub-kategori Baru...'
+                      ? (customSubName.trim() ? customSubName.trim() : '+ Buat Sub-kategori Baru...')
                       : selectedSubId === 'none'
                       ? '-- Tanpa Sub-kategori --'
                       : (currentCat?.subCategories?.find(s => s.id === selectedSubId)?.name || '-- Tanpa Sub-kategori --')}
@@ -578,6 +777,23 @@ export function AddRepoModal({
               </div>
             </div>
 
+            {/* Input Nama Kategori Utama Baru */}
+            {selectedCatId === 'create_new' && (
+              <div className="p-3 bg-purple-500/10 border border-purple-500/25 rounded-xl space-y-1.5 animate-in fade-in duration-150">
+                <label className="block font-medium text-purple-300 text-[11px]">Nama Kategori Utama Baru</label>
+                <input 
+                  type="text" 
+                  value={customCatName}
+                  onChange={e => setCustomCatName(e.target.value)}
+                  placeholder="Contoh: AI Frameworks & Tools, Data Engineering" 
+                  className="w-full px-3 py-1.5 rounded-lg glass-input text-slate-200 focus:outline-none font-medium text-xs border border-purple-400/40"
+                  autoFocus
+                />
+                <p className="text-[10px] text-slate-400">Kategori utama baru ini akan otomatis dibuat dan langsung muncul di menu Sidebar.</p>
+              </div>
+            )}
+
+            {/* Input Nama Sub-kategori Baru */}
             {selectedSubId === 'create_new' && (
               <div className="p-3 bg-indigo-500/10 border border-indigo-500/25 rounded-xl space-y-1.5 animate-in fade-in duration-150">
                 <label className="block font-medium text-indigo-300 text-[11px]">Nama Sub-kategori Baru</label>
@@ -587,7 +803,7 @@ export function AddRepoModal({
                   onChange={e => setCustomSubName(e.target.value)}
                   placeholder="Contoh: Prompt Optimization, Code Reviewers, Token Analytics" 
                   className="w-full px-3 py-1.5 rounded-lg glass-input text-slate-200 focus:outline-none font-medium text-xs border border-indigo-400/40"
-                  autoFocus
+                  autoFocus={selectedCatId !== 'create_new'}
                 />
                 <p className="text-[10px] text-slate-400">Sub-kategori ini akan otomatis dibuat dan langsung muncul di menu Sidebar.</p>
               </div>
