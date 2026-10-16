@@ -136,6 +136,47 @@ export interface Translations {
     detailBtn: string;
     copyCommand: string;
   };
+  galaxy: {
+    filtersTitle: string;
+    all: string;
+    none: string;
+    nodeTypes: string;
+    groupSun: string;
+    subGroupPlanet: string;
+    repositoryMoon: string;
+    languageComet: string;
+    topicMeteor: string;
+    galaxyClusters: string;
+    displaySettings: string;
+    cameraControls: string;
+    resetCamera: string;
+    topDownView: string;
+    autoRotate: string;
+    starScale: string;
+    linkGlow: string;
+    neonSunGlow: string;
+    showOrbitLabels: string;
+    resetHighlight: string;
+    connected: string;
+    neonLinks: string;
+    highlightConnector: string;
+    openFiltersTooltip: string;
+    collapseFiltersTooltip: string;
+    resizeHandleTooltip: string;
+    highlightGroupTitle: string;
+    highlightSubGroupTitle: string;
+    openReadmeTitle: string;
+    tooltipGroup: string;
+    tooltipSubGroup: string;
+    tooltipRepo: string;
+    tooltipLanguage: string;
+    tooltipTopic: string;
+    reposWord: string;
+    subGroupsWord: string;
+    mainOrbitWord: string;
+    closeBtn: string;
+    activeBadge: string;
+  };
 }
 
 // Kamus translasi kategori default database (EN <-> ID)
@@ -528,6 +569,47 @@ export const translations: Record<Language, Translations> = {
       detailBtn: 'Detail',
       copyCommand: 'Salin Perintah',
     },
+    galaxy: {
+      filtersTitle: 'Filter Galaksi',
+      all: 'Semua',
+      none: 'Kosongkan',
+      nodeTypes: 'Tipe Node',
+      groupSun: 'Kategori (☀️ Matahari)',
+      subGroupPlanet: 'Sub-Grup (🪐 Planet)',
+      repositoryMoon: 'Repositori (🌙 Bulan)',
+      languageComet: 'Bahasa (☄️ Komet)',
+      topicMeteor: 'Topik (🌠 Meteor)',
+      galaxyClusters: 'Klaster Galaksi',
+      displaySettings: 'Pengaturan Tampilan',
+      cameraControls: 'Kontrol Kamera',
+      resetCamera: 'Reset Kamera',
+      topDownView: 'Tampak Atas (Top-Down)',
+      autoRotate: 'Rotasi Otomatis',
+      starScale: 'Ukuran Bintang',
+      linkGlow: 'Pijar Garis Hubung',
+      neonSunGlow: 'Pijar Inti Neon',
+      showOrbitLabels: 'Tampilkan Label Orbit',
+      resetHighlight: 'Reset Sorotan',
+      connected: 'Terhubung',
+      neonLinks: 'Garis Neon',
+      highlightConnector: 'Sorot Konektor',
+      openFiltersTooltip: 'Buka Filters (Ctrl+B)',
+      collapseFiltersTooltip: 'Tutup Filters (Ctrl+B)',
+      resizeHandleTooltip: 'Tarik pinggir untuk mengubah ukuran menu filter (Double-click untuk reset)',
+      highlightGroupTitle: 'Sorot klaster grup ini',
+      highlightSubGroupTitle: 'Sorot cabang sub-grup ini',
+      openReadmeTitle: 'Buka README di modal / tab baru',
+      tooltipGroup: 'Grup Kategori',
+      tooltipSubGroup: 'Sub-Kategori',
+      tooltipRepo: 'Repositori AI',
+      tooltipLanguage: 'Bahasa Pemrograman',
+      tooltipTopic: 'Tag Topik',
+      reposWord: 'Repositori',
+      subGroupsWord: 'Sub-Grup',
+      mainOrbitWord: 'Orbit Utama',
+      closeBtn: 'Tutup',
+      activeBadge: 'Aktif',
+    },
   },
   en: {
     header: {
@@ -665,6 +747,47 @@ export const translations: Record<Language, Translations> = {
       ],
       detailBtn: 'Detail',
       copyCommand: 'Copy Command',
+    },
+    galaxy: {
+      filtersTitle: 'Galaxy Filters',
+      all: 'All',
+      none: 'None',
+      nodeTypes: 'Node Types',
+      groupSun: 'Category (☀️ Sun)',
+      subGroupPlanet: 'Sub-Group (🪐 Planet)',
+      repositoryMoon: 'Repository (🌙 Moon)',
+      languageComet: 'Language (☄️ Comet)',
+      topicMeteor: 'Topic (🌠 Meteor)',
+      galaxyClusters: 'Galaxy Clusters',
+      displaySettings: 'Display Settings',
+      cameraControls: 'Camera Controls',
+      resetCamera: 'Reset Camera',
+      topDownView: 'Top-Down View',
+      autoRotate: 'Auto-Rotate',
+      starScale: 'Star Scale',
+      linkGlow: 'Link Glow',
+      neonSunGlow: 'Neon Sun Glow',
+      showOrbitLabels: 'Show Orbit Labels',
+      resetHighlight: 'Reset Highlight',
+      connected: 'Connected',
+      neonLinks: 'Neon Links',
+      highlightConnector: 'Highlight Connector',
+      openFiltersTooltip: 'Open Filters (Ctrl+B)',
+      collapseFiltersTooltip: 'Collapse Filters (Ctrl+B)',
+      resizeHandleTooltip: 'Drag right edge to resize filters menu (Double-click to reset)',
+      highlightGroupTitle: 'Highlight this group cluster',
+      highlightSubGroupTitle: 'Highlight this sub-group branch',
+      openReadmeTitle: 'Open README in modal / new tab',
+      tooltipGroup: 'Category Group',
+      tooltipSubGroup: 'Sub-Category',
+      tooltipRepo: 'AI Repository',
+      tooltipLanguage: 'Programming Language',
+      tooltipTopic: 'Topic Tag',
+      reposWord: 'Repositories',
+      subGroupsWord: 'Sub-Groups',
+      mainOrbitWord: 'Main Orbit',
+      closeBtn: 'Close',
+      activeBadge: 'Active',
     },
   },
 };

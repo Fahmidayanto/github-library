@@ -28,6 +28,7 @@ import {
 import { cn, formatCompactNumber } from '@/lib/utils';
 import { Category } from './Sidebar';
 import { RepoCardData } from './RepoCard';
+import { useLanguage } from '@/lib/i18n';
 
 interface GalaxyGraphViewProps {
   categories?: Category[];
@@ -86,6 +87,8 @@ export function GalaxyGraphView({
   repositories: propRepositories = [],
   onSelectRepo
 }: GalaxyGraphViewProps) {
+  const { t, language, translateCategory, translateSubCategory, translateRepoDescription } = useLanguage();
+
   const containerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const tooltipBadgeRef = useRef<HTMLSpanElement>(null);
@@ -345,11 +348,11 @@ export function GalaxyGraphView({
           if (descEl) descEl.innerText = hit.desc || '';
 
           const entityLabels: Record<string, string> = {
-            category: 'GROUP',
-            subCategory: 'SUB-GROUP',
-            repository: 'REPOSITORY',
-            language: 'LANGUAGE',
-            topic: 'TOPIC'
+            category: t.galaxy.tooltipGroup,
+            subCategory: t.galaxy.tooltipSubGroup,
+            repository: t.galaxy.tooltipRepo,
+            language: t.galaxy.tooltipLanguage,
+            topic: t.galaxy.tooltipTopic
           };
 
           if (badge) {
@@ -367,12 +370,12 @@ export function GalaxyGraphView({
                 return parentSub && parentSub.catId === hit?.id;
               });
               const starsInCat = reposInCat.reduce((sum, r) => sum + (r.stars || 0), 0);
-              metaEl.innerHTML = `<span>${subCount} Sub-Grup</span><span>${reposInCat.length} Repositori</span><span>★ ${(starsInCat / 1000).toFixed(1)}k Stars</span>`;
+              metaEl.innerHTML = `<span>${subCount} ${t.galaxy.subGroupsWord}</span><span>${reposInCat.length} ${t.galaxy.reposWord}</span><span>★ ${(starsInCat / 1000).toFixed(1)}k Stars</span>`;
             } else if (hit.type === 'subCategory') {
               const parentCat = threeState.nodeObjects.find(c => c.id === hit?.catId);
               const reposInSub = threeState.nodeObjects.filter(n => n.type === 'repository' && n.subCatId === hit?.id);
               const starsInSub = reposInSub.reduce((sum, r) => sum + (r.stars || 0), 0);
-              metaEl.innerHTML = `<span>Grup: ${parentCat?.name || ''}</span><span>${reposInSub.length} Repo</span><span>★ ${(starsInSub / 1000).toFixed(1)}k Stars</span>`;
+              metaEl.innerHTML = `<span>${t.galaxy.tooltipGroup}: ${parentCat?.name || ''}</span><span>${reposInSub.length} ${t.galaxy.reposWord}</span><span>★ ${(starsInSub / 1000).toFixed(1)}k Stars</span>`;
             } else if (hit.type === 'repository') {
               const langObj = threeState.nodeObjects.find(l => l.id === hit?.langId);
               const topNames = (hit.topics || []).map(tId => {
@@ -382,11 +385,11 @@ export function GalaxyGraphView({
               metaEl.innerHTML = `<span>★ ${((hit.stars || 0) / 1000).toFixed(1)}k Stars</span><span>${langObj?.name || 'Code'}</span>${topNames.length ? `<span>#${topNames[0]}</span>` : ''}`;
             } else if (hit.type === 'language') {
               const repoCount = threeState.nodeObjects.filter(r => r.type === 'repository' && r.langId === hit?.id).length;
-              metaEl.innerHTML = `<span>${repoCount} Repositori</span><span>Bahasa Pemrograman</span>`;
+              metaEl.innerHTML = `<span>${repoCount} ${t.galaxy.reposWord}</span><span>${t.galaxy.tooltipLanguage}</span>`;
             } else if (hit.type === 'topic') {
               const rawId = hit.id.replace('#', '').replace('top-', '');
               const repoCount = threeState.nodeObjects.filter(r => r.type === 'repository' && (r.topics || []).some(t => t.includes(rawId))).length;
-              metaEl.innerHTML = `<span>${repoCount} Repositori</span><span>Tag Topik</span>`;
+              metaEl.innerHTML = `<span>${repoCount} ${t.galaxy.reposWord}</span><span>${t.galaxy.tooltipTopic}</span>`;
             }
           }
 
@@ -562,11 +565,14 @@ export function GalaxyGraphView({
       container.removeEventListener('dblclick', handleDblClick);
       window.removeEventListener('resize', handleResize);
       renderer.dispose();
+      if (renderer.domElement && renderer.domElement.parentNode) {
+        renderer.domElement.parentNode.removeChild(renderer.domElement);
+      }
       if (typeof window !== 'undefined') {
         delete (window as unknown as { __threeGalaxy?: unknown }).__threeGalaxy;
       }
     };
-  }, [propCategories, propRepositories]);
+  }, [propCategories, propRepositories, language]);
 
   // Update controls auto-rotate dynamically
   useEffect(() => {
@@ -965,12 +971,15 @@ export function GalaxyGraphView({
       const x = Math.cos(angle) * catRadius;
       const z = Math.sin(angle) * catRadius;
       const y = yElevations[idx % yElevations.length];
+      const translatedCatName = translateCategory(cat.name, language);
 
       state.nodeObjects.push({
         id: cat.id,
-        name: cat.name,
+        name: translatedCatName,
         type: 'category',
-        desc: `Grup kategori utama ${cat.name}.`,
+        desc: language === 'id' 
+          ? `Grup kategori utama ${translatedCatName}.` 
+          : `Primary category group ${translatedCatName}.`,
         color: catColors[idx % catColors.length],
         baseSize: 32,
         collisionRadius: 55,
@@ -1023,12 +1032,15 @@ export function GalaxyGraphView({
         const sz = parent.z + Math.sin(subAngle) * subDist;
         const sy = parent.y + (subLane === 0 ? 35 : (subLane === 1 ? -35 : 15));
 
+        const translatedSubName = translateSubCategory(sub.name, language);
         const subNode: GalaxyNode = {
           id: sub.id,
-          name: sub.name,
+          name: translatedSubName,
           type: 'subCategory',
           catId: cat.id,
-          desc: `Sub-grup spesialisasi di bawah grup ${parent.name}.`,
+          desc: language === 'id'
+            ? `Sub-grup spesialisasi di bawah grup ${parent.name}.`
+            : `Specialized sub-group under ${parent.name}.`,
           color: '#38bdf8',
           baseSize: 22,
           collisionRadius: 36,
@@ -1057,6 +1069,9 @@ export function GalaxyGraphView({
           const rz = sz + Math.sin(subAngle) * 85;
           const ry = sy + 15;
           const starSize = Math.max(13, Math.min(25, 12 + ((repo.starsCount || 0) / 10000) * 1.2));
+          const repoDesc = translateRepoDescription(repo.fullName, repo.description, language) || (
+            language === 'id' ? 'Repositori di ekosistem GitHub Library.' : 'Repository in GitHub Library ecosystem.'
+          );
           const node: GalaxyNode = {
             id: repo.id,
             name: repo.name || repo.fullName,
@@ -1067,7 +1082,7 @@ export function GalaxyGraphView({
             langId: repo.primaryLanguage ? `lang-${repo.primaryLanguage.toLowerCase()}` : undefined,
             stars: repo.starsCount || 0,
             topics: repo.topics || [],
-            desc: repo.description || 'Repositori di ekosistem GitHub Library.',
+            desc: repoDesc,
             color: '#10b981',
             baseSize: starSize,
             collisionRadius: 26,
@@ -1093,6 +1108,12 @@ export function GalaxyGraphView({
           const r1 = subRepos[1];
           const sz0 = Math.max(13, Math.min(25, 12 + ((r0.starsCount || 0) / 10000) * 1.2));
           const sz1 = Math.max(13, Math.min(25, 12 + ((r1.starsCount || 0) / 10000) * 1.2));
+          const desc0 = translateRepoDescription(r0.fullName, r0.description, language) || (
+            language === 'id' ? 'Repositori di ekosistem GitHub Library.' : 'Repository in GitHub Library ecosystem.'
+          );
+          const desc1 = translateRepoDescription(r1.fullName, r1.description, language) || (
+            language === 'id' ? 'Repositori di ekosistem GitHub Library.' : 'Repository in GitHub Library ecosystem.'
+          );
 
           const n0: GalaxyNode = {
             id: r0.id,
@@ -1104,7 +1125,7 @@ export function GalaxyGraphView({
             langId: r0.primaryLanguage ? `lang-${r0.primaryLanguage.toLowerCase()}` : undefined,
             stars: r0.starsCount || 0,
             topics: r0.topics || [],
-            desc: r0.description || 'Repositori di ekosistem GitHub Library.',
+            desc: desc0,
             color: '#10b981',
             baseSize: sz0,
             collisionRadius: 26,
@@ -1124,7 +1145,7 @@ export function GalaxyGraphView({
             langId: r1.primaryLanguage ? `lang-${r1.primaryLanguage.toLowerCase()}` : undefined,
             stars: r1.starsCount || 0,
             topics: r1.topics || [],
-            desc: r1.description || 'Repositori di ekosistem GitHub Library.',
+            desc: desc1,
             color: '#10b981',
             baseSize: sz1,
             collisionRadius: 26,
@@ -1217,6 +1238,9 @@ export function GalaxyGraphView({
           const ry = sy + yOffset;
 
           const starSize = Math.max(13, Math.min(25, 12 + ((repo.starsCount || 0) / 10000) * 1.2));
+          const repoDesc = translateRepoDescription(repo.fullName, repo.description, language) || (
+            language === 'id' ? 'Repositori di ekosistem GitHub Library.' : 'Repository in GitHub Library ecosystem.'
+          );
 
           const node: GalaxyNode = {
             id: repo.id,
@@ -1228,7 +1252,7 @@ export function GalaxyGraphView({
             langId: repo.primaryLanguage ? `lang-${repo.primaryLanguage.toLowerCase()}` : undefined,
             stars: repo.starsCount || 0,
             topics: repo.topics || [],
-            desc: repo.description || 'Repositori di ekosistem GitHub Library.',
+            desc: repoDesc,
             color: '#10b981',
             baseSize: starSize,
             collisionRadius: 26,
@@ -1263,7 +1287,7 @@ export function GalaxyGraphView({
         id: langId,
         name: lang,
         type: 'language',
-        desc: `Bahasa pemrograman utama di katalog.`,
+        desc: language === 'id' ? 'Bahasa pemrograman utama di katalog.' : 'Primary programming language in catalog.',
         color: '#f59e0b',
         baseSize: 15,
         collisionRadius: 28,
@@ -1292,7 +1316,7 @@ export function GalaxyGraphView({
         id: topId,
         name: '#' + top,
         type: 'topic',
-        desc: `Tag topik teknologi.`,
+        desc: language === 'id' ? 'Tag topik teknologi.' : 'Technology topic tag.',
         color: '#f97316',
         baseSize: 11,
         collisionRadius: 24,
@@ -2592,21 +2616,28 @@ export function GalaxyGraphView({
   // Data kategori & sub-kategori untuk Hierarchical Accordion
   const clustersData = useMemo(() => {
     if (propCategories && propCategories.length > 0) {
-      return propCategories;
+      return propCategories.map(c => ({
+        ...c,
+        name: translateCategory(c.name, language),
+        subCategories: (c.subCategories || []).map(s => ({
+          ...s,
+          name: translateSubCategory(s.name, language)
+        }))
+      }));
     }
     const catNodes = threeRef.current?.nodeObjects.filter(n => n.type === 'category') || [];
     return catNodes.map(c => ({
       id: c.id,
-      name: c.name,
+      name: translateCategory(c.name, language),
       slug: c.id,
       icon: 'sparkles',
       subCategories: (threeRef.current?.nodeObjects.filter(s => s.type === 'subCategory' && s.catId === c.id) || []).map(s => ({
         id: s.id,
-        name: s.name,
+        name: translateSubCategory(s.name, language),
         slug: s.id
       }))
     }));
-  }, [propCategories, stats]);
+  }, [propCategories, stats, language]);
 
   // Node type counts for sidebar badges
   const typeCounts = useMemo(() => {
@@ -2621,11 +2652,11 @@ export function GalaxyGraphView({
   }, [stats]);
 
   const typeConfigItems = [
-    { key: 'category', label: 'Group (☀️ Matahari)', color: '#c084fc', shapeIcon: '☀️' },
-    { key: 'subCategory', label: 'Sub-Group (🪐 Planet)', color: '#38bdf8', shapeIcon: '🪐' },
-    { key: 'repository', label: 'Repository (🌙 Bulan)', color: '#10b981', shapeIcon: '🌙' },
-    { key: 'language', label: 'Language (☄️ Komet)', color: '#f59e0b', shapeIcon: '☄️' },
-    { key: 'topic', label: 'Topic (🌠 Meteor)', color: '#f97316', shapeIcon: '🌠' }
+    { key: 'category', label: t.galaxy.groupSun, color: '#c084fc', shapeIcon: '☀️' },
+    { key: 'subCategory', label: t.galaxy.subGroupPlanet, color: '#38bdf8', shapeIcon: '🪐' },
+    { key: 'repository', label: t.galaxy.repositoryMoon, color: '#10b981', shapeIcon: '🌙' },
+    { key: 'language', label: t.galaxy.languageComet, color: '#f59e0b', shapeIcon: '☄️' },
+    { key: 'topic', label: t.galaxy.topicMeteor, color: '#f97316', shapeIcon: '🌠' }
   ];
 
   return (
@@ -2655,16 +2686,16 @@ export function GalaxyGraphView({
           <div className="pointer-events-auto flex items-center space-x-2.5 px-4 py-2 rounded-xl bg-purple-950/90 border border-purple-500/50 backdrop-blur-md text-xs shadow-2xl text-slate-200">
             <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
             <span>
-              Highlight Konektor: <strong className="text-cyan-300">{highlightedNode.name}</strong>
+              {t.galaxy.highlightConnector}: <strong className="text-cyan-300">{highlightedNode.name}</strong>
             </span>
             <span className="text-purple-300 font-mono text-[11px]">
-              {connectedCount} Terhubung ({activeLinkCount} Neon Links)
+              {connectedCount} {t.galaxy.connected} ({activeLinkCount} {t.galaxy.neonLinks})
             </span>
             <button
               onClick={() => threeRef.current && clearHighlight(threeRef.current)}
               className="ml-2 px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white cursor-pointer text-[10px] font-mono"
             >
-              ✕ Reset
+              ✕ {t.galaxy.resetHighlight}
             </button>
           </div>
         )}
@@ -2677,7 +2708,7 @@ export function GalaxyGraphView({
             className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-[#090d16]/92 backdrop-blur-2xl hover:bg-white/10 text-slate-200 text-xs font-medium border border-white/15 shadow-xl cursor-pointer transition-colors"
           >
             <Compass className="w-4 h-4 text-purple-400" />
-            <span>Kontrol Kamera</span>
+            <span>{t.galaxy.cameraControls}</span>
             <ChevronDown className={cn("w-3.5 h-3.5 text-slate-400 transition-transform duration-200", isControlsMenuOpen && "rotate-180")} />
           </button>
 
@@ -2691,7 +2722,7 @@ export function GalaxyGraphView({
                 className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs text-slate-200 hover:bg-white/10 hover:text-white transition-colors cursor-pointer text-left"
               >
                 <RotateCcw className="w-3.5 h-3.5 text-indigo-400" />
-                <span className="flex-1 font-medium">Reset Camera</span>
+                <span className="flex-1 font-medium">{t.galaxy.resetCamera}</span>
               </button>
 
               <button
@@ -2703,7 +2734,7 @@ export function GalaxyGraphView({
                 className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs text-slate-200 hover:bg-white/10 hover:text-white transition-colors cursor-pointer text-left"
               >
                 <Eye className="w-3.5 h-3.5 text-sky-400" />
-                <span className="flex-1 font-medium">Tampak Atas (Top-Down)</span>
+                <span className="flex-1 font-medium">{t.galaxy.topDownView}</span>
               </button>
 
               <button
@@ -2712,7 +2743,7 @@ export function GalaxyGraphView({
               >
                 <div className="flex items-center space-x-2.5">
                   {autoRotate ? <Play className="w-3.5 h-3.5 text-purple-400" /> : <Pause className="w-3.5 h-3.5 text-slate-400" />}
-                  <span className="text-slate-200 font-medium">Auto-Rotate</span>
+                  <span className="text-slate-200 font-medium">{t.galaxy.autoRotate}</span>
                 </div>
                 <span className={cn(
                   "text-[10px] font-mono px-2 py-0.5 rounded-full border",
@@ -2740,7 +2771,7 @@ export function GalaxyGraphView({
               e.stopPropagation();
               setIsFiltersCollapsed(false);
             }}
-            title="Buka Filters (Ctrl+B)"
+            title={t.galaxy.openFiltersTooltip}
             className="galaxy-uncollapse-btn absolute left-3.5 top-3.5 w-7 h-7 rounded-lg bg-[#0e1726]/95 backdrop-blur-md border border-sky-400/50 text-sky-400 hover:text-white hover:bg-sky-500/30 shadow-lg shadow-sky-950/60 flex items-center justify-center cursor-pointer transition-all active:scale-95"
           >
             <PanelLeftOpen className="w-4 h-4 stroke-[2.2]" />
@@ -2766,7 +2797,7 @@ export function GalaxyGraphView({
           id="galaxySidebarResizeHandle"
           onMouseDown={handleResizeStart}
           onDoubleClick={() => setSidebarWidth(320)}
-          title="Tarik pinggir untuk mengubah ukuran menu filter (Double-click untuk reset)"
+          title={t.galaxy.resizeHandleTooltip}
           className={cn(
             "absolute -right-1 top-0 bottom-0 w-2.5 cursor-col-resize z-40 select-none group/resize-handle flex items-center justify-center transition-colors",
             isResizing ? "bg-sky-500/20" : "hover:bg-sky-400/20 active:bg-sky-500/30"
@@ -2784,7 +2815,7 @@ export function GalaxyGraphView({
         <button
           id="collapseFiltersBtn"
           onClick={() => setIsFiltersCollapsed(true)}
-          title="Tutup Filters (Ctrl+B)"
+          title={t.galaxy.collapseFiltersTooltip}
           className="galaxy-sidebar-toggle-btn absolute -right-[1px] top-3.5 z-50 w-7 h-7 rounded-lg bg-[#0e1726]/95 backdrop-blur-md border border-sky-400/50 text-sky-400 hover:text-white hover:bg-sky-500/30 shadow-lg shadow-sky-950/60 flex items-center justify-center cursor-pointer transition-all active:scale-95"
         >
           <Columns2 className="w-4 h-4 stroke-[2.2]" />
@@ -2794,15 +2825,15 @@ export function GalaxyGraphView({
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/10 shrink-0 bg-white/[0.02]">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
             <Filter className="w-4 h-4 text-indigo-400" />
-            <span>FILTERS</span>
+            <span>{t.galaxy.filtersTitle}</span>
           </span>
           <div className="space-x-1.5 text-[11px] font-mono pr-2">
             <button onClick={() => toggleAllTypes(true)} className="text-indigo-400 hover:text-indigo-300 hover:underline cursor-pointer">
-              All
+              {t.galaxy.all}
             </button>
             <span className="text-slate-600">/</span>
             <button onClick={() => toggleAllTypes(false)} className="text-slate-400 hover:text-slate-200 hover:underline cursor-pointer">
-              None
+              {t.galaxy.none}
             </button>
           </div>
         </div>
@@ -2811,7 +2842,7 @@ export function GalaxyGraphView({
           <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
             {/* Node Types Pills with Counters & Colors */}
             <div className="space-y-2">
-              <div className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Node Types</div>
+              <div className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">{t.galaxy.nodeTypes}</div>
               <div className="space-y-1.5">
                 {typeConfigItems.map(c => {
                   const count = typeCounts[c.key as keyof typeof typeCounts] || 0;
@@ -2843,7 +2874,7 @@ export function GalaxyGraphView({
             {/* Galaxy Clusters Hierarchical Accordion (Grup -> Sub-grup -> Repositori) */}
             <div className="space-y-2 pt-2 border-t border-white/10">
               <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 uppercase tracking-wider">
-                <span>Galaxy Clusters</span>
+                <span>{t.galaxy.galaxyClusters}</span>
                 {highlightedNode && (
                   <button
                     onClick={() => {
@@ -2853,7 +2884,7 @@ export function GalaxyGraphView({
                     }}
                     className="text-[10px] text-purple-400 hover:text-purple-300 transition-colors cursor-pointer"
                   >
-                    Reset
+                    {t.galaxy.resetHighlight}
                   </button>
                 )}
               </div>
@@ -2892,7 +2923,7 @@ export function GalaxyGraphView({
                         {/* Tombol Highlight Kluster (tanpa zoom-in) */}
                         <button
                           type="button"
-                          title={`Highlight Grup ${cat.name}`}
+                          title={`${t.galaxy.highlightGroupTitle} ${cat.name}`}
                           onClick={() => {
                             if (!threeRef.current || !catNode) return;
                             if (isCatHighlighted) {
@@ -2915,7 +2946,7 @@ export function GalaxyGraphView({
                               : "bg-white/5 border-white/10 text-slate-400 hover:text-purple-300 hover:bg-white/10"
                           )}
                         >
-                          {isCatHighlighted ? 'Active' : '☀️'}
+                          {isCatHighlighted ? t.galaxy.activeBadge : '☀️'}
                         </button>
                       </div>
 
@@ -2964,7 +2995,7 @@ export function GalaxyGraphView({
                                     {subNode && (
                                       <button
                                         type="button"
-                                        title={`Highlight Sub-grup ${sub.name}`}
+                                        title={`${t.galaxy.highlightSubGroupTitle} ${sub.name}`}
                                         onClick={() => {
                                           if (!threeRef.current) return;
                                           if (isSubHighlighted) {
@@ -3007,7 +3038,7 @@ export function GalaxyGraphView({
                                               applyHighlight(threeRef.current, repoNode);
                                             }
                                           }}
-                                          title={`Buka README ${repo.fullName || repo.name}`}
+                                          title={`${t.galaxy.openReadmeTitle} ${repo.fullName || repo.name}`}
                                           className={cn(
                                             "w-full flex items-center justify-between px-2 py-1 rounded text-left transition-all cursor-pointer group/repo border",
                                             isRepoHighlighted
@@ -3050,7 +3081,7 @@ export function GalaxyGraphView({
               >
                 <div className="flex items-center space-x-2">
                   <Sliders className="w-3.5 h-3.5 text-purple-400" />
-                  <span className="font-semibold">Display Settings</span>
+                  <span className="font-semibold">{t.galaxy.displaySettings}</span>
                 </div>
                 <ChevronDown
                   className={cn(
@@ -3065,7 +3096,7 @@ export function GalaxyGraphView({
                   {/* Star Scale Slider */}
                   <div className="space-y-1">
                     <div className="flex justify-between text-[11px] text-slate-400 font-mono">
-                      <span>Star Scale</span>
+                      <span>{t.galaxy.starScale}</span>
                       <span>{starScaleMultiplier.toFixed(1)}x</span>
                     </div>
                     <input
@@ -3082,7 +3113,7 @@ export function GalaxyGraphView({
                   {/* Edge Glow Slider */}
                   <div className="space-y-1">
                     <div className="flex justify-between text-[11px] text-slate-400 font-mono">
-                      <span>Link Glow</span>
+                      <span>{t.galaxy.linkGlow}</span>
                       <span>{linkGlowOpacity.toFixed(2)}</span>
                     </div>
                     <input
@@ -3099,7 +3130,7 @@ export function GalaxyGraphView({
                   {/* Neon Sun Glow Slider */}
                   <div className="space-y-1">
                     <div className="flex justify-between text-[11px] text-slate-400 font-mono">
-                      <span>Neon Sun Glow</span>
+                      <span>{t.galaxy.neonSunGlow}</span>
                       <span>{nodeNeonShadowOpacity.toFixed(2)}</span>
                     </div>
                     <input
@@ -3124,7 +3155,7 @@ export function GalaxyGraphView({
                       }}
                       className="rounded accent-purple-500"
                     />
-                    <span>Show Orbit Labels</span>
+                    <span>{t.galaxy.showOrbitLabels}</span>
                   </label>
                 </div>
               )}
@@ -3189,7 +3220,7 @@ export function GalaxyGraphView({
                 onClick={() => setModalNode(null)}
                 className="px-4 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-slate-300 text-xs cursor-pointer"
               >
-                Tutup
+                {t.galaxy.closeBtn}
               </button>
             </div>
           </div>
