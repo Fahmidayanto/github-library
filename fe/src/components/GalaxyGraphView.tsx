@@ -22,7 +22,8 @@ import {
   Columns2,
   PanelLeftOpen,
   Compass,
-  Sliders
+  Sliders,
+  Eye
 } from 'lucide-react';
 import { cn, formatCompactNumber } from '@/lib/utils';
 import { Category } from './Sidebar';
@@ -176,7 +177,7 @@ export function GalaxyGraphView({
     scene.fog = new THREE.FogExp2(0x05070b, 0.00035);
 
     // 2. Camera: expansive view angle 60, position set to spacious galactic overview (0, 480, 1250)
-    const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 6000);
+    const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 8000);
     camera.position.set(0, 480, 1250);
 
     // 3. Renderer with vibrant tone mapping
@@ -191,7 +192,7 @@ export function GalaxyGraphView({
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.maxDistance = 4000;
+    controls.maxDistance = 6000;
     controls.minDistance = 60;
     controls.autoRotate = autoRotate;
     controls.autoRotateSpeed = 0.65;
@@ -851,6 +852,25 @@ export function GalaxyGraphView({
     });
   }
 
+  function flyToTopDown(threeState: NonNullable<typeof threeRef.current>) {
+    const { camera, controls } = threeState;
+    gsap.to(camera.position, {
+      x: 0,
+      y: 2800,
+      z: 1,
+      duration: 1.3,
+      ease: "power3.inOut"
+    });
+    gsap.to(controls.target, {
+      x: 0,
+      y: 0,
+      z: 0,
+      duration: 1.3,
+      ease: "power3.inOut",
+      onUpdate: () => controls.update()
+    });
+  }
+
   function flyToNode(threeState: NonNullable<typeof threeRef.current>, node: GalaxyNode) {
     const { camera, controls } = threeState;
     let zoomDist = 280;
@@ -901,173 +921,182 @@ export function GalaxyGraphView({
       return;
     }
 
-    // Memetakan repositori aktif ke dalam Multi-System Galaxy Islands
+    // Memetakan repositori aktif ke dalam Multi-System Galaxy Islands (Planar X-Z Non-Overlapping Layout)
     const catCount = propCategories.length;
-    const catRadius = Math.max(540, 280 + catCount * 45);
+    const catRadius = Math.max(780, 520 + catCount * 50);
     const yElevations = [-60, 60, -50, 70];
     const catColors = ['#c084fc', '#f472b6', '#38bdf8', '#4ade80', '#fb923c', '#e879f9', '#a78bfa', '#34d399'];
 
-      propCategories.forEach((cat, idx) => {
-        const angle = (idx / catCount) * Math.PI * 2 + Math.PI / 4;
-        const x = Math.cos(angle) * catRadius;
-        const z = Math.sin(angle) * catRadius;
-        const y = yElevations[idx % yElevations.length];
+    propCategories.forEach((cat, idx) => {
+      const angle = (idx / catCount) * Math.PI * 2 + Math.PI / 4;
+      const x = Math.cos(angle) * catRadius;
+      const z = Math.sin(angle) * catRadius;
+      const y = yElevations[idx % yElevations.length];
+
+      state.nodeObjects.push({
+        id: cat.id,
+        name: cat.name,
+        type: 'category',
+        desc: `Grup kategori utama ${cat.name}.`,
+        color: catColors[idx % catColors.length],
+        baseSize: 32,
+        collisionRadius: 60,
+        x, y, z,
+        angle,
+        targetPosition: new THREE.Vector3(x, y, z),
+        connections: []
+      });
+    });
+
+    // SubCategories - Terdistribusi rapi dalam sektor aman kategori dengan 2-tier jarak radial
+    propCategories.forEach(cat => {
+      const subs = cat.subCategories || [{ id: `sub-${cat.id}`, name: `${cat.name} General`, slug: 'general' }];
+      const subCount = subs.length;
+      const parent = state.nodeObjects.find(n => n.id === cat.id);
+      if (!parent) return;
+
+      const sectorSpan = (2 * Math.PI / catCount) * 0.72; // Sektor aman agar tidak menabrak cluster kategori lain
+      const angleStep = subCount > 1 ? sectorSpan / (subCount - 1) : 0;
+
+      subs.forEach((sub, subIndex) => {
+        const offsetAngle = subCount > 1 ? (subIndex - (subCount - 1) / 2) * angleStep : 0;
+        const branchAngle = (parent.angle || 0) + offsetAngle;
+        const tier = subIndex % 2;
+        const dist = 190 + tier * 105;
+
+        const x = parent.x + Math.cos(branchAngle) * dist;
+        const z = parent.z + Math.sin(branchAngle) * dist;
+        const y = parent.y + (tier === 0 ? 35 : -35);
 
         state.nodeObjects.push({
-          id: cat.id,
-          name: cat.name,
-          type: 'category',
-          desc: `Grup kategori utama ${cat.name}.`,
-          color: catColors[idx % catColors.length],
-          baseSize: 32,
-          collisionRadius: 62,
-          x, y, z,
-          angle,
-          targetPosition: new THREE.Vector3(x, y, z),
-          connections: []
-        });
-      });
-
-      // SubCategories
-      propCategories.forEach(cat => {
-        const subs = cat.subCategories || [{ id: `sub-${cat.id}`, name: `${cat.name} General`, slug: 'general' }];
-        subs.forEach((sub, subIndex) => {
-          const parent = state.nodeObjects.find(n => n.id === cat.id);
-          if (!parent) return;
-
-          const subCount = subs.length;
-          const fanSpread = 0.52;
-          const offsetAngle = (subCount === 1) ? 0 : (subIndex - (subCount - 1) / 2) * fanSpread;
-          const branchAngle = (parent.angle || 0) + offsetAngle;
-          const dist = 175 + (subIndex % 2) * 35;
-
-          const x = parent.x + Math.cos(branchAngle) * dist;
-          const z = parent.z + Math.sin(branchAngle) * dist;
-          const y = parent.y + (subIndex % 2 === 0 ? 38 : -38);
-
-          state.nodeObjects.push({
-            id: sub.id,
-            name: sub.name,
-            type: 'subCategory',
-            catId: cat.id,
-            desc: `Sub-grup spesialisasi di bawah grup ${parent.name}.`,
-            color: '#38bdf8',
-            baseSize: 22,
-            collisionRadius: 48,
-            x, y, z,
-            branchAngle,
-            targetPosition: new THREE.Vector3(x, y, z),
-            connections: [parent.id]
-          });
-
-          state.edgeObjects.push({ source: parent.id, target: sub.id, color: 0xa855f7 });
-          parent.connections.push(sub.id);
-        });
-      });
-
-      // Repositories
-      propRepositories.forEach(repo => {
-        let parentSub = state.nodeObjects.find(n => n.type === 'subCategory' && (n.id === repo.subCategoryId || (repo.categoryId && n.id === repo.categoryId)));
-        if (!parentSub) parentSub = state.nodeObjects.find(n => n.type === 'subCategory');
-        if (!parentSub) return;
-
-        const siblings = propRepositories.filter(r => r.subCategoryId === parentSub?.id);
-        const repoIndex = siblings.indexOf(repo);
-        const repoCount = Math.max(siblings.length, 1);
-
-        const fanSpread = 0.42;
-        const offsetAngle = (repoCount === 1) ? 0 : (repoIndex - (repoCount - 1) / 2) * fanSpread;
-        const repoAngle = (parentSub.branchAngle || 0) + offsetAngle;
-        const dist = 72 + (repoIndex % 2) * 16;
-
-        const x = parentSub.x + Math.cos(repoAngle) * dist;
-        const z = parentSub.z + Math.sin(repoAngle) * dist;
-        const y = parentSub.y + (repoIndex % 2 === 0 ? -28 : 28);
-
-        const starSize = Math.max(13, Math.min(25, 12 + ((repo.starsCount || 0) / 10000) * 1.2));
-
-        const node: GalaxyNode = {
-          id: repo.id,
-          name: repo.name || repo.fullName,
-          repoFullName: repo.fullName,
-          type: 'repository',
-          subCatId: parentSub.id,
-          langId: repo.primaryLanguage ? `lang-${repo.primaryLanguage.toLowerCase()}` : undefined,
-          stars: repo.starsCount || 0,
-          topics: repo.topics || [],
-          desc: repo.description || 'Repositori di ekosistem GitHub Library.',
-          color: '#10b981',
-          baseSize: starSize,
+          id: sub.id,
+          name: sub.name,
+          type: 'subCategory',
+          catId: cat.id,
+          desc: `Sub-grup spesialisasi di bawah grup ${parent.name}.`,
+          color: '#38bdf8',
+          baseSize: 22,
           collisionRadius: 40,
           x, y, z,
+          branchAngle,
           targetPosition: new THREE.Vector3(x, y, z),
-          connections: [parentSub.id]
-        };
+          connections: [parent.id]
+        });
 
-        state.nodeObjects.push(node);
-        state.edgeObjects.push({ source: parentSub.id, target: repo.id, color: 0x38bdf8 });
-        parentSub.connections.push(repo.id);
+        state.edgeObjects.push({ source: parent.id, target: sub.id, color: 0xa855f7 });
+        parent.connections.push(sub.id);
+      });
+    });
+
+    // Repositories - Multi-tier orbital shells konsentris menghadap keluar (outward fan)
+    propRepositories.forEach(repo => {
+      let parentSub = state.nodeObjects.find(n => n.type === 'subCategory' && (n.id === repo.subCategoryId || (repo.categoryId && n.id === repo.categoryId)));
+      if (!parentSub) parentSub = state.nodeObjects.find(n => n.type === 'subCategory');
+      if (!parentSub) return;
+
+      const siblings = propRepositories.filter(r => r.subCategoryId === parentSub?.id);
+      const repoIndex = siblings.indexOf(repo);
+      const repoCount = Math.max(siblings.length, 1);
+
+      // Multi-tier orbital shells: 4 repositori per lapis orbit konsentris
+      const tier = Math.floor(repoIndex / 4);
+      const indexInTier = repoIndex % 4;
+      const countInTier = Math.min(4, repoCount - tier * 4);
+
+      const shellRadius = 78 + tier * 58;
+      const fanSpan = Math.PI * 0.72; // Busur fan outward menjauhi pusat
+      const offset = countInTier > 1 ? (indexInTier - (countInTier - 1) / 2) * (fanSpan / (countInTier - 1)) : 0;
+      const stagger = (tier % 2 === 1) ? (fanSpan / 8) : 0;
+      const repoAngle = (parentSub.branchAngle || 0) + offset + stagger;
+
+      const x = parentSub.x + Math.cos(repoAngle) * shellRadius;
+      const z = parentSub.z + Math.sin(repoAngle) * shellRadius;
+      const y = parentSub.y + (repoIndex % 2 === 0 ? -24 : 24);
+
+      const starSize = Math.max(13, Math.min(25, 12 + ((repo.starsCount || 0) / 10000) * 1.2));
+
+      const node: GalaxyNode = {
+        id: repo.id,
+        name: repo.name || repo.fullName,
+        repoFullName: repo.fullName,
+        type: 'repository',
+        subCatId: parentSub.id,
+        langId: repo.primaryLanguage ? `lang-${repo.primaryLanguage.toLowerCase()}` : undefined,
+        stars: repo.starsCount || 0,
+        topics: repo.topics || [],
+        desc: repo.description || 'Repositori di ekosistem GitHub Library.',
+        color: '#10b981',
+        baseSize: starSize,
+        collisionRadius: 28,
+        x, y, z,
+        targetPosition: new THREE.Vector3(x, y, z),
+        connections: [parentSub.id]
+      };
+
+      state.nodeObjects.push(node);
+      state.edgeObjects.push({ source: parentSub.id, target: repo.id, color: 0x38bdf8 });
+      parentSub.connections.push(repo.id);
+    });
+
+    // Languages - Outer Transit Belt
+    const uniqueLangs = Array.from(new Set(propRepositories.map(r => r.primaryLanguage).filter(Boolean))) as string[];
+    uniqueLangs.slice(0, 6).forEach((lang, idx) => {
+      const angle = (idx / uniqueLangs.length) * Math.PI * 2 + 0.32;
+      const dist = catRadius + 380;
+      const x = Math.cos(angle) * dist;
+      const z = Math.sin(angle) * dist;
+      const y = idx % 2 === 0 ? 140 : -140;
+      const langId = `lang-${lang.toLowerCase()}`;
+
+      state.nodeObjects.push({
+        id: langId,
+        name: lang,
+        type: 'language',
+        desc: `Bahasa pemrograman utama di katalog.`,
+        color: '#f59e0b',
+        baseSize: 15,
+        collisionRadius: 28,
+        x, y, z,
+        targetPosition: new THREE.Vector3(x, y, z),
+        connections: []
       });
 
-      // Languages - Outer Transit Belt
-      const uniqueLangs = Array.from(new Set(propRepositories.map(r => r.primaryLanguage).filter(Boolean))) as string[];
-      uniqueLangs.slice(0, 6).forEach((lang, idx) => {
-        const angle = (idx / uniqueLangs.length) * Math.PI * 2 + 0.32;
-        const dist = catRadius + 300;
-        const x = Math.cos(angle) * dist;
-        const z = Math.sin(angle) * dist;
-        const y = idx % 2 === 0 ? 140 : -140;
-        const langId = `lang-${lang.toLowerCase()}`;
+      propRepositories.filter(r => r.primaryLanguage === lang).forEach(r => {
+        state.edgeObjects.push({ source: r.id, target: langId, color: 0xf59e0b });
+      });
+    });
 
-        state.nodeObjects.push({
-          id: langId,
-          name: lang,
-          type: 'language',
-          desc: `Bahasa pemrograman utama di katalog.`,
-          color: '#f59e0b',
-          baseSize: 15,
-          collisionRadius: 38,
-          x, y, z,
-          targetPosition: new THREE.Vector3(x, y, z),
-          connections: []
-        });
+    // Topics - Outer Transit Belt
+    const allTopics = propRepositories.flatMap(r => r.topics || []).filter(Boolean);
+    const topTopics = Array.from(new Set(allTopics)).slice(0, 8);
+    topTopics.forEach((top, idx) => {
+      const angle = (idx / topTopics.length) * Math.PI * 2 + 0.18;
+      const dist = catRadius + 520 + (idx % 2) * 55;
+      const x = Math.cos(angle) * dist;
+      const z = Math.sin(angle) * dist;
+      const y = Math.sin(idx * 1.5) * 85;
+      const topId = `top-${top.toLowerCase()}`;
 
-        propRepositories.filter(r => r.primaryLanguage === lang).forEach(r => {
-          state.edgeObjects.push({ source: r.id, target: langId, color: 0xf59e0b });
-        });
+      state.nodeObjects.push({
+        id: topId,
+        name: '#' + top,
+        type: 'topic',
+        desc: `Tag topik teknologi.`,
+        color: '#f97316',
+        baseSize: 11,
+        collisionRadius: 24,
+        x, y, z,
+        targetPosition: new THREE.Vector3(x, y, z),
+        connections: []
       });
 
-      // Topics - Outer Transit Belt
-      const allTopics = propRepositories.flatMap(r => r.topics || []).filter(Boolean);
-      const topTopics = Array.from(new Set(allTopics)).slice(0, 8);
-      topTopics.forEach((top, idx) => {
-        const angle = (idx / topTopics.length) * Math.PI * 2 + 0.18;
-        const dist = catRadius + 420 + (idx % 2) * 45;
-        const x = Math.cos(angle) * dist;
-        const z = Math.sin(angle) * dist;
-        const y = Math.sin(idx * 1.5) * 85;
-        const topId = `top-${top.toLowerCase()}`;
-
-        state.nodeObjects.push({
-          id: topId,
-          name: '#' + top,
-          type: 'topic',
-          desc: `Tag topik teknologi.`,
-          color: '#f97316',
-          baseSize: 11,
-          collisionRadius: 34,
-          x, y, z,
-          targetPosition: new THREE.Vector3(x, y, z),
-          connections: []
-        });
-
-        propRepositories.filter(r => (r.topics || []).includes(top)).forEach(r => {
-          state.edgeObjects.push({ source: r.id, target: topId, color: 0xf97316 });
-        });
+      propRepositories.filter(r => (r.topics || []).includes(top)).forEach(r => {
+        state.edgeObjects.push({ source: r.id, target: topId, color: 0xf97316 });
       });
+    });
 
-    // 6. Jalankan Iterative 3D Physics Relaxation Solver dengan expansive protection
-    resolveNodeCollisions(state.nodeObjects, 90);
+    // 6. Jalankan Iterative 2D Planar Physics Relaxation Solver untuk jaminan zero overlap pada proyeksi X-Z (tampak atas)
+    resolveNodeCollisions(state.nodeObjects, 120);
 
     // Update Stats
     setStats({
@@ -1077,57 +1106,56 @@ export function GalaxyGraphView({
     });
   }
 
-  // Iterative 3D Physics Relaxation Solver (Expansive buffer to guarantee zero overlap)
-  function resolveNodeCollisions(nodes: GalaxyNode[], iterations = 90) {
-    const padding = 36;
+  // Iterative 2D Planar Physics Relaxation Solver (Guarantees zero overlap in top-down X-Z projection)
+  function resolveNodeCollisions(nodes: GalaxyNode[], iterations = 120) {
+    const paddingXZ = 20;
     for (let iter = 0; iter < iterations; iter++) {
-      let maxOverlap = 0;
+      let maxOverlapXZ = 0;
+      const step = Math.min(1.0, 0.4 + 0.6 * (1 - iter / iterations));
+
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
           const a = nodes[i];
           const b = nodes[j];
 
           let dx = b.x - a.x;
-          let dy = b.y - a.y;
           let dz = b.z - a.z;
-          let dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          let distXZ = Math.sqrt(dx * dx + dz * dz);
 
-          const extraCatBuffer = (a.type === 'category' || b.type === 'category') ? 45 : 0;
-          const minDist = (a.collisionRadius || 36) + (b.collisionRadius || 36) + padding + extraCatBuffer;
+          const extraCatBuffer = (a.type === 'category' || b.type === 'category') ? 35 : 0;
+          const rA = a.collisionRadius || 30;
+          const rB = b.collisionRadius || 30;
+          const minDistXZ = rA + rB + paddingXZ + extraCatBuffer;
 
-          if (dist < minDist) {
-            if (dist < 0.001) {
-              dx = (Math.random() - 0.5) * 2;
-              dy = (Math.random() - 0.5) * 2;
-              dz = (Math.random() - 0.5) * 2;
-              dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          if (distXZ < minDistXZ) {
+            if (distXZ < 0.001) {
+              dx = (Math.random() - 0.5) * 4 || 1;
+              dz = (Math.random() - 0.5) * 4 || 1;
+              distXZ = Math.sqrt(dx * dx + dz * dz);
             }
 
-            const overlap = minDist - dist;
-            if (overlap > maxOverlap) maxOverlap = overlap;
+            const overlap = minDistXZ - distXZ;
+            if (overlap > maxOverlapXZ) maxOverlapXZ = overlap;
 
-            const nx = dx / dist;
-            const ny = dy / dist;
-            const nz = dz / dist;
+            const nx = dx / distXZ;
+            const nz = dz / distXZ;
 
-            const weightA = a.type === 'category' ? 0.05 : (a.type === 'subCategory' ? 0.35 : 0.6);
-            const weightB = b.type === 'category' ? 0.05 : (b.type === 'subCategory' ? 0.35 : 0.6);
+            const weightA = a.type === 'category' ? 0.01 : (a.type === 'subCategory' ? 0.22 : 0.77);
+            const weightB = b.type === 'category' ? 0.01 : (b.type === 'subCategory' ? 0.22 : 0.77);
             const totalWeight = weightA + weightB;
 
-            const shiftA = overlap * (weightB / totalWeight);
-            const shiftB = overlap * (weightA / totalWeight);
+            const shiftA = overlap * (weightB / totalWeight) * step;
+            const shiftB = overlap * (weightA / totalWeight) * step;
 
             a.x -= nx * shiftA;
-            a.y -= ny * shiftA;
             a.z -= nz * shiftA;
 
             b.x += nx * shiftB;
-            b.y += ny * shiftB;
             b.z += nz * shiftB;
           }
         }
       }
-      if (maxOverlap < 0.1) break;
+      if (maxOverlapXZ < 0.05) break;
     }
 
     nodes.forEach(n => {
@@ -2307,6 +2335,11 @@ export function GalaxyGraphView({
     flyToMacro(threeRef.current);
   };
 
+  const handleTopDownCamera = () => {
+    if (!threeRef.current) return;
+    flyToTopDown(threeRef.current);
+  };
+
   const handleUpdateStarScale = (val: number) => {
     setStarScaleMultiplier(val);
     if (!threeRef.current) return;
@@ -2503,6 +2536,18 @@ export function GalaxyGraphView({
               >
                 <RotateCcw className="w-3.5 h-3.5 text-indigo-400" />
                 <span className="flex-1 font-medium">Reset Camera</span>
+              </button>
+
+              <button
+                id="topDownCameraBtn"
+                onClick={() => {
+                  handleTopDownCamera();
+                  setIsControlsMenuOpen(false);
+                }}
+                className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs text-slate-200 hover:bg-white/10 hover:text-white transition-colors cursor-pointer text-left"
+              >
+                <Eye className="w-3.5 h-3.5 text-sky-400" />
+                <span className="flex-1 font-medium">Tampak Atas (Top-Down)</span>
               </button>
 
               <button
