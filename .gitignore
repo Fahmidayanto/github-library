@@ -39,6 +39,7 @@ Thumbs.db
 # Test artifacts & Scratch
 test-results/
 aura-launch-vo-prompt.md
+fe/test_chat.cjs
 
 # Mem0
 mem0/
