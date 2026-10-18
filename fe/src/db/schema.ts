@@ -96,4 +96,21 @@ export const translationsCache = pgTable('translations_cache', {
 export type TranslationCacheItem = typeof translationsCache.$inferSelect;
 export type NewTranslationCacheItem = typeof translationsCache.$inferInsert;
 
+// Tabel Cache Tanya-Jawab AI Advisor (CAG / Semantic Response Cache)
+export const advisorQaCache = pgTable('advisor_qa_cache', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  queryHash: text('query_hash').notNull().unique(),
+  rawQuery: text('raw_query').notNull(),
+  answerText: text('answer_text').notNull(),
+  recommendedRepos: jsonb('recommended_repos'),
+  hitCount: integer('hit_count').default(1).notNull(),
+  provider: text('provider'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type AdvisorQaCacheItem = typeof advisorQaCache.$inferSelect;
+export type NewAdvisorQaCacheItem = typeof advisorQaCache.$inferInsert;
+
+
 

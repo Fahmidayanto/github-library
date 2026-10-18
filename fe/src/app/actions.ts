@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import fs from 'fs';
 import path from 'path';
 import { db, isDbConfigured } from '@/db';
-import { categories, subCategories, repositories } from '@/db/schema';
+import { categories, subCategories, repositories, advisorQaCache } from '@/db/schema';
 import { eq, desc, sql, or } from 'drizzle-orm';
 import { getOrGenerateSummary } from '@/lib/ai-summarizer';
 import { resolveCategoryIcon } from '@/lib/category-icons';
@@ -803,24 +803,270 @@ export async function deleteRepositoryAction(id: string) {
   return { success: true, message: 'Repositori berhasil dihapus.' };
 }
 
+// ============================================================================
+// Modern AI-Native Intent & Semantic Retriever (100% LLM-Driven, Zero Hardcoded Rules)
+// ============================================================================
+
+interface ParsedSearchIntent {
+  isGreeting: boolean;
+  isGibberish: boolean;
+  isOutOfDomain: boolean;
+  keywords: string[];
+}
+
+async function parseSearchIntentWithAI(query: string, geminiKey?: string): Promise<ParsedSearchIntent> {
+  // Potong input aman maksimal 500 karakter untuk mencegah token bloat / DoS
+  const safeQuery = (query || '').trim().slice(0, 500);
+
+  if (!geminiKey) {
+    const raw = safeQuery.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 2);
+    return { isGreeting: false, isGibberish: raw.length === 0, isOutOfDomain: false, keywords: raw };
+  }
+
+  const prompt = `You are an intelligent search intent parser for an open-source software repository hub (coding, developer tools, AI, frameworks, libraries).
+Analyze the user's input: "${safeQuery}"
+
+Evaluate:
+1. "isGreeting": true if user is merely greeting or making casual small talk (e.g. "halo", "hi", "apa kabar") without seeking tools.
+2. "isGibberish": true if input is random symbols, meaningless characters, or uninterpretable noise.
+3. "isOutOfDomain": true if the topic has NOTHING to do with programming, software engineering, AI, technology, or computer tools (e.g. cooking recipes, sports gossip, general medicine, astrology).
+4. "keywords": array of 3-6 standard technical English keywords representing what software/tool they seek.
+   - RECOVER aggressive typos and slang (e.g., "bwt bkin vidio short yt otmtis pk pythn" -> ["video-generator", "youtube-shorts", "automation", "python"]).
+   - If "isGreeting", "isGibberish", or "isOutOfDomain" is true, keywords can be empty [].
+
+Return ONLY pure valid JSON in this schema:
+{
+  "isGreeting": boolean,
+  "isGibberish": boolean,
+  "isOutOfDomain": boolean,
+  "keywords": string[]
+}`;
+
+  // 1. Coba Gemini 3.8 Flash
+  if (geminiKey) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiKey}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
+        }),
+        signal: AbortSignal.timeout(4500),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) {
+          const parsed = JSON.parse(text);
+          return {
+            isGreeting: Boolean(parsed.isGreeting),
+            isGibberish: Boolean(parsed.isGibberish),
+            isOutOfDomain: Boolean(parsed.isOutOfDomain),
+            keywords: Array.isArray(parsed.keywords) ? parsed.keywords.map((k: string) => k.toLowerCase()) : [],
+          };
+        }
+      }
+    } catch (err) {
+      console.warn('Gemini intent parser error/timeout, attempting Groq fallback:', err);
+    }
+  }
+
+  // 2. Fallback ke Groq (openai/gpt-oss-120b) jika Gemini rate limited (429) atau timeout
+  const groqKey = process.env.GROQ_API_KEY;
+  if (groqKey) {
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${groqKey}`,
+        },
+        body: JSON.stringify({
+          model: 'openai/gpt-oss-120b',
+          messages: [{ role: 'user', content: prompt }],
+          response_format: { type: 'json_object' },
+          temperature: 0.1,
+        }),
+        signal: AbortSignal.timeout(4000),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const rawContent = data.choices?.[0]?.message?.content || '';
+        const parsed = JSON.parse(rawContent);
+        return {
+          isGreeting: Boolean(parsed.isGreeting),
+          isGibberish: Boolean(parsed.isGibberish),
+          isOutOfDomain: Boolean(parsed.isOutOfDomain),
+          keywords: Array.isArray(parsed.keywords) ? parsed.keywords.map((k: string) => k.toLowerCase()) : [],
+        };
+      }
+    } catch (groqErr) {
+      console.warn('Groq intent parser fallback error:', groqErr);
+    }
+  }
+
+
+  const fallbackWords = safeQuery.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 2);
+  return { isGreeting: false, isGibberish: fallbackWords.length === 0, isOutOfDomain: false, keywords: fallbackWords };
+}
+
+
+
+function calculateSemanticRelevance(repo: any, keywords: string[]): number {
+  if (!keywords || keywords.length === 0) return 0;
+
+  const repoText = [
+    repo.name,
+    repo.fullName,
+    ...(Array.isArray(repo.topics) ? repo.topics : []),
+    repo.categoryName,
+    repo.subCategoryName,
+    repo.description,
+    typeof repo.aiSummary === 'object' && repo.aiSummary ? JSON.stringify(repo.aiSummary) : repo.aiSummary,
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  let matches = 0;
+  for (const kw of keywords) {
+    if (repoText.includes(kw)) {
+      matches += 1;
+    }
+  }
+
+  return matches / keywords.length;
+}
+
 async function runInternalAdvisorChat(messages: Array<{ role: 'user' | 'assistant'; content: string }>) {
   try {
     const cats = await getCategoriesTree();
     const repos = await getRepositories();
+    const geminiKey = process.env.GEMINI_API_KEY;
+
+    // 1. Dapatkan query pengguna terakhir
+    const rawUserQuery = [...messages].reverse().find(m => m.role === 'user')?.content?.trim() || '';
+
+    // 2. AI-Native Search Intent & Translation (Memahami slang, typo, dan sapaan via LLM)
+    const intent = await parseSearchIntentWithAI(rawUserQuery, geminiKey);
+
+    if (intent.isGibberish || !rawUserQuery) {
+      return {
+        success: true,
+        message: 'Maaf, saya tidak dapat memahami permintaan tersebut. Silakan sebutkan jenis repositori, fitur, atau teknologi yang ingin kamu cari.',
+        detectedRepos: [],
+        provider: 'ai-intent-guard',
+      };
+    }
+
+    if (intent.isGreeting) {
+      return {
+        success: true,
+        message: 'Halo! Saya AI Library Advisor. Silakan tanyakan kategori atau kebutuhan repositori yang ingin kamu cari (misal: "tool hemat token LLM", "video generator", atau "browser automation").',
+        detectedRepos: [],
+        provider: 'ai-intent-guard',
+      };
+    }
+
+    if (intent.isOutOfDomain) {
+      return {
+        success: true,
+        message: 'Pertanyaan tersebut berada di luar lingkup platform ini. GitHub Library Hub berfokus pada katalog repositori open-source software, AI, developer tools, framework, dan library koding. Silakan tanyakan kebutuhan terkait software atau teknologi!',
+        detectedRepos: [],
+        provider: 'ai-intent-guard',
+      };
+    }
+
+
+    // =========================================================================
+    // CAG / Semantic QA Cache: Cek Neon DB untuk query serupa (Hemat 100% Token)
+    // =========================================================================
+    const normalizedKey = intent.keywords.length > 0 
+      ? intent.keywords.slice().sort().join(' ') 
+      : rawUserQuery.toLowerCase().replace(/[^a-z0-9]/g, ' ').trim();
+
+    if (db && isDbConfigured && normalizedKey) {
+      try {
+        const cachedItem = await db.query.advisorQaCache.findFirst({
+          where: eq(advisorQaCache.queryHash, normalizedKey),
+        });
+
+        if (cachedItem && cachedItem.answerText) {
+          db.update(advisorQaCache)
+            .set({ 
+              hitCount: sql`${advisorQaCache.hitCount} + 1`,
+              updatedAt: new Date(),
+            })
+            .where(eq(advisorQaCache.id, cachedItem.id))
+            .catch(() => {});
+
+          const replyLower = cachedItem.answerText.toLowerCase();
+          const detectedRepos = (repos || []).filter(r => {
+            const fn = (r.fullName || `${r.owner}/${r.name}`).toLowerCase();
+            return replyLower.includes(fn);
+          }).map(r => ({
+            id: r.id,
+            name: r.name,
+            fullName: r.fullName || `${r.owner}/${r.name}`,
+            categoryName: r.categoryName,
+            subCategoryName: r.subCategoryName,
+            starsCount: r.starsCount,
+            githubUrl: r.githubUrl,
+            description: r.description,
+          }));
+
+          return {
+            success: true,
+            message: cachedItem.answerText,
+            detectedRepos,
+            provider: `${cachedItem.provider || 'neon-cag'} (cache-hit)`,
+          };
+        }
+      } catch (cacheErr) {
+        console.warn('Gagal membaca advisor_qa_cache di Neon DB:', cacheErr);
+      }
+    }
+
+    // 3. RAG Semantic Retrieval: Top 5 repositori berdasarkan semantic score murni
+    let topRepos: any[] = [];
+    if (intent.keywords.length > 0) {
+      const scored = (repos || []).map(r => ({
+        repo: r,
+        score: calculateSemanticRelevance(r, intent.keywords),
+      }));
+      const matched = scored.filter(s => s.score > 0);
+      if (matched.length > 0) {
+        matched.sort((a, b) => b.score - a.score || (b.repo.starsCount || 0) - (a.repo.starsCount || 0));
+        topRepos = matched.slice(0, 5).map(m => m.repo);
+      }
+    }
+
+    if (topRepos.length === 0) {
+      topRepos = [...(repos || [])]
+        .sort((a, b) => {
+          if (b.isFeatured && !a.isFeatured) return 1;
+          if (!b.isFeatured && a.isFeatured) return -1;
+          return (b.starsCount || 0) - (a.starsCount || 0);
+        })
+        .slice(0, 5);
+    }
+
 
     const catalogStructure = (cats || []).map(c => {
       const subs = (c.subCategories || []).map((s: any) => `"${s.name}"`).join(', ');
       return `- Group: "${c.name}"\n  Subgroups: ${subs || '"General"'}`;
     }).join('\n');
 
-    const repoCatalog = (repos || []).map((r, i) => {
-      const topicsStr = Array.isArray(r.topics) ? r.topics.slice(0, 10).join(', ') : '';
+    // Katalog repo ringkas HANYA dari Top 5 hasil RAG
+    const repoCatalog = topRepos.map((r, i) => {
+      const topicsStr = Array.isArray(r.topics) ? r.topics.slice(0, 8).join(', ') : '';
       const summaryText = typeof r.aiSummary === 'object' && r.aiSummary !== null
         ? ((r.aiSummary as any).corePurpose || (r.aiSummary as any).summary || '')
         : (typeof r.aiSummary === 'string' ? r.aiSummary : '');
 
       const contextDoc = (r as any).readmeContent
-        ? (r as any).readmeContent.slice(0, 1200)
+        ? (r as any).readmeContent.slice(0, 500)
         : (summaryText || r.description || '');
 
       return `--- REPO #${i + 1} ---
@@ -834,35 +1080,38 @@ readme_documentation: ${contextDoc}
 clone: git clone ${r.githubUrl || `https://github.com/${r.fullName}`}.git`;
     }).join('\n\n');
 
+    // Compressed Caveman-style System Prompt
     const systemPrompt = `Kamu adalah "AI Library Advisor" untuk platform GitHub Library Hub.
-Tugasmu: Menganalisis kebutuhan pengguna secara mendalam dan merekomendasikan repositori yang BENAR-BENAR COCOK berdasarkan dokumentasi resmi katalog di bawah ini.
+Gaya Komunikasi: Caveman style (padat, presisi, zero fluff, langsung ke substansi teknis).
+Potong semua salam pembuka, kata pengantar, atau penutup basa-basi.
 
 === STRUKTUR GRUP & SUBGRUP AKTIF ===
 ${catalogStructure}
 
-=== KATALOG REPOSITORI LENGKAP (${repos.length} repo dengan README & dokumentasi) ===
+=== KATALOG REPOSITORI TERPILIH (Top ${topRepos.length} RAG Filtered Candidates) ===
 ${repoCatalog}
 
 === PROTOKOL JAWABAN (SANGAT KETAT) ===
-1. JANGAN PERNAH merekomendasikan repo yang tidak relevan secara fungsional. Misalnya jika user mencari alat penjadwalan media sosial, rekomendasikan hanya tool scheduling (seperti postiz-app atau cogsend), JANGAN PERNAH menyarankan tutorial belajar seperti 30-Days-Of-Python.
+1. JANGAN PERNAH gunakan salam pembuka ("Halo!", "Tentu!"), kata pengantar ("Berikut rekomendasi:"), atau penutup basa-basi ("Semoga membantu!").
 2. JANGAN PERNAH menggunakan simbol bintang dua (**) untuk bold dan JANGAN PERNAH menggunakan simbol pagar (#, ##, ###) untuk heading. Gunakan teks polos rapi.
-3. Jika kebutuhan pengguna BELUM ADA di dalam katalog, nyatakan secara jujur dan tawarkan grup/subgrup yang tersedia.
-4. Format Jawaban:
-Analisis Kebutuhan: (1 kalimat ringkas mengenai apa yang dicari user)
+3. HANYA rekomendasikan repositori dari daftar katalog terpilih di atas yang relevan secara fungsional.
+4. Jika kebutuhan pengguna BELUM ADA di dalam katalog, nyatakan secara lugas dan tawarkan alternatif grup/subgrup yang tersedia dari struktur di atas.
+5. Format Jawaban Wajib:
+Analisis Kebutuhan: (1 kalimat ringkas mengenai inti kebutuhan teknis)
 
 Rekomendasi:
 [fullName]
 - Grup / Subgrup: [Group] / [Subgroup]
-- Mengapa Relevan: (poin teknis konkret solusi berdasarkan README)
+- Mengapa Relevan: (poin teknis konkret solusi berdasarkan dokumentasi)
 - Spesifikasi: [Language] | [Stars] Stars
 - Clone: git clone https://github.com/[fullName].git
 
-5. Bahasa: Bahasa Indonesia yang lugas, presisi, dan padat.`;
+6. Bahasa: Bahasa Indonesia yang lugas, presisi, dan padat.`;
 
-    const geminiKey = process.env.GEMINI_API_KEY;
     const groqKey = process.env.GROQ_API_KEY;
     let replyText: string | null = null;
     let provider = 'gemini';
+
 
     // 1. Eksekusi Google Gemini (Model aktif: gemini-3.8-flash, fallback gemini-2.0-flash)
     if (geminiKey) {
@@ -880,7 +1129,7 @@ Rekomendasi:
             body: JSON.stringify({
               systemInstruction: { parts: [{ text: systemPrompt }] },
               contents,
-              generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
+              generationConfig: { temperature: 0.2, maxOutputTokens: 1024 },
             }),
             signal: AbortSignal.timeout(18000),
           });
@@ -913,6 +1162,7 @@ Rekomendasi:
             body: JSON.stringify({
               model,
               temperature: 0.2,
+              max_tokens: 1024,
               messages: [
                 { role: 'system', content: systemPrompt },
                 ...messages.map(m => ({ role: m.role, content: m.content })),
@@ -966,12 +1216,43 @@ Rekomendasi:
       description: r.description,
     }));
 
+    // =========================================================================
+    // CAG: Simpan pasangan Q&A ke tabel advisor_qa_cache di Neon DB
+    // Proteksi: Hanya cache jika respon valid (>50 char), bukan error, dan memiliki keywords
+    // =========================================================================
+    const isValidAnswer = replyText.length >= 50 && (replyText.includes('Rekomendasi:') || replyText.includes('Analisis Kebutuhan:'));
+    if (db && isDbConfigured && intent.keywords.length > 0 && normalizedKey && isValidAnswer) {
+      try {
+        await db.insert(advisorQaCache).values({
+          queryHash: normalizedKey,
+          rawQuery: rawUserQuery,
+          answerText: replyText,
+          recommendedRepos: detectedRepos.map(d => ({ fullName: d.fullName, name: d.name, id: d.id })),
+          provider,
+          hitCount: 1,
+        }).onConflictDoUpdate({
+          target: advisorQaCache.queryHash,
+          set: {
+            answerText: replyText,
+            recommendedRepos: detectedRepos.map(d => ({ fullName: d.fullName, name: d.name, id: d.id })),
+            provider,
+            updatedAt: new Date(),
+          },
+        });
+      } catch (insertCacheErr) {
+        console.warn('Gagal menyimpan ke advisor_qa_cache di Neon DB:', insertCacheErr);
+      }
+    }
+
+
+
     return {
       success: true,
       message: replyText,
       detectedRepos,
-      provider: 'internal-fallback',
+      provider,
     };
+
   } catch (internalErr: any) {
     return {
       success: false,
