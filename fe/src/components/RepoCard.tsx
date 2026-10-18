@@ -32,6 +32,12 @@ export interface RepoCardData {
   categoryId?: string;
   subCategoryId?: string;
   avatarUrl?: string | null;
+  semanticBridges?: {
+    targetSubCategoryId: string;
+    targetSubCategoryName: string;
+    confidence: number;
+    reason: string;
+  }[];
 }
 
 interface RepoCardProps {

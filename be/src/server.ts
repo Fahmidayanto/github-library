@@ -686,6 +686,7 @@ app.get('/api/repositories', async (req: Request, res: Response) => {
       ...r,
       categoryName: r.category?.name || '',
       subCategoryName: r.subCategory?.name || '',
+      semanticBridges: (r.aiSummary as any)?.semanticBridges || [],
     }));
 
     if (categoryId && categoryId !== 'all') {

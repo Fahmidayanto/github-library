@@ -80,6 +80,8 @@ interface GalaxyEdge {
   source: string;
   target: string;
   color: number;
+  isSemanticBridge?: boolean;
+  bridgeReason?: string;
 }
 
 export function GalaxyGraphView({
@@ -464,7 +466,9 @@ export function GalaxyGraphView({
           clearHighlight(threeState);
         } else {
           applyHighlight(threeState, threeState.hoveredNode);
-          if (threeState.hoveredNode.type !== 'category') {
+          if (threeState.hoveredNode.type === 'category' || threeState.hoveredNode.type === 'subCategory') {
+            panToNodeWithoutZoom(threeState, threeState.hoveredNode);
+          } else {
             flyToNode(threeState, threeState.hoveredNode);
           }
         }
@@ -681,6 +685,9 @@ export function GalaxyGraphView({
       const subNodeIds = new Set(
         threeState.nodeObjects.filter(n => n.id === node.id || n.subCatId === node.id).map(n => n.id)
       );
+      // Masukkan seluruh node repositori anak ke connectedNodeIds secara eksplisit
+      subNodeIds.forEach(id => connectedNodeIds.add(id));
+
       threeState.edgeObjects.forEach(edge => {
         if (subNodeIds.has(edge.source) && subNodeIds.has(edge.target)) {
           const src = threeState.nodeObjects.find(n => n.id === edge.source);
@@ -732,33 +739,54 @@ export function GalaxyGraphView({
       if (src.group && !src.group.visible) return;
       if (tgt.group && !tgt.group.visible) return;
 
-      const isCross = (src.type === 'language' || tgt.type === 'language' ||
-                       src.type === 'topic' || tgt.type === 'topic' ||
-                       (src.catId && tgt.catId && src.catId !== tgt.catId));
+      const isCross = (
+        edge.isSemanticBridge ||
+        src.type === 'language' || tgt.type === 'language' ||
+        src.type === 'topic' || tgt.type === 'topic' ||
+        (src.catId && tgt.catId && src.catId !== tgt.catId) ||
+        (src.subCatId && tgt.subCatId && src.subCatId !== tgt.subCatId)
+      );
 
       let pts: THREE.Vector3[];
       if (!isCross) {
         pts = [src.targetPosition, tgt.targetPosition];
       } else {
-        const p0 = src.targetPosition;
-        const p2 = tgt.targetPosition;
-        const dist = p0.distanceTo(p2);
-        const mid = p0.clone().add(p2).multiplyScalar(0.5);
-        const arcHeight = Math.max(90, Math.min(260, dist * 0.32));
-        const p1 = new THREE.Vector3(
-          mid.x + (mid.x > 0 ? 1 : -1) * (dist * 0.08),
-          mid.y + arcHeight,
-          mid.z + (mid.z > 0 ? 1 : -1) * (dist * 0.08)
-        );
+        const pSrc = src.targetPosition;
+        const pTgt = tgt.targetPosition;
+        const dir = new THREE.Vector3().subVectors(pTgt, pSrc);
+        const dist = dir.length();
+        const normDir = dir.clone().normalize();
+
+        const srcMargin = (src.collisionRadius || 24) + 4;
+        const tgtMargin = (tgt.collisionRadius || 24) + 4;
+        const p0 = pSrc.clone().add(normDir.clone().multiplyScalar(srcMargin));
+        const p2 = pTgt.clone().sub(normDir.clone().multiplyScalar(tgtMargin));
+
+        const up = new THREE.Vector3(0, 1, 0);
+        let lateral = new THREE.Vector3().crossVectors(normDir, up).normalize();
+        if (lateral.lengthSq() < 0.01) lateral = new THREE.Vector3(1, 0, 0);
+
+        const isBridge = Boolean(edge.isSemanticBridge);
+        const arcHeight = isBridge
+          ? Math.max(160, Math.min(380, dist * 0.42))
+          : Math.max(90, Math.min(260, dist * 0.32));
+        const lateralOffset = (isBridge ? 45 : 25) * (src.x > 0 ? 1 : -1);
+
+        const p1 = new THREE.Vector3()
+          .addVectors(p0, p2)
+          .multiplyScalar(0.5)
+          .add(new THREE.Vector3(0, arcHeight, 0))
+          .add(lateral.multiplyScalar(lateralOffset));
+
         const curve = new THREE.QuadraticBezierCurve3(p0, p1, p2);
-        pts = curve.getPoints(24);
+        pts = curve.getPoints(isBridge ? 32 : 24);
       }
 
       const geo = new THREE.BufferGeometry().setFromPoints(pts);
 
-      // Core electric cyan
+      // Core electric cyan or luminous violet for semantic bridges
       const coreMat = new THREE.LineBasicMaterial({
-        color: 0x00ffff,
+        color: edge.isSemanticBridge ? 0xf0abfc : 0x00ffff,
         transparent: true,
         opacity: 1.0,
         blending: THREE.AdditiveBlending
@@ -767,15 +795,15 @@ export function GalaxyGraphView({
 
       // Outer aura
       const auraMat = new THREE.LineBasicMaterial({
-        color: edge.color || 0xa855f7,
+        color: edge.color || (edge.isSemanticBridge ? 0xc084fc : 0xa855f7),
         transparent: true,
-        opacity: 0.85,
+        opacity: 0.9,
         blending: THREE.AdditiveBlending
       });
       threeState.highlightedEdgesGroup.add(new THREE.Line(geo, auraMat));
     });
 
-    // Update node visuals with elastic GSAP
+    // Update node visuals with elastic GSAP & High-Intensity Supernova/Planetary Glow
     threeState.nodeObjects.forEach(n => {
       if (!n.group) return;
       const isPrimary = (n.id === node.id);
@@ -789,33 +817,49 @@ export function GalaxyGraphView({
           const mat = mesh.material as THREE.MeshPhongMaterial;
           if (isPrimary) {
             mat.opacity = 1.0;
-            if (mat.emissive) mat.emissiveIntensity = 1.2;
+            if (mat.emissive) mat.emissiveIntensity = 2.4; // Supernova glow primer
           } else if (isConnected) {
-            mat.opacity = 0.95;
-            if (mat.emissive) mat.emissiveIntensity = 0.7;
+            mat.opacity = 1.0;
+            if (mat.emissive) mat.emissiveIntensity = 1.85; // Radiant glow repo & sub-grup terkoneksi
           } else {
-            mat.opacity = 0.15;
-            if (mat.emissive) mat.emissiveIntensity = 0.05;
+            mat.opacity = 0.12;
+            if (mat.emissive) mat.emissiveIntensity = 0.04;
           }
         }
         if (sprite.isSprite && sprite.material) {
           const sMat = sprite.material as THREE.SpriteMaterial;
           if (child === n.innerCorona) {
-            sMat.opacity = isPrimary ? Math.min(1.0, nodeNeonShadowOpacity * 1.5) : (isConnected ? nodeNeonShadowOpacity * 0.9 : 0.04);
+            sMat.opacity = isPrimary ? 1.0 : (isConnected ? 0.95 : 0.03);
+            const baseScale = n.baseInnerCoronaScale || (n.baseSize ? n.baseSize * 1.5 : 30);
+            const mult = isPrimary ? 2.2 : (isConnected ? 1.8 : 0.9);
+            gsap.to(sprite.scale, {
+              x: baseScale * mult,
+              y: baseScale * mult,
+              duration: 0.5,
+              ease: "power2.out"
+            });
           } else if (child === n.outerCorona) {
-            sMat.opacity = isPrimary ? Math.min(1.0, nodeNeonShadowOpacity * 1.3) : (isConnected ? nodeNeonShadowOpacity * 0.6 : 0.02);
+            sMat.opacity = isPrimary ? 0.95 : (isConnected ? 0.85 : 0.015);
+            const baseScale = n.baseOuterCoronaScale || (n.baseSize ? n.baseSize * 3.0 : 60);
+            const mult = isPrimary ? 2.5 : (isConnected ? 2.0 : 0.9);
+            gsap.to(sprite.scale, {
+              x: baseScale * mult,
+              y: baseScale * mult,
+              duration: 0.5,
+              ease: "power2.out"
+            });
           } else {
-            sMat.opacity = isPrimary ? 0.9 : (isConnected ? 0.5 : 0.03);
+            sMat.opacity = isPrimary ? 1.0 : (isConnected ? 0.85 : 0.02);
           }
         }
       });
 
-      const targetScale = starScaleMultiplier * (isPrimary ? 1.38 : (isConnected ? 1.15 : 0.82));
+      const targetScale = starScaleMultiplier * (isPrimary ? 1.5 : (isConnected ? 1.32 : 0.75));
       gsap.to(n.group.scale, {
         x: targetScale,
         y: targetScale,
         z: targetScale,
-        duration: isPrimary ? 0.6 : 0.4,
+        duration: isPrimary ? 0.6 : 0.45,
         ease: isPrimary ? "elastic.out(1, 0.45)" : (isConnected ? "back.out(2)" : "power2.out"),
         overwrite: "auto"
       });
@@ -857,8 +901,22 @@ export function GalaxyGraphView({
           const sMat = sprite.material as THREE.SpriteMaterial;
           if (child === n.innerCorona) {
             sMat.opacity = Math.min(1.0, nodeNeonShadowOpacity * 1.1);
+            const baseScale = n.baseInnerCoronaScale || (n.baseSize ? n.baseSize * 1.5 : 30);
+            gsap.to(sprite.scale, {
+              x: baseScale,
+              y: baseScale,
+              duration: 0.35,
+              ease: "power2.out"
+            });
           } else if (child === n.outerCorona) {
             sMat.opacity = Math.min(1.0, nodeNeonShadowOpacity * 0.75);
+            const baseScale = n.baseOuterCoronaScale || (n.baseSize ? n.baseSize * 3.0 : 60);
+            gsap.to(sprite.scale, {
+              x: baseScale,
+              y: baseScale,
+              duration: 0.35,
+              ease: "power2.out"
+            });
           } else {
             sMat.opacity = 0.55;
           }
@@ -911,6 +969,30 @@ export function GalaxyGraphView({
       z: 0,
       duration: 1.3,
       ease: "power3.inOut",
+      onUpdate: () => controls.update()
+    });
+  }
+
+  function panToNodeWithoutZoom(threeState: NonNullable<typeof threeRef.current>, node: GalaxyNode) {
+    const { camera, controls } = threeState;
+    const dx = node.x - controls.target.x;
+    const dy = node.y - controls.target.y;
+    const dz = node.z - controls.target.z;
+
+    gsap.to(camera.position, {
+      x: camera.position.x + dx,
+      y: camera.position.y + dy,
+      z: camera.position.z + dz,
+      duration: 1.0,
+      ease: "power2.out"
+    });
+
+    gsap.to(controls.target, {
+      x: node.x,
+      y: node.y,
+      z: node.z,
+      duration: 1.0,
+      ease: "power2.out",
       onUpdate: () => controls.update()
     });
   }
@@ -1279,6 +1361,33 @@ export function GalaxyGraphView({
       });
     });
 
+    // Semantic Bridges (LLM-determined cross-subgroup links)
+    propRepositories.forEach(repo => {
+      const bridges = (repo as any).semanticBridges || (repo as any).aiSummary?.semanticBridges;
+      if (Array.isArray(bridges) && bridges.length > 0) {
+        bridges.forEach((bridge: any) => {
+          if (!bridge.targetSubCategoryId) return;
+          const targetSubNode = state.nodeObjects.find(n => n.id === bridge.targetSubCategoryId);
+          const repoNode = state.nodeObjects.find(n => n.id === repo.id);
+          if (targetSubNode && repoNode && repoNode.subCatId !== targetSubNode.id) {
+            state.edgeObjects.push({
+              source: repo.id,
+              target: targetSubNode.id,
+              color: 0xc084fc, // Nebula Amethyst Neon
+              isSemanticBridge: true,
+              bridgeReason: bridge.reason,
+            });
+            if (!repoNode.connections.includes(targetSubNode.id)) {
+              repoNode.connections.push(targetSubNode.id);
+            }
+            if (!targetSubNode.connections.includes(repo.id)) {
+              targetSubNode.connections.push(repo.id);
+            }
+          }
+        });
+      }
+    });
+
     // Languages - Outer Transit Belt
     const uniqueLangs = Array.from(new Set(propRepositories.map(r => r.primaryLanguage).filter(Boolean))) as string[];
     uniqueLangs.slice(0, 6).forEach((lang, idx) => {
@@ -1376,9 +1485,11 @@ export function GalaxyGraphView({
         if (!isSrcVisible || !isTgtVisible) return;
 
         const isCross = (
+          edge.isSemanticBridge ||
           srcNode.type === 'language' || tgtNode.type === 'language' ||
           srcNode.type === 'topic' || tgtNode.type === 'topic' ||
-          (srcNode.catId && tgtNode.catId && srcNode.catId !== tgtNode.catId)
+          (srcNode.catId && tgtNode.catId && srcNode.catId !== tgtNode.catId) ||
+          (srcNode.subCatId && tgtNode.subCatId && srcNode.subCatId !== tgtNode.subCatId)
         );
 
         const col = new THREE.Color(edge.color);
@@ -1390,19 +1501,39 @@ export function GalaxyGraphView({
           intraColors.push(col.r, col.g, col.b);
           intraColors.push(col.r, col.g, col.b);
         } else {
-          // 3D Quadratic Bezier Curve soaring gracefully above solar systems
-          const p0 = new THREE.Vector3(srcNode.x, srcNode.y, srcNode.z);
-          const p2 = new THREE.Vector3(tgtNode.x, tgtNode.y, tgtNode.z);
-          const dist = p0.distanceTo(p2);
-          const mid = p0.clone().add(p2).multiplyScalar(0.5);
-          const arcHeight = Math.max(90, Math.min(260, dist * 0.32));
-          const p1 = new THREE.Vector3(
-            mid.x + (mid.x > 0 ? 1 : -1) * (dist * 0.08),
-            mid.y + arcHeight,
-            mid.z + (mid.z > 0 ? 1 : -1) * (dist * 0.08)
-          );
+          // 3D Quadratic Bezier Curve soaring gracefully above solar systems (Zero Collision Clearance)
+          const pSrc = new THREE.Vector3(srcNode.x, srcNode.y, srcNode.z);
+          const pTgt = new THREE.Vector3(tgtNode.x, tgtNode.y, tgtNode.z);
+          const dir = new THREE.Vector3().subVectors(pTgt, pSrc);
+          const dist = dir.length();
+          const normDir = dir.clone().normalize();
+
+          // Surface clipping: Start & end outside node outer collision boundaries (never pierce planet cores)
+          const srcMargin = (srcNode.collisionRadius || 24) + 4;
+          const tgtMargin = (tgtNode.collisionRadius || 24) + 4;
+          const p0 = pSrc.clone().add(normDir.clone().multiplyScalar(srcMargin));
+          const p2 = pTgt.clone().sub(normDir.clone().multiplyScalar(tgtMargin));
+
+          // Lateral orthogonal vector to curve sideways away from straight lines & clusters
+          const up = new THREE.Vector3(0, 1, 0);
+          let lateral = new THREE.Vector3().crossVectors(normDir, up).normalize();
+          if (lateral.lengthSq() < 0.01) lateral = new THREE.Vector3(1, 0, 0);
+
+          // High-altitude parabolic clearance: semantic bridges soar high in upper sky
+          const isBridge = Boolean(edge.isSemanticBridge);
+          const arcHeight = isBridge
+            ? Math.max(160, Math.min(380, dist * 0.42))
+            : Math.max(90, Math.min(260, dist * 0.32));
+          const lateralOffset = (isBridge ? 45 : 25) * (srcNode.x > 0 ? 1 : -1);
+
+          const p1 = new THREE.Vector3()
+            .addVectors(p0, p2)
+            .multiplyScalar(0.5)
+            .add(new THREE.Vector3(0, arcHeight, 0))
+            .add(lateral.multiplyScalar(lateralOffset));
+
           const curve = new THREE.QuadraticBezierCurve3(p0, p1, p2);
-          const pts = curve.getPoints(16);
+          const pts = curve.getPoints(isBridge ? 28 : 16);
 
           for (let k = 0; k < pts.length - 1; k++) {
             crossPositions.push(pts[k].x, pts[k].y, pts[k].z);
@@ -2907,8 +3038,28 @@ export function GalaxyGraphView({
                       <div className="flex items-center justify-between gap-1">
                         <button
                           type="button"
-                          onClick={() => setExpandedClusters(prev => ({ ...prev, [cat.id]: !prev[cat.id] }))}
-                          className="flex-1 flex items-center space-x-2 px-2 py-1.5 rounded-lg text-left hover:bg-white/5 transition-colors cursor-pointer min-w-0"
+                          onClick={() => {
+                            setExpandedClusters(prev => ({ ...prev, [cat.id]: !prev[cat.id] }));
+                            if (threeRef.current && catNode) {
+                              if (isCatHighlighted) {
+                                clearHighlight(threeRef.current);
+                              } else {
+                                if (!activeTypes.category) {
+                                  setActiveTypes(prev => {
+                                    const next = { ...prev, category: true };
+                                    applyFilters(next);
+                                    return next;
+                                  });
+                                }
+                                applyHighlight(threeRef.current, catNode);
+                                panToNodeWithoutZoom(threeRef.current, catNode);
+                              }
+                            }
+                          }}
+                          className={cn(
+                            "flex-1 flex items-center space-x-2 px-2 py-1.5 rounded-lg text-left transition-colors cursor-pointer min-w-0",
+                            isCatHighlighted ? "bg-purple-600/20 text-purple-200" : "hover:bg-white/5"
+                          )}
                         >
                           <ChevronDown
                             className={cn(
@@ -2943,6 +3094,7 @@ export function GalaxyGraphView({
                                 });
                               }
                               applyHighlight(threeRef.current, catNode);
+                              panToNodeWithoutZoom(threeRef.current, catNode);
                             }
                           }}
                           className={cn(
@@ -2961,12 +3113,16 @@ export function GalaxyGraphView({
                         <div className="ml-3 pl-2.5 border-l border-white/10 space-y-1 my-1">
                           {cat.subCategories.map(sub => {
                             const isSubExpanded = expandedSubGroups[sub.id] ?? false;
-                            const subNode = threeRef.current?.nodeObjects.find(n => n.type === 'subCategory' && n.id === sub.id);
-                            const isSubHighlighted = highlightedNode?.id === sub.id;
+                            const subNode = threeRef.current?.nodeObjects.find(
+                              n => n.type === 'subCategory' && (n.id === sub.id || n.name.toLowerCase() === sub.name.toLowerCase())
+                            );
+                            const isSubHighlighted = highlightedNode?.id === sub.id || (subNode && highlightedNode?.id === subNode.id);
 
-                            // Repositori di bawah sub-kategori ini
+                            // Repositori di bawah sub-kategori ini (mendukung assignedSubId & node 3D aktif)
                             const subRepos = propRepositories.filter(
-                              r => r.subCategoryId === sub.id || (r.categoryId === cat.id && r.subCategoryName?.toLowerCase() === sub.name.toLowerCase())
+                              r => r.subCategoryId === sub.id 
+                                || (r as unknown as { assignedSubId?: string }).assignedSubId === sub.id
+                                || (r.categoryId === cat.id && r.subCategoryName?.toLowerCase() === sub.name.toLowerCase())
                             );
 
                             return (
@@ -2978,8 +3134,26 @@ export function GalaxyGraphView({
                                       if (subRepos.length > 0) {
                                         setExpandedSubGroups(prev => ({ ...prev, [sub.id]: !prev[sub.id] }));
                                       }
+                                      if (threeRef.current && subNode) {
+                                        if (isSubHighlighted) {
+                                          clearHighlight(threeRef.current);
+                                        } else {
+                                          if (!activeTypes.subCategory) {
+                                            setActiveTypes(prev => {
+                                              const next = { ...prev, subCategory: true };
+                                              applyFilters(next);
+                                              return next;
+                                            });
+                                          }
+                                          applyHighlight(threeRef.current, subNode);
+                                          panToNodeWithoutZoom(threeRef.current, subNode);
+                                        }
+                                      }
                                     }}
-                                    className="flex-1 flex items-center space-x-1.5 px-2 py-1 rounded-md text-left hover:bg-white/5 transition-colors cursor-pointer min-w-0"
+                                    className={cn(
+                                      "flex-1 flex items-center space-x-1.5 px-2 py-1 rounded-md text-left transition-colors cursor-pointer min-w-0",
+                                      isSubHighlighted ? "bg-sky-500/20 text-sky-200" : "hover:bg-white/5"
+                                    )}
                                   >
                                     {subRepos.length > 0 ? (
                                       <ChevronDown
@@ -3007,7 +3181,15 @@ export function GalaxyGraphView({
                                           if (isSubHighlighted) {
                                             clearHighlight(threeRef.current);
                                           } else {
+                                            if (!activeTypes.subCategory) {
+                                              setActiveTypes(prev => {
+                                                const next = { ...prev, subCategory: true };
+                                                applyFilters(next);
+                                                return next;
+                                              });
+                                            }
                                             applyHighlight(threeRef.current, subNode);
+                                            panToNodeWithoutZoom(threeRef.current, subNode);
                                           }
                                         }}
                                         className={cn(
