@@ -44,3 +44,10 @@ aura-launch-vo-prompt.md
 mem0/
 mcp-mem0/
 *mem0*
+
+# Local Workspace, Vault, Cache & Agent Skills
+brain/
+data/
+docs/
+.agents/
+
