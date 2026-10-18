@@ -180,9 +180,9 @@ export function GalaxyGraphView({
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x05070b, 0.00035);
 
-    // 2. Camera: expansive view angle 60, position set to spacious galactic overview (0, 1800, 4200)
+    // 2. Camera: expansive view angle 60, position set to balanced galactic overview (0, 950, 1950)
     const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 22000);
-    camera.position.set(0, 1800, 4200);
+    camera.position.set(0, 950, 1950);
 
     // 3. Renderer with vibrant tone mapping
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -881,8 +881,8 @@ export function GalaxyGraphView({
     const { camera, controls } = threeState;
     gsap.to(camera.position, {
       x: 0,
-      y: 1800,
-      z: 4200,
+      y: 950,
+      z: 1950,
       duration: 1.25,
       ease: "power3.inOut"
     });
@@ -900,7 +900,7 @@ export function GalaxyGraphView({
     const { camera, controls } = threeState;
     gsap.to(camera.position, {
       x: 0,
-      y: 7200,
+      y: 2250,
       z: 1,
       duration: 1.3,
       ease: "power3.inOut"
@@ -967,8 +967,9 @@ export function GalaxyGraphView({
 
     // Memetakan repositori aktif ke dalam Multi-System Galaxy Islands (360-Degree Omni-Directional Blossom & Conformal Zero-Crossing Layout)
     const catCount = propCategories.length;
-    const catRadius = Math.max(2400, 1500 + catCount * 110);
-    const yElevations = [-60, 60, -50, 70];
+    const chordTarget = 580;
+    const catRadius = Math.max(650, Math.round(chordTarget / (2 * Math.sin(Math.PI / Math.max(3, catCount)))));
+    const yElevations = [-40, 40, -35, 45];
     const catColors = ['#c084fc', '#f472b6', '#38bdf8', '#4ade80', '#fb923c', '#e879f9', '#a78bfa', '#34d399'];
 
     propCategories.forEach((cat, idx) => {
@@ -1027,15 +1028,15 @@ export function GalaxyGraphView({
       subs.forEach((sub, subIdx) => {
         const subAngle = catPhaseOffset + subIdx * angleStep;
 
-        // Tiering distance from Category Sun
+        // Proportional Tiering distance from Category Sun (Golden Cosmic Ratio)
         const subLane = subCount > 8 ? (subIdx % 3) : (subCount > 4 ? (subIdx % 2) : 0);
         const subDist = subCount <= 4 
-          ? 200 
-          : (subCount <= 8 ? (220 + subLane * 110) : (220 + subLane * 125));
+          ? 100 
+          : (subCount <= 8 ? (105 + subLane * 40) : (105 + subLane * 48));
 
         const sx = parent.x + Math.cos(subAngle) * subDist;
         const sz = parent.z + Math.sin(subAngle) * subDist;
-        const sy = parent.y + (subLane === 0 ? 35 : (subLane === 1 ? -35 : 15));
+        const sy = parent.y + (subLane === 0 ? 25 : (subLane === 1 ? -25 : 12));
 
         const translatedSubName = translateSubCategory(sub.name, language);
         const subNode: GalaxyNode = {
@@ -1070,9 +1071,9 @@ export function GalaxyGraphView({
 
         if (rCount === 1) {
           const repo = subRepos[0];
-          const rx = sx + Math.cos(subAngle) * 85;
-          const rz = sz + Math.sin(subAngle) * 85;
-          const ry = sy + 15;
+          const rx = sx + Math.cos(subAngle) * 42;
+          const rz = sz + Math.sin(subAngle) * 42;
+          const ry = sy + 8;
           const starSize = Math.max(13, Math.min(25, 12 + ((repo.starsCount || 0) / 10000) * 1.2));
           const repoDesc = translateRepoDescription(repo.fullName, repo.description, language) || (
             language === 'id' ? 'Repositori di ekosistem GitHub Library.' : 'Repository in GitHub Library ecosystem.'
@@ -1105,8 +1106,8 @@ export function GalaxyGraphView({
 
         if (rCount === 2) {
           const delta = Math.min(0.24, angleStep * 0.28);
-          const d1 = 80;
-          const d2 = 138;
+          const d1 = 40;
+          const d2 = 68;
           const a0 = subAngle - delta;
           const a1 = subAngle + delta;
           const r0 = subRepos[0];
@@ -1135,9 +1136,9 @@ export function GalaxyGraphView({
             baseSize: sz0,
             collisionRadius: 26,
             x: sx + Math.cos(a0) * d1,
-            y: sy - 18,
+            y: sy - 12,
             z: sz + Math.sin(a0) * d1,
-            targetPosition: new THREE.Vector3(sx + Math.cos(a0) * d1, sy - 18, sz + Math.sin(a0) * d1),
+            targetPosition: new THREE.Vector3(sx + Math.cos(a0) * d1, sy - 12, sz + Math.sin(a0) * d1),
             connections: [sub.id]
           };
           const n1: GalaxyNode = {
@@ -1155,9 +1156,9 @@ export function GalaxyGraphView({
             baseSize: sz1,
             collisionRadius: 26,
             x: sx + Math.cos(a1) * d2,
-            y: sy + 18,
+            y: sy + 12,
             z: sz + Math.sin(a1) * d2,
-            targetPosition: new THREE.Vector3(sx + Math.cos(a1) * d2, sy + 18, sz + Math.sin(a1) * d2),
+            targetPosition: new THREE.Vector3(sx + Math.cos(a1) * d2, sy + 12, sz + Math.sin(a1) * d2),
             connections: [sub.id]
           };
           state.nodeObjects.push(n0, n1);
@@ -1175,57 +1176,57 @@ export function GalaxyGraphView({
           const repo = subRepos[i];
           let parentId = sub.id;
           let angle = subAngle;
-          let dist = 80;
+          let dist = 42;
           let yOffset = 0;
 
           if (i === 0) {
             // Main Left Root Trunk
             parentId = sub.id;
             angle = subAngle - maxSpread * 0.48;
-            dist = 80;
-            yOffset = -22;
+            dist = 42;
+            yOffset = -14;
           } else if (i === 1) {
-            // Main Right Root Trunk (Staggered radially by 58px to guarantee 0 overlap with left trunk)
+            // Main Right Root Trunk (Staggered radially by 26px to guarantee 0 overlap with left trunk)
             parentId = sub.id;
             angle = subAngle + maxSpread * 0.48;
-            dist = 138;
-            yOffset = 22;
+            dist = 68;
+            yOffset = 14;
           } else if (i === 2) {
             // Outer Left Branch extending from Left Root Trunk (Root 0)
             parentId = subRepos[0].id;
             angle = subAngle - maxSpread * 0.88;
-            dist = 160;
-            yOffset = -38;
+            dist = 82;
+            yOffset = -22;
           } else if (i === 3) {
             // Outer Right Branch extending from Right Root Trunk (Root 1)
             parentId = subRepos[1].id;
             angle = subAngle + maxSpread * 0.88;
-            dist = 218;
-            yOffset = 38;
+            dist = 110;
+            yOffset = 22;
           } else if (i === 4) {
             // Inner Left Branch extending from Left Root Trunk (Root 0)
             parentId = subRepos[0].id;
             angle = subAngle - maxSpread * 0.18;
-            dist = 236;
-            yOffset = 18;
+            dist = 120;
+            yOffset = 10;
           } else if (i === 5) {
             // Inner Right Branch extending from Right Root Trunk (Root 1)
             parentId = subRepos[1].id;
             angle = subAngle + maxSpread * 0.18;
-            dist = 295;
-            yOffset = -18;
+            dist = 145;
+            yOffset = -10;
           } else if (i === 6) {
             // Tip of Outer Left Branch (extending from Root 2)
             parentId = subRepos[2].id;
             angle = subAngle - maxSpread * 0.98;
-            dist = 310;
-            yOffset = -48;
+            dist = 155;
+            yOffset = -26;
           } else if (i === 7) {
             // Tip of Outer Right Branch (extending from Root 3)
             parentId = subRepos[3].id;
             angle = subAngle + maxSpread * 0.98;
-            dist = 370;
-            yOffset = 48;
+            dist = 180;
+            yOffset = 26;
           } else {
             // Further bifurcating root tips
             const isLeft = (i % 2 === 0);
@@ -1234,8 +1235,8 @@ export function GalaxyGraphView({
             const side = isLeft ? -1 : 1;
             const spreadFactor = 0.35 + ((i % 4) * 0.18);
             angle = subAngle + side * maxSpread * spreadFactor;
-            dist = 320 + Math.floor(i / 2) * 58;
-            yOffset = (isLeft ? -1 : 1) * (25 + (i % 3) * 14);
+            dist = 160 + Math.floor(i / 2) * 26;
+            yOffset = (isLeft ? -1 : 1) * (14 + (i % 3) * 8);
           }
 
           const rx = sx + Math.cos(angle) * dist;
@@ -1282,7 +1283,7 @@ export function GalaxyGraphView({
     const uniqueLangs = Array.from(new Set(propRepositories.map(r => r.primaryLanguage).filter(Boolean))) as string[];
     uniqueLangs.slice(0, 6).forEach((lang, idx) => {
       const angle = (idx / uniqueLangs.length) * Math.PI * 2 + 0.32;
-      const dist = catRadius + 850;
+      const dist = catRadius + 480;
       const x = Math.cos(angle) * dist;
       const z = Math.sin(angle) * dist;
       const y = idx % 2 === 0 ? 140 : -140;
@@ -1311,7 +1312,7 @@ export function GalaxyGraphView({
     const topTopics = Array.from(new Set(allTopics)).slice(0, 8);
     topTopics.forEach((top, idx) => {
       const angle = (idx / topTopics.length) * Math.PI * 2 + 0.18;
-      const dist = catRadius + 1100 + (idx % 2) * 65;
+      const dist = catRadius + 640 + (idx % 2) * 45;
       const x = Math.cos(angle) * dist;
       const z = Math.sin(angle) * dist;
       const y = Math.sin(idx * 1.5) * 85;
