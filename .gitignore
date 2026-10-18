@@ -51,3 +51,9 @@ data/
 docs/
 .agents/
 
+# Local Launcher & Watcher Scripts
+start_github-library.bat
+start_mcp.bat
+watcher.py
+
+
