@@ -173,3 +173,4 @@ pnpm --filter be db:push
 | `DELETE` | `/api/repositories/:id` | Menghapus repositori dari database berdasarkan ID. |
 | `GET` | `/api/github/inspect?url=<repo_url>` | Menginspeksi metadata repositori langsung dari GitHub REST API. |
 | `GET` | `/api/translations/:owner/:repo` | Mengambil terjemahan README Bahasa Indonesia dari cache database. |
+
