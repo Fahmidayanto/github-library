@@ -803,21 +803,184 @@ export async function deleteRepositoryAction(id: string) {
   return { success: true, message: 'Repositori berhasil dihapus.' };
 }
 
+async function runInternalAdvisorChat(messages: Array<{ role: 'user' | 'assistant'; content: string }>) {
+  try {
+    const cats = await getCategoriesTree();
+    const repos = await getRepositories();
+
+    const catalogStructure = (cats || []).map(c => {
+      const subs = (c.subCategories || []).map((s: any) => `"${s.name}"`).join(', ');
+      return `- Group: "${c.name}"\n  Subgroups: ${subs || '"General"'}`;
+    }).join('\n');
+
+    const repoCatalog = (repos || []).map((r, i) => {
+      const topicsStr = Array.isArray(r.topics) ? r.topics.slice(0, 8).join(', ') : '';
+      return `--- REPO #${i + 1} ---
+fullName: ${r.fullName || `${r.owner}/${r.name}`}
+group: ${r.categoryName || 'General'}
+subgroup: ${r.subCategoryName || 'General'}
+language: ${r.primaryLanguage || 'Unknown'} | stars: ${r.starsCount || 0}
+description: ${r.description || ''}
+topics: ${topicsStr}
+clone: git clone ${r.githubUrl || `https://github.com/${r.fullName}`}.git`;
+    }).join('\n\n');
+
+    const systemPrompt = `Kamu adalah "AI Library Advisor" untuk platform GitHub Library Hub.
+Tugasmu: Merekomendasikan repositori yang TEPAT SASARAN berdasarkan katalog resmi di bawah ini.
+
+=== STRUKTUR GRUP & SUBGRUP AKTIF ===
+${catalogStructure}
+
+=== KATALOG REPOSITORI LENGKAP (${repos.length} repo) ===
+${repoCatalog}
+
+=== PROTOKOL JAWABAN ===
+1. JANGAN PERNAH mengarang repositori di luar katalog.
+2. Jika kebutuhan pengguna BELUM ADA di dalam katalog, nyatakan secara jujur dan tawarkan grup/subgrup yang tersedia.
+3. Jika ADA repositori yang cocok, sebutkan nama lengkapnya, alasan relevansinya, dan perintah git clone.
+4. Gunakan Bahasa Indonesia yang lugas, presisi, dan padat.`;
+
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const groqKey = process.env.GROQ_API_KEY;
+    let replyText: string | null = null;
+
+    // 1. Coba Gemini
+    if (geminiKey) {
+      try {
+        const models = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+        for (const model of models) {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+          const contents = messages.map(m => ({
+            role: m.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: m.content }],
+          }));
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: systemPrompt }] },
+              contents,
+              generationConfig: { temperature: 0.25, maxOutputTokens: 2048 },
+            }),
+            signal: AbortSignal.timeout(15000),
+          });
+          if (res.ok) {
+            const json = (await res.json()) as any;
+            const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text && text.trim()) {
+              replyText = text.trim();
+              break;
+            }
+          }
+        }
+      } catch (gemErr) {
+        console.warn('Internal Gemini advisor error:', gemErr);
+      }
+    }
+
+    // 2. Coba Groq
+    if (!replyText && groqKey) {
+      try {
+        const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+        for (const model of models) {
+          const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${groqKey}`,
+            },
+            body: JSON.stringify({
+              model,
+              temperature: 0.25,
+              messages: [
+                { role: 'system', content: systemPrompt },
+                ...messages.map(m => ({ role: m.role, content: m.content })),
+              ],
+            }),
+            signal: AbortSignal.timeout(15000),
+          });
+          if (res.ok) {
+            const json = (await res.json()) as any;
+            const text = json.choices?.[0]?.message?.content;
+            if (text && text.trim()) {
+              replyText = text.trim();
+              break;
+            }
+          }
+        }
+      } catch (groqErr) {
+        console.warn('Internal Groq advisor error:', groqErr);
+      }
+    }
+
+    // 3. Heuristic match jika LLM belum terkonfigurasi
+    if (!replyText) {
+      const lastUserQuery = (messages[messages.length - 1]?.content || '').toLowerCase();
+      const matched = (repos || []).filter(r => {
+        const text = `${r.name} ${r.fullName} ${r.description} ${r.categoryName} ${(r.topics || []).join(' ')}`.toLowerCase();
+        return lastUserQuery.split(' ').some(w => w.length > 3 && text.includes(w));
+      }).slice(0, 3);
+
+      if (matched.length > 0) {
+        replyText = `**Rekomendasi Repositori:** Ditemukan repositori yang cocok di katalog:\n\n` +
+          matched.map(r => `### ${r.fullName}\n- **Kategori:** ${r.categoryName}\n- **Deskripsi:** ${r.description || '-'}\n- **Clone:** \`git clone ${r.githubUrl || `https://github.com/${r.fullName}`}.git\``).join('\n\n');
+      } else {
+        replyText = `Katalog saat ini memiliki ${repos.length} repositori AI terkurasi. Anda dapat mencari repositori seputar LLM, RAG, AI Agent Tools, dan Video Synthesis.`;
+      }
+    }
+
+    // Detect matched repo cards
+    const replyLower = replyText.toLowerCase();
+    const detectedRepos = (repos || []).filter(r => {
+      const fn = (r.fullName || `${r.owner}/${r.name}`).toLowerCase();
+      return replyLower.includes(fn);
+    }).map(r => ({
+      id: r.id,
+      name: r.name,
+      fullName: r.fullName || `${r.owner}/${r.name}`,
+      categoryName: r.categoryName,
+      subCategoryName: r.subCategoryName,
+      starsCount: r.starsCount,
+      githubUrl: r.githubUrl,
+      description: r.description,
+    }));
+
+    return {
+      success: true,
+      message: replyText,
+      detectedRepos,
+      provider: 'internal-fallback',
+    };
+  } catch (internalErr: any) {
+    return {
+      success: false,
+      error: 'Asisten belum dapat memproses pertanyaan saat ini. Silakan ulangi beberapa saat lagi.',
+    };
+  }
+}
+
 export async function chatWithLibraryAdvisor(messages: Array<{ role: 'user' | 'assistant'; content: string }>) {
+  // 1. Coba hubungi Backend API Server terlebih dahulu (port 4000 atau cloud)
   try {
     const res = await fetch(`${BACKEND_URL}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages }),
       cache: 'no-store',
+      signal: AbortSignal.timeout(6000),
     });
 
     if (res.ok) {
       return await res.json();
     }
     const err = await res.json().catch(() => ({}));
-    return { success: false, error: err.error || 'Gagal menghubungi server chatbot.' };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Koneksi backend gagal.' };
+    if (err?.error) {
+      return { success: false, error: err.error };
+    }
+  } catch {
+    // Backend di port 4000 offline atau jaringan cloud tidak terhubung -> gunakan internal advisor
   }
+
+  // 2. Fallback cerdas Next.js internal (mencegah error fetch failed baik di Dev lokal maupun Cloud Vercel)
+  return await runInternalAdvisorChat(messages);
 }
