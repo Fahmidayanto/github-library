@@ -215,6 +215,16 @@ export function ChatbotWidget({ onOpenRepoDetail }: ChatbotWidgetProps) {
     };
   }, [isOpen]);
 
+  // Helper pembersih format markdown (** dan ##/###) agar bubble chat bersih rapi
+  const cleanAssistantText = (raw: string): string => {
+    if (!raw) return '';
+    return raw
+      .replace(/^#{1,6}\s+/gm, '') // Hapus tanda #, ##, ### di awal baris
+      .replace(/\*\*(.*?)\*\*/g, '$1') // Hapus ** di sekitar teks
+      .replace(/\*\*/g, '') // Hapus sisa tanda **
+      .trim();
+  };
+
   const handleSendMessage = async (textToSend?: string) => {
     const query = (textToSend || input).trim();
     if (!query || isLoading) return;
@@ -242,7 +252,7 @@ export function ChatbotWidget({ onOpenRepoDetail }: ChatbotWidgetProps) {
         const assistantMsg: ChatMessage = {
           id: `asst-${Date.now()}`,
           role: 'assistant',
-          content: res.message,
+          content: cleanAssistantText(res.message),
           detectedRepos: res.detectedRepos || [],
         };
         setMessages(prev => [...prev, assistantMsg]);
@@ -252,7 +262,7 @@ export function ChatbotWidget({ onOpenRepoDetail }: ChatbotWidgetProps) {
           {
             id: `err-${Date.now()}`,
             role: 'assistant',
-            content: res?.error || 'Maaf, terjadi kendala saat memproses rekomendasi. Silakan ulangi pertanyaan Anda.',
+            content: cleanAssistantText(res?.error || 'Maaf, terjadi kendala saat memproses rekomendasi. Silakan ulangi pertanyaan Anda.'),
           },
         ]);
       }

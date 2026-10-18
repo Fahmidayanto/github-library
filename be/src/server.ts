@@ -1350,26 +1350,28 @@ ${repoCatalog}
 
 === PROTOKOL JAWABAN (WAJIB DIIKUTI) ===
 1. JANGAN PERNAH mengarang repositori atau merekomendasikan repo yang TIDAK RELEVAN.
-2. Jika kebutuhan pengguna BELUM ADA di dalam katalog (misalnya mencari hal yang tidak berkaitan dengan AI Agent, LLM, RAG, Video, Tools):
+2. JANGAN PERNAH menggunakan simbol bintang dua (**) untuk bold dan JANGAN PERNAH menggunakan simbol pagar (#, ##, ###) untuk heading. Gunakan teks bersih biasa.
+3. Jika kebutuhan pengguna BELUM ADA di dalam katalog (misalnya mencari hal yang tidak berkaitan dengan AI Agent, LLM, RAG, Video, Tools):
    - Nyatakan secara jujur dan tegas bahwa katalog saat ini belum memiliki repositori untuk domain tersebut.
    - Jangan pernah memaksakan repo seperti codegraph, ponytail, rtk, dll jika tidak ada sangkut pautnya dengan pertanyaan.
    - Tawarkan alternatif grup/subgrup yang tersedia di katalog jika ada yang mendekati.
-3. Jika ADA repositori yang relevan:
+4. Jika ADA repositori yang relevan:
    - Pilih HANYA repositori yang benar-benar memecahkan masalah pengguna.
    - Jelaskan kecocokan teknisnya berdasarkan deskripsi, cuplikan README, atau context_knowledge yang tersedia.
-4. Format Jawaban:
-   Gunakan struktur markdown yang rapi:
-   - **Analisis Kebutuhan:** (1 kalimat ringkas mengenai apa yang dicari user)
-   - **Rekomendasi:**
-     ### [fullName]
-     - **Grup / Subgrup:** [Group] / [Subgroup]
-     - **Mengapa Relevan:** (poin teknis konkret solusi yang ditawarkan repo ini)
-     - **Spesifikasi:** [Language] | [Stars] Stars
-     - **Clone:** \`git clone https://github.com/[fullName].git\`
-5. DILARANG: kalimat pembuka/penutup klise AI ("Tentu!", "Halo!", "Semoga membantu!"), emoji, basa-basi.
-6. Bahasa: Bahasa Indonesia yang lugas, presisi, dan padat (gaya smart senior developer).`;
+5. Format Jawaban:
+   Gunakan plain text rapi tanpa ** dan tanpa ##/###:
+   Analisis Kebutuhan: (1 kalimat ringkas mengenai apa yang dicari user)
+   
+   Rekomendasi:
+   [fullName]
+   - Grup / Subgrup: [Group] / [Subgroup]
+   - Mengapa Relevan: (poin teknis konkret solusi yang ditawarkan repo ini)
+   - Spesifikasi: [Language] | [Stars] Stars
+   - Clone: git clone https://github.com/[fullName].git
+6. DILARANG: kalimat pembuka/penutup klise AI ("Tentu!", "Halo!", "Semoga membantu!"), emoji, basa-basi.
+7. Bahasa: Bahasa Indonesia yang lugas, presisi, dan padat (gaya smart senior developer).`;
 
-    // 5. Eksekusi LLM: Gemini -> Groq -> Heuristic Fallback
+    // 5. Eksekusi LLM: Gemini -> Groq Fallback (Tanpa Heuristic Manual)
     let assistantReply = await callGeminiChat(systemPrompt, messages);
     let provider = 'gemini';
 
@@ -1378,57 +1380,19 @@ ${repoCatalog}
       provider = 'groq';
     }
 
-    // 6. Heuristic Fallback (FIXED: filter stopwords & hindari false positive)
     if (!assistantReply) {
-      provider = 'heuristic';
-      const lastUserQuery = (messages[messages.length - 1]?.content || '').toLowerCase();
-
-      // Stopwords umum yang tidak boleh dijadikan keyword pencocokan
-      const stopWords = new Set([
-        'yang', 'untuk', 'dengan', 'dari', 'adalah', 'dalam', 'atau', 'dan', 'pada', 'ke', 'di',
-        'this', 'that', 'with', 'from', 'have', 'will', 'about',
-        'github', 'repo', 'repos', 'repository', 'repositori', 'cari', 'tolong',
-        'rekomendasi', 'rekomendasikan', 'buatkan', 'kasih', 'minta', 'ada', 'bisa', 'tentang'
-      ]);
-
-      const queryWords: string[] = lastUserQuery
-        .split(/[\s,.()\[\]/\\-]+/)
-        .map((w: string) => w.trim())
-        .filter((w: string) => w.length > 2 && !stopWords.has(w));
-
-      const matchedRepos = queryWords.length > 0 ? repos
-        .map(r => {
-          const summaryText = typeof r.aiSummary === 'object' && r.aiSummary !== null
-            ? ((r.aiSummary as any).corePurpose || (r.aiSummary as any).summary || '')
-            : '';
-          const repoText = [
-            r.name, r.fullName, r.description || '',
-            r.categoryName, r.subCategoryName,
-            (r.topics || []).join(' '),
-            summaryText,
-            r.readmeContent ? r.readmeContent.slice(0, 500) : '',
-          ].join(' ').toLowerCase();
-
-          // Hitung berapa kata query yang cocok di teks repo
-          const matchCount = queryWords.filter((word: string) => repoText.includes(word)).length;
-          return { repo: r, score: matchCount };
-        })
-        .filter(({ score }) => score >= 2) // minimal 2 kata substansial match
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 3)
-        .map(({ repo }) => repo) : [];
-
-      if (matchedRepos.length > 0) {
-        assistantReply = `**Analisis Kebutuhan:** Berdasarkan katalog aktif, ditemukan repositori yang relevan:\n\n` +
-          matchedRepos.map(r => {
-            const cloneUrl = r.githubUrl || `https://github.com/${r.fullName}`;
-            return `### ${r.fullName}\n- **Grup / Subgrup:** ${r.categoryName} / ${r.subCategoryName}\n- **Mengapa Relevan:** ${r.description || 'Repositori terkurasi di katalog'}\n- **Spesifikasi:** ${r.primaryLanguage || 'Unknown'} | ${(r.starsCount || 0).toLocaleString()} Stars\n- **Clone:** \`git clone ${cloneUrl}.git\``;
-          }).join('\n\n');
-      } else {
-        const groupList = cats.map(c => `- **${c.name}** (${(c.subCategories || []).map((s: any) => s.name).join(', ')})`).join('\n');
-        assistantReply = `**Analisis Kebutuhan:** Permintaan Anda tidak memiliki repositori yang cocok di katalog saat ini.\n\nKatalog platform saat ini berfokus pada grup teknis berikut:\n${groupList}\n\nSilakan ajukan pertanyaan yang berkaitan dengan kategori di atas (misal: inferensi LLM, penghemat token, video synthesis, atau agent tooling).`;
-      }
+      return res.status(503).json({
+        success: false,
+        error: 'Layanan AI sedang sibuk atau kuota sementara tercapai. Silakan coba kembali beberapa saat lagi.',
+      });
     }
+
+    // Bersihkan simbol ** dan ##/### bila model masih mengeluarkannya
+    assistantReply = (assistantReply || '')
+      .replace(/^#{1,6}\s+/gm, '')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*\*/g, '')
+      .trim();
 
     // 7. Detect repo cards (FIXED: strict fullName match saja, hindari false positive)
     const replyLower = assistantReply.toLowerCase();

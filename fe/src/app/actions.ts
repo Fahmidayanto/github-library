@@ -814,7 +814,15 @@ async function runInternalAdvisorChat(messages: Array<{ role: 'user' | 'assistan
     }).join('\n');
 
     const repoCatalog = (repos || []).map((r, i) => {
-      const topicsStr = Array.isArray(r.topics) ? r.topics.slice(0, 8).join(', ') : '';
+      const topicsStr = Array.isArray(r.topics) ? r.topics.slice(0, 10).join(', ') : '';
+      const summaryText = typeof r.aiSummary === 'object' && r.aiSummary !== null
+        ? ((r.aiSummary as any).corePurpose || (r.aiSummary as any).summary || '')
+        : (typeof r.aiSummary === 'string' ? r.aiSummary : '');
+
+      const contextDoc = (r as any).readmeContent
+        ? (r as any).readmeContent.slice(0, 1200)
+        : (summaryText || r.description || '');
+
       return `--- REPO #${i + 1} ---
 fullName: ${r.fullName || `${r.owner}/${r.name}`}
 group: ${r.categoryName || 'General'}
@@ -822,33 +830,45 @@ subgroup: ${r.subCategoryName || 'General'}
 language: ${r.primaryLanguage || 'Unknown'} | stars: ${r.starsCount || 0}
 description: ${r.description || ''}
 topics: ${topicsStr}
+readme_documentation: ${contextDoc}
 clone: git clone ${r.githubUrl || `https://github.com/${r.fullName}`}.git`;
     }).join('\n\n');
 
     const systemPrompt = `Kamu adalah "AI Library Advisor" untuk platform GitHub Library Hub.
-Tugasmu: Merekomendasikan repositori yang TEPAT SASARAN berdasarkan katalog resmi di bawah ini.
+Tugasmu: Menganalisis kebutuhan pengguna secara mendalam dan merekomendasikan repositori yang BENAR-BENAR COCOK berdasarkan dokumentasi resmi katalog di bawah ini.
 
 === STRUKTUR GRUP & SUBGRUP AKTIF ===
 ${catalogStructure}
 
-=== KATALOG REPOSITORI LENGKAP (${repos.length} repo) ===
+=== KATALOG REPOSITORI LENGKAP (${repos.length} repo dengan README & dokumentasi) ===
 ${repoCatalog}
 
-=== PROTOKOL JAWABAN ===
-1. JANGAN PERNAH mengarang repositori di luar katalog.
-2. Jika kebutuhan pengguna BELUM ADA di dalam katalog, nyatakan secara jujur dan tawarkan grup/subgrup yang tersedia.
-3. Jika ADA repositori yang cocok, sebutkan nama lengkapnya, alasan relevansinya, dan perintah git clone.
-4. Gunakan Bahasa Indonesia yang lugas, presisi, dan padat.`;
+=== PROTOKOL JAWABAN (SANGAT KETAT) ===
+1. JANGAN PERNAH merekomendasikan repo yang tidak relevan secara fungsional. Misalnya jika user mencari alat penjadwalan media sosial, rekomendasikan hanya tool scheduling (seperti postiz-app atau cogsend), JANGAN PERNAH menyarankan tutorial belajar seperti 30-Days-Of-Python.
+2. JANGAN PERNAH menggunakan simbol bintang dua (**) untuk bold dan JANGAN PERNAH menggunakan simbol pagar (#, ##, ###) untuk heading. Gunakan teks polos rapi.
+3. Jika kebutuhan pengguna BELUM ADA di dalam katalog, nyatakan secara jujur dan tawarkan grup/subgrup yang tersedia.
+4. Format Jawaban:
+Analisis Kebutuhan: (1 kalimat ringkas mengenai apa yang dicari user)
+
+Rekomendasi:
+[fullName]
+- Grup / Subgrup: [Group] / [Subgroup]
+- Mengapa Relevan: (poin teknis konkret solusi berdasarkan README)
+- Spesifikasi: [Language] | [Stars] Stars
+- Clone: git clone https://github.com/[fullName].git
+
+5. Bahasa: Bahasa Indonesia yang lugas, presisi, dan padat.`;
 
     const geminiKey = process.env.GEMINI_API_KEY;
     const groqKey = process.env.GROQ_API_KEY;
     let replyText: string | null = null;
+    let provider = 'gemini';
 
-    // 1. Coba Gemini
+    // 1. Eksekusi Google Gemini (Model aktif: gemini-3.8-flash, fallback gemini-2.0-flash)
     if (geminiKey) {
-      try {
-        const models = ['gemini-2.5-flash', 'gemini-1.5-flash'];
-        for (const model of models) {
+      const geminiModels = ['gemini-3.8-flash', 'gemini-2.0-flash'];
+      for (const model of geminiModels) {
+        try {
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
           const contents = messages.map(m => ({
             role: m.role === 'assistant' ? 'model' : 'user',
@@ -860,29 +880,30 @@ ${repoCatalog}
             body: JSON.stringify({
               systemInstruction: { parts: [{ text: systemPrompt }] },
               contents,
-              generationConfig: { temperature: 0.25, maxOutputTokens: 2048 },
+              generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
             }),
-            signal: AbortSignal.timeout(15000),
+            signal: AbortSignal.timeout(18000),
           });
           if (res.ok) {
             const json = (await res.json()) as any;
             const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
             if (text && text.trim()) {
               replyText = text.trim();
+              provider = `gemini (${model})`;
               break;
             }
           }
+        } catch (gemErr) {
+          console.warn(`Gemini (${model}) error:`, gemErr);
         }
-      } catch (gemErr) {
-        console.warn('Internal Gemini advisor error:', gemErr);
       }
     }
 
-    // 2. Coba Groq
+    // 2. Eksekusi Groq Cloud Fallback (Model aktif valid: qwen/qwen3.8-27b, openai/gpt-oss-120b)
     if (!replyText && groqKey) {
-      try {
-        const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
-        for (const model of models) {
+      const groqModels = ['qwen/qwen3.8-27b', 'openai/gpt-oss-120b', 'qwen/qwen3.6-27b'];
+      for (const model of groqModels) {
+        try {
           const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -891,43 +912,43 @@ ${repoCatalog}
             },
             body: JSON.stringify({
               model,
-              temperature: 0.25,
+              temperature: 0.2,
               messages: [
                 { role: 'system', content: systemPrompt },
                 ...messages.map(m => ({ role: m.role, content: m.content })),
               ],
             }),
-            signal: AbortSignal.timeout(15000),
+            signal: AbortSignal.timeout(18000),
           });
           if (res.ok) {
             const json = (await res.json()) as any;
             const text = json.choices?.[0]?.message?.content;
             if (text && text.trim()) {
               replyText = text.trim();
+              provider = `groq (${model})`;
               break;
             }
           }
+        } catch (groqErr) {
+          console.warn(`Groq (${model}) error:`, groqErr);
         }
-      } catch (groqErr) {
-        console.warn('Internal Groq advisor error:', groqErr);
       }
     }
 
-    // 3. Heuristic match jika LLM belum terkonfigurasi
+    // Jika kedua LLM gagal menghubungi server AI
     if (!replyText) {
-      const lastUserQuery = (messages[messages.length - 1]?.content || '').toLowerCase();
-      const matched = (repos || []).filter(r => {
-        const text = `${r.name} ${r.fullName} ${r.description} ${r.categoryName} ${(r.topics || []).join(' ')}`.toLowerCase();
-        return lastUserQuery.split(' ').some(w => w.length > 3 && text.includes(w));
-      }).slice(0, 3);
-
-      if (matched.length > 0) {
-        replyText = `**Rekomendasi Repositori:** Ditemukan repositori yang cocok di katalog:\n\n` +
-          matched.map(r => `### ${r.fullName}\n- **Kategori:** ${r.categoryName}\n- **Deskripsi:** ${r.description || '-'}\n- **Clone:** \`git clone ${r.githubUrl || `https://github.com/${r.fullName}`}.git\``).join('\n\n');
-      } else {
-        replyText = `Katalog saat ini memiliki ${repos.length} repositori AI terkurasi. Anda dapat mencari repositori seputar LLM, RAG, AI Agent Tools, dan Video Synthesis.`;
-      }
+      return {
+        success: false,
+        error: 'Layanan AI sedang sibuk atau kuota sementara tercapai. Silakan coba kembali beberapa saat lagi.',
+      };
     }
+
+    // Pembersihan menyeluruh simbol ** dan ## dari output
+    replyText = replyText
+      .replace(/^#{1,6}\s+/gm, '')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*\*/g, '')
+      .trim();
 
     // Detect matched repo cards
     const replyLower = replyText.toLowerCase();
